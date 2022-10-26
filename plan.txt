@@ -1,0 +1,177 @@
+
+- basic types:
+    DID
+    DID document
+    NSID
+    TID
+    atp URI
+- libraries:
+    chrono
+    data store: sqlite?
+    cbor (dag-cbor)
+    url or uri (for atp URIs?)
+    ucan
+
+- background reading
+    MST (merkle search tree)
+
+- describe datastore needs (schemas)
+
+- missing docs (look in code?)
+    "cbor normalization"
+
+
+## High-Level Architecture of PDS
+
+- has accounts/users
+- manages persistent repos
+- implements all relevant XRPC endpoints
+
+simple implementation would just:
+- statically implement "lexicons" (not flexible/general)
+- static account registrations (or single account!), eg in TOML file
+
+
+## High-level Architecture of CLI
+
+- persist auth info locally
+- cache DID / petnames locally (?)
+- virtually everything is a query to PDS
+- implements XRPC as a client, including methods and types
+
+
+## PDS Datastore Needs
+
+https://github.com/bluesky-social/atproto/blob/main/packages/server/src/db/database-schema.ts
+
+loosely, probably want to have two distinct datastores, even if they end up in
+the same underlying database. one is the raw repository merkle search tree, the
+other is a more semantic set of content.
+
+raw repo can be just key/value with CID (string or bytes) as key and raw CBOR
+bytes as value. there are probably better and worse implementations but this is
+fine on it's own.
+
+the semantic info is probably a set of relational tables; let's call these
+"content tables". may want various flexible indices on top of them.
+
+there are also probably (?) additional caches and system tables for things like
+invite codes. let's call these "service tables".
+
+mostly reads go to the content and system tables. writes would go to the raw
+repo, then update the content tables as needed. all in a single database
+transaction?
+
+
+
+## Crawling
+
+spider:
+- start with a list of DID in frontier
+- foreach in frontier
+    => fetch entire repo
+    => extract list of other DIDs via 'like', 'follow'
+    => add to crawl frontier (which is de-duped)
+
+
+## Summary
+
+User content is stored in per-user "repos", which are analagous to git
+repositories. They are merkle-tree like, and have a series of signed "commits"
+to verify authenticity.
+
+Identities are "DIDs", which are permanent URI-like strings which can somehow
+be securely dereferenced to a user profile which contains a public key. The
+user profile (and key) can change over time. Each DID has a scheme type that
+describes how registration and dereferencing should work. There are several
+proposed schemes but none seem to meet all the requirements for a
+decentralized, low-cost, low-friction system as desired... maybe a better one
+will emerge?
+
+Repos usually live in a hosted service, and user clients communicate over an
+HTTP protocol (instead of mutating the merkle tree directly). The signing key
+is deposited with the hosting service. It is possible to suck out the entire
+merkle tree from hosted services.
+
+
+Short pitch:
+- social media content stored in something like signed git repos
+- currently all content is public and signed (non-refutable)
+- users control a pointer to where repo is currently hosted, and can migrate by
+  copying and pointing somewhere new
+- thin clients don't store full repos for self or others, they just do HTTP RPC
+  calls to host service. this includes things like search, aggregation, counts.
+- application protocols can define new content schemas and client RPC methods
+
+How does it compare to ActivityPub?
+- ATP specifies how user content is *persisted*, and allows migration of content between hosts
+- ActivityPub is about communicating events between hosts
+- likely possible to implement ActivityPub as part of an ATP host
+
+## Thoughts
+
+This isn't really offline-first. Writes can not merge; whichever devices gets
+to the PDS first "wins". There is no merge process.
+
+Wait, I guess this really is just IPLD. Will server-server communication just
+be IPFS stuff (bitswap, graphsync)?
+
+## Issues
+
+Service power:
+
+- could rate-limit crawling/harvesting of repos. eg, Google has an advantage in
+  web crawling today
+- what would the impact be of "faster" cache services where clients can fetch
+  repos from
+
+Usability:
+
+- time delay in conversations/threads. eg, replies from strangers could take a
+  long time to show up
+
+Tech/Features:
+
+- pub/sub style "subscribe" for clients (eg, to receive push notifications from
+  server, instead of polling)
+
+Questions:
+
+- seems like all content is public, signed, and non-refutable. are deletions just publishing a retraction request? is retracted content not served up in the repository?
+- how will media blobs work? eg, video. migrations, bandwidth, take-downs.
+- can applications (protocols/lexicons) specify new server-to-server RPC methods? or is sync effectively the only server-to-server method needed?
+- reader privacy: guess that PDS can see a lot about reader, but depending on size can partially shield who is reading what externally?
+- should there be a mechanism for sharing client state? eg, what content/notifications have been "seen" across devices
+- how would something like a 140-character limit be expressed in a Lexicon? seems like an extra computational predicate or validation on top of the schema
+- are Lexicons versioned, or immutable over time?
+- shouldn't it be atp://
+
+
+## Another Plan
+
+- schema generation from JSON schemas; just models, or RPC as well?
+
+PDS (adenosine-pds):
+- use existing `ipfs-sqlite-block-store` to store repo as IPLD DAG
+- basic MST implementation layer on top of IPLD store
+
+CLI (adenosine):
+- base atproto only (?)
+- account management
+    => secret store for revocation key?
+- some kind of DID address book / contacts?
+- generic CRUD and list commands working with at:// URIs
+
+
+## Lexicon Ideas
+
+- journal publishing
+- tumblr-style microblogging
+
+## TODO
+
+- rust library for jq-like JSON queries ("JSON Pointers", https://datatracker.ietf.org/doc/html/rfc6901)
+- actually read/understand did-web spec
+- try to understand how small-world reference and notification would actually work
+    => PDS pulls in everything via follow/following graph, and spiders +1?
+    => query aggregators for references and pull any in?
