@@ -1,0 +1,65 @@
+
+CLI name is `adenosine`.
+
+This is (for now) a "light" or "delegated" client which has no local state and
+just talks to the remote.
+
+config variables:
+
+    ATP_SERVICE: prefix, eg http://localhost:1234
+    ATP_AUTH_TOKEN: JWT string
+
+at-uri can be either a global `at://` URI string, or a user-local referene of
+the form <collection>/<TID>.
+
+like in httpie, params can be '=' for a JSON field assignment; '==' for query
+parameters (though there are usually CLI args instead); '@' to import a JSON
+file; '-' to read a JSON file from stdin.
+
+    get <at-uri>
+    ls <at-uri>?
+
+    create <collection> <params>+
+    update <at-uri> <params>+
+    delete <at-uri>
+
+    describe <name|did>
+    resolve <name|did> => output DID doc (optionally do this directly?)
+
+    validate <nsid> <params>+
+
+    status
+        => status of configuration, registration, logged in, current did/username (from JWT?), etc
+
+    account
+        register
+        delete
+        login
+        logout
+        info <name>?
+        create-revocation-key
+
+    repo
+        root
+        export <at-uri>?
+        import <in-cbor-filename> [--from <cid>]
+
+    xrpc get|post <nsid> [<params>]+
+        => generic method
+
+    bsky
+        feed <name>?
+        notifications
+
+        post [<params>]+
+        repost <at-uri>
+        like <at-uri>
+        unlike <at-uri>
+        follow <name|did>
+        unfollow <name|did>
+
+        follows <name|did>?
+        followers <name|did>?
+        profile <name>?
+        search-users <query>
+

@@ -1,5 +1,5 @@
 [package]
-name = "adenosine"
+name = "adenosine-cli"
 version = "0.1.0-dev.0"
 edition = "2021"
 authors = ["Bryan Newbold <bnewbold@robocracy.org>"]
@@ -12,11 +12,14 @@ keywords = ["atproto"]
 
 [dependencies]
 structopt = "*"
-hyper = "*"
-tokio = { version = "1", features = ["full"] }
+# NOTE: could try 'rustls-tls' feature instead of default native TLS?
+reqwest = { version = "0.11", features = ["blocking", "json"] }
 serde_json = "*"
-log = "*"
-env_logger = "*"
+
+# uncertain about these...
+anyhow = "1.0"
+atty = "0.2"
+colored_json = "*"
 
 [package.metadata.deb]
 maintainer = "Bryan Newbold <bnewbold@robocracy.org>"
