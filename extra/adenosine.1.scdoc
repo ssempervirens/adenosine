@@ -1,0 +1,40 @@
+adenosine(1) "adenosine Client Tool Manual Page"
+
+# NAME
+
+adenosine - command-line client for AT protocol (atproto.com)
+
+# SYNOPSIS
+
+adenosine [OPTIONS] <COMMAND> <ARGS>
+
+# DESCRIPTION
+
+TODO
+
+# COMMANDS
+
+## Other Commands
+
+	*status* [--json]
+		Summarizes connection and authentication to the API server. Useful for debugging
+
+# OPTIONS
+
+*-h, --help*
+	Prints help information
+
+*-V, --version*
+	Prints version information
+
+*-v, --verbose*
+	Pass many times for more log output
+	By default, it'll only report errors. Passing `-v` one time also prints warnings, `-vv` enables info logging, `-vvv` debug, and `-vvvv` trace.
+
+*--host <atp-host>* [env: ATP_HOST]
+
+*--auth-token <auth-token>* [env: ATP_AUTH_TOKEN]
+
+# EXAMPLES
+
+TODO
