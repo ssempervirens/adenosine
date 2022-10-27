@@ -40,9 +40,9 @@ file; '-' to read a JSON file from stdin.
         create-revocation-key
 
     repo
-        root
-        export <at-uri>?
-        import <in-cbor-filename> [--from <cid>]
+        root <did>?
+        export <did>?
+        import --did <did> <in-cbor-filename> [--from <cid>]
 
     xrpc get|post <nsid> [<params>]+
         => generic method

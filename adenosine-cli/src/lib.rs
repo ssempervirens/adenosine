@@ -53,7 +53,7 @@ impl XrpcClient {
 
     pub fn get(
         &self,
-        nsid: String,
+        nsid: &str,
         params: Option<HashMap<String, String>>,
     ) -> Result<Option<Value>> {
         let params: HashMap<String, String> = params.unwrap_or(HashMap::new());
@@ -61,25 +61,119 @@ impl XrpcClient {
             .http_client
             .get(format!("{}/xrpc/{}", self.host, nsid))
             .query(&params)
-            .send()?
-            .error_for_status()?;
+            .send()?;
+        if res.status() == 400 {
+            let val: Value = res.json()?;
+            return Err(anyhow!(
+                "XRPC Bad Request: {}",
+                val["message"].as_str().unwrap_or("unknown")
+            ));
+        }
+        let res = res.error_for_status()?;
         Ok(res.json()?)
+    }
+
+    pub fn get_to_writer<W: std::io::Write>(
+        &self,
+        nsid: &str,
+        params: Option<HashMap<String, String>>,
+        output: &mut W,
+    ) -> Result<u64> {
+        let params: HashMap<String, String> = params.unwrap_or(HashMap::new());
+        let res = self
+            .http_client
+            .get(format!("{}/xrpc/{}", self.host, nsid))
+            .query(&params)
+            .send()?;
+        if res.status() == 400 {
+            let val: Value = res.json()?;
+            return Err(anyhow!(
+                "XRPC Bad Request: {}",
+                val["message"].as_str().unwrap_or("unknown")
+            ));
+        }
+        let mut res = res.error_for_status()?;
+        Ok(res.copy_to(output)?)
     }
 
     pub fn post(
         &self,
-        nsid: String,
+        nsid: &str,
         params: Option<HashMap<String, String>>,
         body: Value,
     ) -> Result<Option<Value>> {
         let params: HashMap<String, String> = params.unwrap_or(HashMap::new());
         let res = self
             .http_client
-            .get(format!("{}/xrpc/{}", self.host, nsid))
+            .post(format!("{}/xrpc/{}", self.host, nsid))
             .query(&params)
             .json(&body)
-            .send()?
-            .error_for_status()?;
+            .send()?;
+        if res.status() == 400 {
+            let val: Value = res.json()?;
+            return Err(anyhow!(
+                "XRPC Bad Request: {}",
+                val["message"].as_str().unwrap_or("unknown")
+            ));
+        }
+        let res = res.error_for_status()?;
         Ok(res.json()?)
     }
+
+    pub fn post_cbor_from_reader<R: std::io::Read>(
+        &self,
+        nsid: &str,
+        params: Option<HashMap<String, String>>,
+        input: &mut R,
+    ) -> Result<Option<Value>> {
+        let params: HashMap<String, String> = params.unwrap_or(HashMap::new());
+        let mut buf: Vec<u8> = Vec::new();
+        input.read_to_end(&mut buf)?;
+        let res = self
+            .http_client
+            .post(format!("{}/xrpc/{}", self.host, nsid))
+            .query(&params)
+            .header(reqwest::header::CONTENT_TYPE, "application/cbor")
+            .body(buf)
+            .send()?;
+        if res.status() == 400 {
+            let val: Value = res.json()?;
+            return Err(anyhow!(
+                "XRPC Bad Request: {}",
+                val["message"].as_str().unwrap_or("unknown")
+            ));
+        }
+        let res = res.error_for_status()?;
+        Ok(res.json()?)
+    }
+
+    //  reqwest::blocking::Body
 }
+
+/// Tries to parse a DID internal identifier from a JWT (as base64-encoded token)
+pub fn parse_did_from_jwt(jwt: &str) -> Result<String> {
+    let second_b64 = jwt.split(".").nth(1).ok_or(anyhow!("couldn't parse JWT"))?;
+    let second_json: Vec<u8> = base64::decode_config(second_b64, base64::URL_SAFE)?;
+    let obj: Value = serde_json::from_slice(&second_json)?;
+    let did = obj["sub"]
+        .as_str()
+        .ok_or(anyhow!("couldn't find DID subject in JWT"))?
+        .to_string();
+    if !did.starts_with("did:") {
+        return Err(anyhow!("couldn't find DID subject in JWT"));
+    }
+    Ok(did)
+}
+
+#[test]
+fn test_parse_jwt() {
+    assert!(parse_did_from_jwt(".").is_err());
+    assert_eq!(
+        parse_did_from_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6cGxjOmV4M3NpNTI3Y2QyYW9nYnZpZGtvb296YyIsImlhdCI6MTY2NjgyOTM5M30.UvZgTqvaJICONa1wIUT1bny7u3hqVAqWhWy3qeuyZrE").unwrap(),
+        "did:plc:ex3si527cd2aogbvidkooozc",
+    );
+    assert!(parse_did_from_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9").is_err());
+}
+
+// TODO: parse at-uri
+// at://did:plc:ltk4reuh7rkoy2frnueetpb5/app.bsky.follow/3jg23pbmlhc2a

@@ -8,6 +8,7 @@ version = "0.1.0-dev.0"
 dependencies = [
  "anyhow",
  "atty",
+ "base64",
  "colored_json",
  "env_logger",
  "log",

@@ -1,12 +1,11 @@
 use adenosine_cli::*;
 use anyhow::anyhow;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::collections::HashMap;
 
 use colored_json::to_colored_json_auto;
-use log::{self, debug, info};
+use log::{self, debug};
 use std::io::Write;
-use std::path::PathBuf;
 use structopt::StructOpt;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
@@ -58,16 +57,87 @@ enum AccountCommand {
         password: String,
     },
     Delete,
-    Login,
+    Login {
+        #[structopt(long, short)]
+        username: String,
+
+        #[structopt(long, short)]
+        password: String,
+    },
     Logout,
     Info,
-    CreateRevocationKey,
+    // TODO: CreateRevocationKey,
+}
+
+#[derive(StructOpt)]
+enum RepoCommand {
+    Root {
+        #[structopt(long)]
+        did: String,
+    },
+    Export {
+        #[structopt(long)]
+        did: String,
+        #[structopt(long)]
+        from: Option<String>,
+    },
+    Import {
+        // XXX: either path or stdin
+        #[structopt(long)]
+        did: String,
+    },
+}
+
+#[derive(StructOpt)]
+enum BskyCommand {
+    Feed { name: Option<String> },
+    Notifications,
+    Post { text: String },
+    Repost { uri: String },
+    Like { uri: String },
+    // TODO: Repost { uri: String, },
+    Follow { uri: String },
+    // TODO: Unfollow { uri: String, },
+    /*
+    Follows {
+        name: String,
+    },
+    Followers {
+        name: String,
+    },
+    */
+    Profile { name: String },
+    SearchUsers { query: String },
 }
 
 #[derive(StructOpt)]
 enum Command {
     Get {
         uri: String,
+    },
+
+    Ls {
+        uri: String,
+    },
+
+    Create {
+        collection: String,
+        body: String,
+    },
+    Update {
+        uri: String,
+        params: String,
+    },
+    Delete {
+        uri: String,
+    },
+
+    Describe {
+        name: String,
+    },
+
+    Resolve {
+        name: String,
     },
 
     Xrpc {
@@ -80,6 +150,16 @@ enum Command {
     Account {
         #[structopt(subcommand)]
         cmd: AccountCommand,
+    },
+
+    Repo {
+        #[structopt(subcommand)]
+        cmd: RepoCommand,
+    },
+
+    Bsky {
+        #[structopt(subcommand)]
+        cmd: BskyCommand,
     },
 
     /// Summarize connection and authentication with API
@@ -136,40 +216,73 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn run(opt: Opt) -> Result<()> {
-    let xrpc_client = XrpcClient::new(opt.atp_host, opt.auth_token)?;
+fn print_result_json(result: Option<Value>) -> Result<()> {
+    if let Some(val) = result {
+        writeln!(&mut std::io::stdout(), "{}", to_colored_json_auto(&val)?)?
+    };
+    Ok(())
+}
 
-    match opt.cmd {
+fn run(opt: Opt) -> Result<()> {
+    let xrpc_client = XrpcClient::new(opt.atp_host.clone(), opt.auth_token.clone())?;
+    let mut params: HashMap<String, String> = HashMap::new();
+    let jwt_did: Option<String> = if let Some(ref token) = opt.auth_token {
+        Some(parse_did_from_jwt(token)?)
+    } else {
+        None
+    };
+
+    let result = match opt.cmd {
+        Command::Status => {
+            // XXX
+            println!("Configuration");
+            println!("  ATP_HOST: {}", opt.atp_host);
+            if opt.auth_token.is_some() {
+                println!("  ATP_AUTH_TOKEN: <configured>");
+            } else {
+                println!("  ATP_AUTH_TOKEN:");
+            }
+            // TODO: parse JWT?
+            // TODO: connection, auth check
+            // TODO: account username, did, etc
+            None
+        }
+        Command::Describe { name } => {
+            params.insert("user".to_string(), name);
+            xrpc_client.get("com.atproto.repoDescribe", Some(params))?
+        }
+        Command::Resolve { name } => {
+            let mut params: HashMap<String, String> = HashMap::new();
+            params.insert("name".to_string(), name);
+            xrpc_client.get("com.atproto.resolveName", Some(params))?
+        }
+        Command::Get { uri } => {
+            println!("GET: {}", uri);
+            None
+        }
+        Command::Ls { uri } => {
+            unimplemented!()
+        }
+        Command::Create { collection, body } => {
+            unimplemented!()
+        }
+        Command::Update { uri, params } => {
+            unimplemented!()
+        }
+        Command::Delete { uri } => {
+            unimplemented!()
+        }
         Command::Xrpc {
             method,
             nsid,
             params,
         } => {
             let body: Value = ().into();
-            let res = match method {
+            match method {
                 // XXX: parse params
-                XrpcMethod::Get => xrpc_client.get(nsid, None)?,
-                XrpcMethod::Post => xrpc_client.post(nsid, None, body)?,
-            };
-            if let Some(val) = res {
-                writeln!(&mut std::io::stdout(), "{}", to_colored_json_auto(&val)?)?
-            };
-        }
-        Command::Get { uri } => {
-            println!("GET: {}", uri);
-            /*
-            let result = specifier.get_from_api(&mut api_client, expand, hide)?;
-            if toml {
-                writeln!(&mut std::io::stdout(), "{}", result.to_toml_string()?)?
-            } else {
-                // "if json"
-                writeln!(
-                    &mut std::io::stdout(),
-                    "{}",
-                    to_colored_json_auto(&result.to_json_value()?)?
-                )?
+                XrpcMethod::Get => xrpc_client.get(&nsid, None)?,
+                XrpcMethod::Post => xrpc_client.post(&nsid, None, body)?,
             }
-            */
         }
         Command::Account {
             cmd:
@@ -178,15 +291,154 @@ fn run(opt: Opt) -> Result<()> {
                     username,
                     password,
                 },
+        } => xrpc_client.post(
+            "com.atproto.createAccount",
+            None,
+            json!({
+                "email": email,
+                "username": username,
+                "password": password,
+            }),
+        )?,
+        Command::Account {
+            cmd: AccountCommand::Login { username, password },
+        } => xrpc_client.post(
+            "com.atproto.createSession",
+            None,
+            json!({
+                "username": username,
+                "password": password,
+            }),
+        )?,
+        Command::Account {
+            cmd: AccountCommand::Logout,
+        } => xrpc_client.post("com.atproto.deleteSession", None, json!({}))?,
+        Command::Account {
+            cmd: AccountCommand::Delete,
+        } => xrpc_client.post("com.atproto.deleteAccount", None, json!({}))?,
+        Command::Account {
+            cmd: AccountCommand::Info,
+        } => xrpc_client.get("com.atproto.getAccount", None)?,
+        Command::Repo {
+            cmd: RepoCommand::Root { did },
         } => {
-            println!(
-                "REGISTER: email={} username={} password={}",
-                email, username, password
+            params.insert("did".to_string(), did);
+            xrpc_client.get("com.atproto.syncGetRoot", Some(params))?
+        }
+        Command::Repo {
+            cmd: RepoCommand::Export { did, from },
+        } => {
+            params.insert("did".to_string(), did);
+            if let Some(from) = from {
+                params.insert("from".to_string(), from);
+            };
+            xrpc_client.get_to_writer(
+                "com.atproto.syncGetRepo",
+                Some(params),
+                &mut std::io::stdout(),
+            )?;
+            None
+        }
+        Command::Repo {
+            cmd: RepoCommand::Import { did },
+        } => {
+            params.insert("did".to_string(), did);
+            xrpc_client.post_cbor_from_reader(
+                "com.atproto.syncUpdateRepo",
+                Some(params),
+                &mut std::io::stdin(),
+            )?
+        }
+        Command::Bsky {
+            cmd: BskyCommand::Feed { name },
+        } => {
+            if let Some(name) = name {
+                params.insert("author".to_string(), name);
+                xrpc_client.get("app.bsky.getAuthorFeed", Some(params))?
+            } else {
+                xrpc_client.get("app.bsky.getHomeFeed", None)?
+            }
+        }
+        Command::Bsky {
+            cmd: BskyCommand::Notifications,
+        } => xrpc_client.get("app.bsky.getNotifications", None)?,
+        Command::Bsky {
+            cmd: BskyCommand::Post { text },
+        } => {
+            params.insert(
+                "did".to_string(),
+                jwt_did.ok_or(anyhow!("need auth token"))?,
             );
+            params.insert("collection".to_string(), "app.bsky.post".to_string());
+            xrpc_client.post(
+                "com.atproto.repoCreateRecord",
+                Some(params),
+                json!({
+                    "text": text,
+                }),
+            )?
         }
-        _ => {
-            unimplemented!("some command");
+        Command::Bsky {
+            cmd: BskyCommand::Repost { uri },
+        } => {
+            params.insert(
+                "did".to_string(),
+                jwt_did.ok_or(anyhow!("need auth token"))?,
+            );
+            params.insert("collection".to_string(), "app.bsky.repost".to_string());
+            xrpc_client.post(
+                "com.atproto.repoCreateRecord",
+                Some(params),
+                json!({
+                    "subject": uri,
+                }),
+            )?
         }
-    }
+        Command::Bsky {
+            cmd: BskyCommand::Like { uri },
+        } => {
+            params.insert(
+                "did".to_string(),
+                jwt_did.ok_or(anyhow!("need auth token"))?,
+            );
+            params.insert("collection".to_string(), "app.bsky.like".to_string());
+            xrpc_client.post(
+                "com.atproto.repoCreateRecord",
+                Some(params),
+                json!({
+                    "subject": uri,
+                }),
+            )?
+        }
+        Command::Bsky {
+            cmd: BskyCommand::Follow { uri },
+        } => {
+            params.insert(
+                "did".to_string(),
+                jwt_did.ok_or(anyhow!("need auth token"))?,
+            );
+            params.insert("collection".to_string(), "app.bsky.follow".to_string());
+            xrpc_client.post(
+                "com.atproto.repoCreateRecord",
+                Some(params),
+                json!({
+                    "subject": uri,
+                }),
+            )?
+        }
+        Command::Bsky {
+            cmd: BskyCommand::Profile { name },
+        } => {
+            params.insert("name".to_string(), name);
+            xrpc_client.get("app.bsky.getProfile", Some(params))?
+        }
+        Command::Bsky {
+            cmd: BskyCommand::SearchUsers { query },
+        } => {
+            params.insert("term".to_string(), query);
+            xrpc_client.get("app.bsky.getUsersSearch", Some(params))?
+        }
+    };
+    print_result_json(result)?;
     Ok(())
 }
