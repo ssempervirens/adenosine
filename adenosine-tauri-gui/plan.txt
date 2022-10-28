@@ -1,0 +1,14 @@
+tauri GUI proof of concept:
+- build on CLI utils?
+- store config as TOML (serlialized) in some XDG location
+- views:
+    => initial config (register/login)
+    => home (feed)
+    => notifications
+    => settings (profile, auth)
+    => author view (profile, feed, followers, following)
+    => create post
+- buttons/actions:
+    => like
+    => follow
+- could try htmx with only 'get' requests to pass args?

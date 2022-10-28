@@ -1,0 +1,22 @@
+
+CLI polish:
+- register and login commands should do more than just dump JSON
+    => return shell 'export' command (for easier config)
+- log (info level) all XRPC requests and responses. especially non-200 response bodies
+- status should show more stuff, like DID from JWT token
+    => and color!
+- AtUri: at://jekyll.test/app.bsky.post/ (trailing slash should be allowed)
+- include createdAt field, eg: "2022-10-28T06:10:12.106Z"
+- 'get' could allow cid values (maybe with a prefix?)
+- --help should mention env variables
+- update top-level README
+    => badges: AGPL, CI
+
+later:
+- mention IPFS exploration of export CAR files
+- invite codes in account registration
+- try musl/rustls builds, especially for CLI
+- debian repo
+    https://www.aptly.info/doc/aptly/publish/
+    or 'reprepro'
+    gitlab hosting not ready/working

@@ -1,0 +1,21 @@
+
+PDS proof of concept:
+- ipld sqlite driver importing CAR file
+- MST code to read and mutate state
+- sqlite schema
+- JSON schema type generation (separate crate?)
+- write wrapper which updates MST *and* updates other tables in a transaction
+- did:web thingie?
+- HTTP API handler implementing most endpoints
+
+libraries:
+- `jsonschema` to validate requests and records (rich validation)
+- `schemafy` to codegen serde types for records (ahead of time?)
+- `rusqlite` with "bundled" sqlite for datastore
+- `ipfs-sqlite-block-store` and `libipld` to parse and persist repo content 
+- `warp` as async HTTP service
+- `r2d2` to wrap rusqlite (?)
+- pretty_env_logger
+- ??? for CBOR (de)serialization of MST, separate from the IPLD stuff?
+- no good crate for working with CAR files... could rip out this code?
+    https://github.com/n0-computer/iroh/tree/main/iroh-car
