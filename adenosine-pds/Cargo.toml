@@ -14,11 +14,14 @@ repository.workspace = true
 
 [dependencies]
 structopt = "*"
-hyper = "*"
-tokio = { version = "1", features = ["full"] }
 serde_json = "*"
 log = "*"
-env_logger = "*"
+pretty_env_logger = "*"
+ipfs-sqlite-block-store = "*"
+rusqlite = { version = "0.28", features = ["bundled"] }
+jsonschema = "*"
+schemafy = "*"
+warp = "*"
 
 [package.metadata.deb]
 maintainer = "Bryan Newbold <bnewbold@robocracy.org>"
