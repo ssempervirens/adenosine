@@ -1,0 +1,13 @@
+stages:
+  - test
+
+rust-latest:
+  stage: test
+  image: rust:1.59-bullseye
+  before_script:
+    - apt update -qy
+    # these are for tauri dev
+    - apt install -y libwebkit2gtk-4.0-dev build-essential curl wget libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+  script:
+    - make test
+
