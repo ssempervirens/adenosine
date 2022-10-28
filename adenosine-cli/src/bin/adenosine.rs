@@ -123,11 +123,11 @@ enum Command {
 
     Create {
         collection: String,
-        fields: String,
+        fields: Vec<ArgField>,
     },
     Update {
         uri: AtUri,
-        fields: String,
+        fields: Vec<ArgField>,
     },
     Delete {
         uri: AtUri,
@@ -144,7 +144,7 @@ enum Command {
     Xrpc {
         method: XrpcMethod,
         nsid: String,
-        fields: Option<String>,
+        fields: Vec<ArgField>,
     },
 
     /// Sub-commands for managing account
@@ -274,7 +274,7 @@ fn run(opt: Opt) -> Result<()> {
             if let Some(c) = cid {
                 params.insert("cid".to_string(), c);
             }
-            xrpc_client.post("com.atproto.repoGetRecord", Some(params), json!({}))?
+            xrpc_client.get("com.atproto.repoGetRecord", Some(params))?
         }
         Command::Ls { uri } => {
             // TODO: option to print fully-qualified path?
@@ -303,7 +303,9 @@ fn run(opt: Opt) -> Result<()> {
         }
         Command::Create { collection, fields } => {
             params.insert("collection".to_string(), collection);
-            unimplemented!()
+            update_params_from_fields(&fields, &mut params);
+            let val = value_from_fields(fields);
+            xrpc_client.post("com.atproto.repoCreateRecord", Some(params), val)?
         }
         Command::Update { uri, fields } => {
             params.insert("did".to_string(), uri.repository.to_string());
@@ -315,7 +317,13 @@ fn run(opt: Opt) -> Result<()> {
                 "rkey".to_string(),
                 uri.record.ok_or(anyhow!("record key required"))?,
             );
-            unimplemented!()
+            // fetch existing, extend map with fields, put the updated value
+            let mut record = xrpc_client
+                .get("com.atproto.repoGetRecord", Some(params.clone()))?
+                .unwrap_or(json!({}));
+            update_params_from_fields(&fields, &mut params);
+            update_value_from_fields(fields, &mut record);
+            xrpc_client.post("com.atproto.repoPutRecord", Some(params), record)?
         }
         Command::Delete { uri } => {
             params.insert("did".to_string(), uri.repository.to_string());
@@ -334,11 +342,11 @@ fn run(opt: Opt) -> Result<()> {
             nsid,
             fields,
         } => {
-            let body: Value = ().into();
+            update_params_from_fields(&fields, &mut params);
+            let body = value_from_fields(fields);
             match method {
-                // XXX: parse params
-                XrpcMethod::Get => xrpc_client.get(&nsid, None)?,
-                XrpcMethod::Post => xrpc_client.post(&nsid, None, body)?,
+                XrpcMethod::Get => xrpc_client.get(&nsid, Some(params))?,
+                XrpcMethod::Post => xrpc_client.post(&nsid, Some(params), body)?,
             }
         }
         Command::Account {

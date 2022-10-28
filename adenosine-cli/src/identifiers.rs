@@ -118,6 +118,10 @@ fn test_aturi() {
     assert!(AtUri::from_str("at://bob.com/io.example.song").is_ok());
     assert!(AtUri::from_str("at://bob.com/io.example.song/3yI5-c1z-cc2p-1a").is_ok());
     assert!(AtUri::from_str("at://bob.com/io.example.song/3yI5-c1z-cc2p-1a#/title").is_ok());
+    assert!(
+        AtUri::from_str("at://did:plc:ltk4reuh7rkoy2frnueetpb5/app.bsky.follow/3jg23pbmlhc2a")
+            .is_ok()
+    );
 
     let uri = AtUri {
         repository: DidOrHost::Did("some".to_string(), "thing".to_string()),

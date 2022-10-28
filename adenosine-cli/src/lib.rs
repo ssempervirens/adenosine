@@ -1,5 +1,7 @@
 use anyhow::anyhow;
 pub use anyhow::Result;
+use lazy_static::lazy_static;
+use regex::Regex;
 use reqwest::header;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -178,5 +180,63 @@ fn test_parse_jwt() {
     assert!(parse_did_from_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9").is_err());
 }
 
-// TODO: parse at-uri
-// at://did:plc:ltk4reuh7rkoy2frnueetpb5/app.bsky.follow/3jg23pbmlhc2a
+/// Represents fields/content specified on the command line.
+///
+/// Sort of like HTTPie. Query parameters are '==', body values (JSON) are '='. Only single-level
+/// body values are allowed currently, not JSON Pointer assignment.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum ArgField {
+    Query(String, serde_json::Value),
+    Body(String, serde_json::Value),
+}
+
+impl FromStr for ArgField {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        lazy_static! {
+            static ref FIELD_RE: Regex = Regex::new(r"^([a-zA-Z_]+)=(=?)(.*)$").unwrap();
+        }
+        if let Some(captures) = FIELD_RE.captures(s) {
+            let key = captures[1].to_string();
+            let val = Value::from_str(&captures[3])?;
+            if captures.get(2).is_some() {
+                Ok(ArgField::Query(key, val))
+            } else {
+                Ok(ArgField::Body(key, val))
+            }
+        } else {
+            Err(anyhow!("could not parse as a field assignment: {}", s))
+        }
+    }
+}
+
+// TODO: what should type signature actually be here...
+pub fn update_params_from_fields(fields: &[ArgField], params: &mut HashMap<String, String>) {
+    for f in fields.iter() {
+        if let ArgField::Query(ref k, ref v) = f {
+            params.insert(k.to_string(), v.to_string());
+        }
+    }
+}
+
+pub fn update_value_from_fields(fields: Vec<ArgField>, value: &mut Value) {
+    if let Value::Object(map) = value {
+        for f in fields.into_iter() {
+            if let ArgField::Body(k, v) = f {
+                map.insert(k, v);
+            }
+        }
+    }
+}
+
+/// Consumes the entire Vec of fields passed in
+pub fn value_from_fields(fields: Vec<ArgField>) -> Value {
+    let mut map: HashMap<String, Value> = HashMap::new();
+    for f in fields.into_iter() {
+        if let ArgField::Body(k, v) = f {
+            map.insert(k, v);
+        }
+    }
+    Value::Object(serde_json::map::Map::from_iter(map.into_iter()))
+}

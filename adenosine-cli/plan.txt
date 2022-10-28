@@ -63,7 +63,3 @@ file; '-' to read a JSON file from stdin.
         profile <name>?
         search-users <query>
 
----
-
-plan:
-- first version which uses entirely schema-less / generic XRPC client
