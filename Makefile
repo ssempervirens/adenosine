@@ -8,7 +8,6 @@ help: ## Print info about all commands
 .PHONY: test
 test: build ## Run all tests
 	cargo test
-	./tests/live.sh
 
 .PHONY: lint
 lint: ## Run syntax/style checks
