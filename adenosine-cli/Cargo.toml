@@ -3,7 +3,7 @@ name = "adenosine-cli"
 description = "Simple informal CLI client for AT protocol and bsky.app"
 keywords = ["atproto"]
 categories = []
-default-run = "adenosine-cli"
+default-run = "adenosine"
 
 version.workspace = true
 edition.workspace = true
@@ -19,6 +19,8 @@ structopt = "*"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 serde_json = "*"
 base64 = "*"
+regex = "*"
+lazy_static = "*"
 
 # uncertain about these...
 anyhow = "1.0"

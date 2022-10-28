@@ -66,39 +66,37 @@ enum AccountCommand {
     },
     Logout,
     Info,
-    // TODO: CreateRevocationKey,
+    // TODO: CreateRevocationKey or CreateDid
 }
 
 #[derive(StructOpt)]
 enum RepoCommand {
     Root {
-        #[structopt(long)]
-        did: String,
+        did: Option<DidOrHost>,
     },
     Export {
-        #[structopt(long)]
-        did: String,
+        did: Option<DidOrHost>,
         #[structopt(long)]
         from: Option<String>,
     },
     Import {
-        // XXX: either path or stdin
+        // TODO: could accept either path or stdin?
         #[structopt(long)]
-        did: String,
+        did: Option<DidOrHost>,
     },
 }
 
 #[derive(StructOpt)]
 enum BskyCommand {
-    Feed { name: Option<String> },
+    Feed { name: Option<DidOrHost> },
     Notifications,
     Post { text: String },
-    Repost { uri: String },
-    Like { uri: String },
+    Repost { uri: AtUri },
+    Like { uri: AtUri },
     // TODO: Repost { uri: String, },
-    Follow { uri: String },
+    Follow { uri: DidOrHost },
     // TODO: Unfollow { uri: String, },
-    /*
+    /* TODO:
     Follows {
         name: String,
     },
@@ -106,44 +104,47 @@ enum BskyCommand {
         name: String,
     },
     */
-    Profile { name: String },
+    Profile { name: DidOrHost },
     SearchUsers { query: String },
 }
 
 #[derive(StructOpt)]
 enum Command {
     Get {
-        uri: String,
+        uri: AtUri,
+
+        #[structopt(long)]
+        cid: Option<String>,
     },
 
     Ls {
-        uri: String,
+        uri: AtUri,
     },
 
     Create {
         collection: String,
-        body: String,
+        fields: String,
     },
     Update {
-        uri: String,
-        params: String,
+        uri: AtUri,
+        fields: String,
     },
     Delete {
-        uri: String,
+        uri: AtUri,
     },
 
     Describe {
-        name: String,
+        name: Option<DidOrHost>,
     },
 
     Resolve {
-        name: String,
+        name: DidOrHost,
     },
 
     Xrpc {
         method: XrpcMethod,
         nsid: String,
-        params: Option<String>,
+        fields: Option<String>,
     },
 
     /// Sub-commands for managing account
@@ -248,34 +249,90 @@ fn run(opt: Opt) -> Result<()> {
             None
         }
         Command::Describe { name } => {
-            params.insert("user".to_string(), name);
+            let name = name
+                .map(|v| v.to_string())
+                .or(jwt_did)
+                .ok_or(anyhow!("expected a name or auth token"))?;
+            params.insert("user".to_string(), name.to_string());
             xrpc_client.get("com.atproto.repoDescribe", Some(params))?
         }
         Command::Resolve { name } => {
             let mut params: HashMap<String, String> = HashMap::new();
-            params.insert("name".to_string(), name);
+            params.insert("name".to_string(), name.to_string());
             xrpc_client.get("com.atproto.resolveName", Some(params))?
         }
-        Command::Get { uri } => {
-            println!("GET: {}", uri);
-            None
+        Command::Get { uri, cid } => {
+            params.insert("did".to_string(), uri.repository.to_string());
+            params.insert(
+                "collection".to_string(),
+                uri.collection.ok_or(anyhow!("collection required"))?,
+            );
+            params.insert(
+                "rkey".to_string(),
+                uri.record.ok_or(anyhow!("record key required"))?,
+            );
+            if let Some(c) = cid {
+                params.insert("cid".to_string(), c);
+            }
+            xrpc_client.post("com.atproto.repoGetRecord", Some(params), json!({}))?
         }
         Command::Ls { uri } => {
+            // TODO: option to print fully-qualified path?
+            if !uri.collection.is_some() {
+                // if a repository, but no collection, list the collections
+                params.insert("user".to_string(), uri.repository.to_string());
+                let describe = xrpc_client
+                    .get("com.atproto.repoDescribe", Some(params))?
+                    .ok_or(anyhow!("expected a repoDescribe response"))?;
+                for c in describe["collections"]
+                    .as_array()
+                    .ok_or(anyhow!("expected collection list"))?
+                {
+                    println!(
+                        "{}",
+                        c.as_str()
+                            .ok_or(anyhow!("expected collection as a JSON string"))?
+                    );
+                }
+            } else if uri.collection.is_some() && !uri.record.is_some() {
+                // if a collection, but no record, list the records (with extracted timestamps)
+            } else {
+                return Err(anyhow!("got too much of a URI to 'ls'"));
+            }
+            None
+        }
+        Command::Create { collection, fields } => {
+            params.insert("collection".to_string(), collection);
             unimplemented!()
         }
-        Command::Create { collection, body } => {
-            unimplemented!()
-        }
-        Command::Update { uri, params } => {
+        Command::Update { uri, fields } => {
+            params.insert("did".to_string(), uri.repository.to_string());
+            params.insert(
+                "collection".to_string(),
+                uri.collection.ok_or(anyhow!("collection required"))?,
+            );
+            params.insert(
+                "rkey".to_string(),
+                uri.record.ok_or(anyhow!("record key required"))?,
+            );
             unimplemented!()
         }
         Command::Delete { uri } => {
-            unimplemented!()
+            params.insert("did".to_string(), uri.repository.to_string());
+            params.insert(
+                "collection".to_string(),
+                uri.collection.ok_or(anyhow!("collection required"))?,
+            );
+            params.insert(
+                "rkey".to_string(),
+                uri.record.ok_or(anyhow!("record key required"))?,
+            );
+            xrpc_client.post("com.atproto.repoDeleteRecord", Some(params), json!({}))?
         }
         Command::Xrpc {
             method,
             nsid,
-            params,
+            fields,
         } => {
             let body: Value = ().into();
             match method {
@@ -322,12 +379,22 @@ fn run(opt: Opt) -> Result<()> {
         Command::Repo {
             cmd: RepoCommand::Root { did },
         } => {
+            let did = match did {
+                Some(DidOrHost::Host(_)) => return Err(anyhow!("expected a DID, not a hostname")),
+                Some(v) => v.to_string(),
+                None => jwt_did.ok_or(anyhow!("expected a DID"))?,
+            };
             params.insert("did".to_string(), did);
             xrpc_client.get("com.atproto.syncGetRoot", Some(params))?
         }
         Command::Repo {
             cmd: RepoCommand::Export { did, from },
         } => {
+            let did = match did {
+                Some(DidOrHost::Host(_)) => return Err(anyhow!("expected a DID, not a hostname")),
+                Some(v) => v.to_string(),
+                None => jwt_did.ok_or(anyhow!("expected a DID"))?,
+            };
             params.insert("did".to_string(), did);
             if let Some(from) = from {
                 params.insert("from".to_string(), from);
@@ -342,6 +409,11 @@ fn run(opt: Opt) -> Result<()> {
         Command::Repo {
             cmd: RepoCommand::Import { did },
         } => {
+            let did = match did {
+                Some(DidOrHost::Host(_)) => return Err(anyhow!("expected a DID, not a hostname")),
+                Some(v) => v.to_string(),
+                None => jwt_did.ok_or(anyhow!("expected a DID"))?,
+            };
             params.insert("did".to_string(), did);
             xrpc_client.post_cbor_from_reader(
                 "com.atproto.syncUpdateRepo",
@@ -353,7 +425,7 @@ fn run(opt: Opt) -> Result<()> {
             cmd: BskyCommand::Feed { name },
         } => {
             if let Some(name) = name {
-                params.insert("author".to_string(), name);
+                params.insert("author".to_string(), name.to_string());
                 xrpc_client.get("app.bsky.getAuthorFeed", Some(params))?
             } else {
                 xrpc_client.get("app.bsky.getHomeFeed", None)?
@@ -390,7 +462,8 @@ fn run(opt: Opt) -> Result<()> {
                 "com.atproto.repoCreateRecord",
                 Some(params),
                 json!({
-                    "subject": uri,
+                    "subject": uri.to_string(),
+                    // TODO: "createdAt": now_timestamp(),
                 }),
             )?
         }
@@ -406,7 +479,8 @@ fn run(opt: Opt) -> Result<()> {
                 "com.atproto.repoCreateRecord",
                 Some(params),
                 json!({
-                    "subject": uri,
+                    "subject": uri.to_string(),
+                    // TODO: "createdAt": now_timestamp(),
                 }),
             )?
         }
@@ -422,14 +496,15 @@ fn run(opt: Opt) -> Result<()> {
                 "com.atproto.repoCreateRecord",
                 Some(params),
                 json!({
-                    "subject": uri,
+                    "subject": uri.to_string(),
+                    // TODO: "createdAt": now_timestamp(),
                 }),
             )?
         }
         Command::Bsky {
             cmd: BskyCommand::Profile { name },
         } => {
-            params.insert("name".to_string(), name);
+            params.insert("name".to_string(), name.to_string());
             xrpc_client.get("app.bsky.getProfile", Some(params))?
         }
         Command::Bsky {
