@@ -16,6 +16,16 @@ initially announced in Fall 2022. This might be interesting for other folks to
 take a spin with, but isn't intended to host real content from real people. The
 goal is to think through how the protocol might work by implementing it.
 
+Three components planned:
+
+- `adenosine-cli`: command-line client (`adenosine`), partially implemented and working
+- `adenosine-pds`: "small world" personal data server implementation, with data in sqlite, not implemented
+- `adenosine-tauri-gui`: minimal desktop GUI application, not implemented
+
+Not currently planning on implementing the `did:plc` method. Would just stick
+with `did:web` for now, either manually placing `/.well-known/did.json`
+documents on existing servers or trying a wildcard DNS hack.
+
 
 ## Quickstart (CLI)
 
