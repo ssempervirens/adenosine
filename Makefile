@@ -6,8 +6,8 @@ help: ## Print info about all commands
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "    \033[01;32m%-20s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: test
-test: build ## Run all tests
-	cargo test
+test: build ## Run all tests (requires Cargo.lock up to date)
+	cargo test --locked
 
 .PHONY: lint
 lint: ## Run syntax/style checks
@@ -22,8 +22,8 @@ build: ## Build
 	cargo build
 
 .PHONY: build-release
-build-release: ## Build for release
-	cargo build --release
+build-release: ## Build for release (requires Cargo.lock up to date)
+	cargo build --release --locked
 
 .PHONY: completions
 completions: build  ## generate shell completions
