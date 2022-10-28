@@ -104,7 +104,7 @@ enum BskyCommand {
         name: String,
     },
     */
-    Profile { name: DidOrHost },
+    Profile { name: Option<DidOrHost> },
     SearchUsers { query: String },
 }
 
@@ -235,7 +235,6 @@ fn run(opt: Opt) -> Result<()> {
 
     let result = match opt.cmd {
         Command::Status => {
-            // XXX
             println!("Configuration");
             println!("  ATP_HOST: {}", opt.atp_host);
             if opt.auth_token.is_some() {
@@ -252,7 +251,7 @@ fn run(opt: Opt) -> Result<()> {
             let name = name
                 .map(|v| v.to_string())
                 .or(jwt_did)
-                .ok_or(anyhow!("expected a name or auth token"))?;
+                .ok_or(anyhow!("expected a name, or self via auth token"))?;
             params.insert("user".to_string(), name.to_string());
             xrpc_client.get("com.atproto.repoDescribe", Some(params))?
         }
@@ -262,7 +261,7 @@ fn run(opt: Opt) -> Result<()> {
             xrpc_client.get("com.atproto.resolveName", Some(params))?
         }
         Command::Get { uri, cid } => {
-            params.insert("did".to_string(), uri.repository.to_string());
+            params.insert("user".to_string(), uri.repository.to_string());
             params.insert(
                 "collection".to_string(),
                 uri.collection.ok_or(anyhow!("collection required"))?,
@@ -278,9 +277,9 @@ fn run(opt: Opt) -> Result<()> {
         }
         Command::Ls { uri } => {
             // TODO: option to print fully-qualified path?
+            params.insert("user".to_string(), uri.repository.to_string());
             if !uri.collection.is_some() {
                 // if a repository, but no collection, list the collections
-                params.insert("user".to_string(), uri.repository.to_string());
                 let describe = xrpc_client
                     .get("com.atproto.repoDescribe", Some(params))?
                     .ok_or(anyhow!("expected a repoDescribe response"))?;
@@ -296,16 +295,30 @@ fn run(opt: Opt) -> Result<()> {
                 }
             } else if uri.collection.is_some() && !uri.record.is_some() {
                 // if a collection, but no record, list the records (with extracted timestamps)
+                params.insert(
+                    "collection".to_string(),
+                    uri.collection.unwrap().to_string(),
+                );
+                let records = xrpc_client
+                    .get("com.atproto.repoListRecords", Some(params))?
+                    .ok_or(anyhow!("expected a repoListRecords response"))?;
+                for r in records.as_array().unwrap_or(&vec![]).iter() {
+                    println!("{}", r);
+                }
             } else {
                 return Err(anyhow!("got too much of a URI to 'ls'"));
             }
             None
         }
         Command::Create { collection, fields } => {
+            params.insert(
+                "did".to_string(),
+                jwt_did.ok_or(anyhow!("need auth token"))?,
+            );
             params.insert("collection".to_string(), collection);
             update_params_from_fields(&fields, &mut params);
             let val = value_from_fields(fields);
-            xrpc_client.post("com.atproto.repoCreateRecord", Some(params), val)?
+            xrpc_client.post("com.atproto.repoCreateRecord", Some(params), Some(val))?
         }
         Command::Update { uri, fields } => {
             params.insert("did".to_string(), uri.repository.to_string());
@@ -323,7 +336,7 @@ fn run(opt: Opt) -> Result<()> {
                 .unwrap_or(json!({}));
             update_params_from_fields(&fields, &mut params);
             update_value_from_fields(fields, &mut record);
-            xrpc_client.post("com.atproto.repoPutRecord", Some(params), record)?
+            xrpc_client.post("com.atproto.repoPutRecord", Some(params), Some(record))?
         }
         Command::Delete { uri } => {
             params.insert("did".to_string(), uri.repository.to_string());
@@ -335,7 +348,7 @@ fn run(opt: Opt) -> Result<()> {
                 "rkey".to_string(),
                 uri.record.ok_or(anyhow!("record key required"))?,
             );
-            xrpc_client.post("com.atproto.repoDeleteRecord", Some(params), json!({}))?
+            xrpc_client.post("com.atproto.repoDeleteRecord", Some(params), None)?
         }
         Command::Xrpc {
             method,
@@ -346,7 +359,7 @@ fn run(opt: Opt) -> Result<()> {
             let body = value_from_fields(fields);
             match method {
                 XrpcMethod::Get => xrpc_client.get(&nsid, Some(params))?,
-                XrpcMethod::Post => xrpc_client.post(&nsid, Some(params), body)?,
+                XrpcMethod::Post => xrpc_client.post(&nsid, Some(params), Some(body))?,
             }
         }
         Command::Account {
@@ -359,28 +372,28 @@ fn run(opt: Opt) -> Result<()> {
         } => xrpc_client.post(
             "com.atproto.createAccount",
             None,
-            json!({
+            Some(json!({
                 "email": email,
                 "username": username,
                 "password": password,
-            }),
+            })),
         )?,
         Command::Account {
             cmd: AccountCommand::Login { username, password },
         } => xrpc_client.post(
             "com.atproto.createSession",
             None,
-            json!({
+            Some(json!({
                 "username": username,
                 "password": password,
-            }),
+            })),
         )?,
         Command::Account {
             cmd: AccountCommand::Logout,
-        } => xrpc_client.post("com.atproto.deleteSession", None, json!({}))?,
+        } => xrpc_client.post("com.atproto.deleteSession", None, None)?,
         Command::Account {
             cmd: AccountCommand::Delete,
-        } => xrpc_client.post("com.atproto.deleteAccount", None, json!({}))?,
+        } => xrpc_client.post("com.atproto.deleteAccount", None, None)?,
         Command::Account {
             cmd: AccountCommand::Info,
         } => xrpc_client.get("com.atproto.getAccount", None)?,
@@ -453,9 +466,9 @@ fn run(opt: Opt) -> Result<()> {
             xrpc_client.post(
                 "com.atproto.repoCreateRecord",
                 Some(params),
-                json!({
+                Some(json!({
                     "text": text,
-                }),
+                })),
             )?
         }
         Command::Bsky {
@@ -469,10 +482,10 @@ fn run(opt: Opt) -> Result<()> {
             xrpc_client.post(
                 "com.atproto.repoCreateRecord",
                 Some(params),
-                json!({
+                Some(json!({
                     "subject": uri.to_string(),
                     // TODO: "createdAt": now_timestamp(),
-                }),
+                })),
             )?
         }
         Command::Bsky {
@@ -486,10 +499,10 @@ fn run(opt: Opt) -> Result<()> {
             xrpc_client.post(
                 "com.atproto.repoCreateRecord",
                 Some(params),
-                json!({
+                Some(json!({
                     "subject": uri.to_string(),
                     // TODO: "createdAt": now_timestamp(),
-                }),
+                })),
             )?
         }
         Command::Bsky {
@@ -503,16 +516,20 @@ fn run(opt: Opt) -> Result<()> {
             xrpc_client.post(
                 "com.atproto.repoCreateRecord",
                 Some(params),
-                json!({
+                Some(json!({
                     "subject": uri.to_string(),
                     // TODO: "createdAt": now_timestamp(),
-                }),
+                })),
             )?
         }
         Command::Bsky {
             cmd: BskyCommand::Profile { name },
         } => {
-            params.insert("name".to_string(), name.to_string());
+            let name = name
+                .map(|v| v.to_string())
+                .or(jwt_did)
+                .ok_or(anyhow!("expected a name, or self via auth token"))?;
+            params.insert("user".to_string(), name.to_string());
             xrpc_client.get("app.bsky.getProfile", Some(params))?
         }
         Command::Bsky {

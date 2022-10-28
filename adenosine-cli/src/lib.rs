@@ -105,15 +105,19 @@ impl XrpcClient {
         &self,
         nsid: &str,
         params: Option<HashMap<String, String>>,
-        body: Value,
+        body: Option<Value>,
     ) -> Result<Option<Value>> {
         let params: HashMap<String, String> = params.unwrap_or(HashMap::new());
-        let res = self
+        let mut req = self
             .http_client
             .post(format!("{}/xrpc/{}", self.host, nsid))
-            .query(&params)
-            .json(&body)
-            .send()?;
+            .query(&params);
+        req = if let Some(b) = body {
+            req.json(&b)
+        } else {
+            req
+        };
+        let res = req.send()?;
         if res.status() == 400 {
             let val: Value = res.json()?;
             return Err(anyhow!(
@@ -122,7 +126,11 @@ impl XrpcClient {
             ));
         }
         let res = res.error_for_status()?;
-        Ok(res.json()?)
+        if res.content_length() == Some(0) {
+            Ok(None)
+        } else {
+            Ok(res.json()?)
+        }
     }
 
     pub fn post_cbor_from_reader<R: std::io::Read>(
@@ -195,11 +203,16 @@ impl FromStr for ArgField {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
-            static ref FIELD_RE: Regex = Regex::new(r"^([a-zA-Z_]+)=(=?)(.*)$").unwrap();
+            static ref FIELD_RE: Regex = Regex::new(r"^([a-zA-Z_]+)=(=)?(.*)$").unwrap();
         }
         if let Some(captures) = FIELD_RE.captures(s) {
             let key = captures[1].to_string();
-            let val = Value::from_str(&captures[3])?;
+            let val =
+                Value::from_str(&captures[3]).unwrap_or(Value::String(captures[3].to_string()));
+            let val = match val {
+                Value::String(s) if s.is_empty() => Value::Null,
+                _ => val,
+            };
             if captures.get(2).is_some() {
                 Ok(ArgField::Query(key, val))
             } else {
@@ -209,6 +222,37 @@ impl FromStr for ArgField {
             Err(anyhow!("could not parse as a field assignment: {}", s))
         }
     }
+}
+
+#[test]
+fn test_argfield() {
+    use serde_json::json;
+    assert_eq!(
+        ArgField::from_str("a=3").unwrap(),
+        ArgField::Body("a".to_string(), json!(3)),
+    );
+    assert_eq!(
+        ArgField::from_str("a==3").unwrap(),
+        ArgField::Query("a".to_string(), json!(3)),
+    );
+    assert_eq!(
+        ArgField::from_str("cream==\"something\"").unwrap(),
+        ArgField::Query("cream".to_string(), Value::String("something".to_string()))
+    );
+    assert_eq!(
+        ArgField::from_str("cream==something").unwrap(),
+        ArgField::Query("cream".to_string(), Value::String("something".to_string()))
+    );
+    assert_eq!(
+        ArgField::from_str("cream=").unwrap(),
+        ArgField::Body("cream".to_string(), Value::Null),
+    );
+
+    assert!(ArgField::from_str("a").is_err());
+    assert!(ArgField::from_str("").is_err());
+    assert!(ArgField::from_str("asdf.fee").is_err());
+
+    assert!(ArgField::from_str("text=\"other value\"").is_ok());
 }
 
 // TODO: what should type signature actually be here...
