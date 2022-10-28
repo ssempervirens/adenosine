@@ -9,3 +9,6 @@
 ========================================================
 
 It doesn't work yet.
+
+Mininum Supported Rust Version (MSRV) is currently 1.61, using 2021 Rust
+Edition.

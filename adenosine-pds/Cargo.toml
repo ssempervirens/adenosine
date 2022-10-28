@@ -6,7 +6,7 @@ categories = []
 
 version = "0.1.0-dev.0"
 edition = "2021"
-rust-version = "1.57"
+rust-version = "1.61"
 authors = ["Bryan Newbold <bnewbold@robocracy.org>"]
 license = "AGPLv3"
 readme = "../README.md"

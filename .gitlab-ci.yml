@@ -3,7 +3,7 @@ stages:
 
 rust-latest:
   stage: test
-  image: rust:1.59-bullseye
+  image: rust:1.61-bullseye
   before_script:
     - apt update -qy
     # these are for tauri dev
