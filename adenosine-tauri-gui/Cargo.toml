@@ -5,15 +5,6 @@ description = "Simple informal GUI client for AT protocol and bsky.app"
 keywords = ["atproto"]
 categories = []
 
-# NOTE: these workspace vars are not working with tauri for some reason?
-#version.workspace = true
-#edition.workspace = true
-#rust-version.workspace = true
-#authors.workspace = true
-#license.workspace = true
-#readme.workspace = true
-#repository.workspace = true
-
 version = "0.1.0-dev.0"
 edition = "2021"
 rust-version = "1.57"
