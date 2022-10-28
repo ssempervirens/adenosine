@@ -10,17 +10,21 @@ use structopt::StructOpt;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 #[derive(StructOpt)]
-#[structopt(rename_all = "kebab-case", about = "CLI interface for AT Protocol")]
+#[structopt(
+    rename_all = "kebab-case",
+    about = "command-line client for AT protocol (atproto.com)"
+)]
 struct Opt {
+    /// HTTP(S) URL of Personal Data Server to connect to
     #[structopt(
         global = true,
         long = "--host",
         env = "ATP_HOST",
-        default_value = "https://localhost:8080"
+        default_value = "http://localhost:2583"
     )]
     atp_host: String,
 
-    // API auth tokens can be generated from the account page in the fatcat.wiki web interface
+    /// Authentication session token (JWT), for operations that need it
     #[structopt(
         global = true,
         long = "--auth-token",
@@ -46,6 +50,11 @@ struct Opt {
 #[derive(StructOpt)]
 enum AccountCommand {
     /// Register a new account
+    ///
+    /// Does not (yet) support invite codes or email verification.
+    ///
+    /// This will return a JWT token that you should assign to the `ATP_AUTH_TOKEN` environment
+    /// variable.
     Register {
         #[structopt(long, short)]
         email: String,
@@ -56,7 +65,12 @@ enum AccountCommand {
         #[structopt(long, short)]
         password: String,
     },
+    /// Delete the currently logged-in account (danger!)
     Delete,
+    /// Create a new authenticated session
+    ///
+    /// This will return a JWT token that you should assign to the `ATP_AUTH_TOKEN` environment
+    /// variable
     Login {
         #[structopt(long, short)]
         username: String,
@@ -64,23 +78,33 @@ enum AccountCommand {
         #[structopt(long, short)]
         password: String,
     },
+    /// Deletes the current login session
     Logout,
+    /// Fetches account metadata for the current session
     Info,
     // TODO: CreateRevocationKey or CreateDid
 }
 
 #[derive(StructOpt)]
 enum RepoCommand {
+    /// Get the current 'root' commit for a DID
+    ///
     Root {
+        /// Repository DID, or uses the current session account
         did: Option<DidOrHost>,
     },
+    /// Dump raw binary repository as CAR format to stdout
     Export {
+        /// Repository DID, or uses the current session account
         did: Option<DidOrHost>,
+        /// CID of a prior commit; only newer updates are included
         #[structopt(long)]
         from: Option<String>,
     },
+    /// Read raw binary repository as CAR format from stdin, and import to PDS
     Import {
         // TODO: could accept either path or stdin?
+        /// Repository DID, or uses the current session account
         #[structopt(long)]
         did: Option<DidOrHost>,
     },
@@ -88,12 +112,18 @@ enum RepoCommand {
 
 #[derive(StructOpt)]
 enum BskyCommand {
+    /// Fetch the home feed, or account feed for a specific user
     Feed { name: Option<DidOrHost> },
+    /// Fetch notification feed
     Notifications,
+    /// Create a new 'post' record
     Post { text: String },
+    /// Create a 'repost' record for the target by AT URI
     Repost { uri: AtUri },
+    /// Create a 'like' record for the target by AT URI
     Like { uri: AtUri },
     // TODO: Repost { uri: String, },
+    /// Create a 'follow' record for the target by AT URI
     Follow { uri: DidOrHost },
     // TODO: Unfollow { uri: String, },
     /* TODO:
@@ -104,67 +134,77 @@ enum BskyCommand {
         name: String,
     },
     */
+    /// Display a profile record (or self if not provided)
     Profile { name: Option<DidOrHost> },
+    /// Query by partial username
     SearchUsers { query: String },
 }
 
 #[derive(StructOpt)]
 enum Command {
+    /// Summarize connection and authentication with API
+    Status,
+
+    /// List all collections for a user, or all records for a collection
+    Ls { uri: AtUri },
+    /// Fetch and display a generic record by full AT URI
     Get {
         uri: AtUri,
 
+        /// Specific version of record to fetch
         #[structopt(long)]
         cid: Option<String>,
     },
-
-    Ls {
-        uri: AtUri,
-    },
-
+    /// Generic record creation
     Create {
         collection: String,
+
+        /// Set of object fields (keys) and values to construct the object from
         fields: Vec<ArgField>,
     },
+    /// Generic mutation of an existing record
     Update {
         uri: AtUri,
+
+        /// Set of object fields (keys) and values to update in the record
         fields: Vec<ArgField>,
     },
-    Delete {
-        uri: AtUri,
-    },
+    /// Generic record deletion
+    Delete { uri: AtUri },
 
-    Describe {
-        name: Option<DidOrHost>,
-    },
+    /// Print user/repository-level description (including DID document)
+    Describe { name: Option<DidOrHost> },
 
-    Resolve {
-        name: DidOrHost,
-    },
+    /// Have PDS resolve the DID for a username
+    Resolve { name: DidOrHost },
 
+    /// Generic HTTP XRPC helper, printing any result
     Xrpc {
+        /// 'get' or 'post'
         method: XrpcMethod,
+        /// Name of method to call
         nsid: String,
+        /// Set of query parameters and body fields for the request
         fields: Vec<ArgField>,
     },
 
-    /// Sub-commands for managing account
+    /// Manage user account and sessions
     Account {
         #[structopt(subcommand)]
         cmd: AccountCommand,
     },
 
+    /// Direct access to binary repository content
     Repo {
         #[structopt(subcommand)]
         cmd: RepoCommand,
     },
 
+    /// Helper commands for bsky.app Lexicon
     Bsky {
         #[structopt(subcommand)]
         cmd: BskyCommand,
     },
-
-    /// Summarize connection and authentication with API
-    Status,
 }
 
 fn main() -> Result<()> {

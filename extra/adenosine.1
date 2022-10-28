@@ -5,7 +5,7 @@
 .nh
 .ad l
 .\" Begin generated content:
-.TH "adenosine" "1" "2022-10-27" "adenosine Client Tool Manual Page"
+.TH "adenosine" "1" "2022-10-28" "adenosine CLI Client Manual Page"
 .P
 .SH NAME
 .P
@@ -17,18 +17,170 @@ adenosine [OPTIONS] <COMMAND> <ARGS>
 .P
 .SH DESCRIPTION
 .P
-TODO
+This is a simple, enthusiast-grade CLI client for the work-in-progress AT
+Protocol (atproto.\&com).\& It is an entirely "delegated" client, which means that
+it does not store or cache any user content locally; everything works by making
+HTTP/XRPC requests to a Personal Data Server (PDS), which is usually a remote
+service.\&
+.P
+The only real utility of this tool currently is messing around with prototype
+implementations, possibly while developing them.\&
+.P
+This client does not currently do any schema validation of Lexicons, either at
+compile time or runtime (eg, dynamically fetching Lexicons).\& The Bluesky
+Lexicon (bsky.\&app) is partially supported with helper commands.\&
+.P
+.SH FIELD SYNTAX
+.P
+Several commands accept generic key/value fields which are passed through as
+either query parameters or combined together in to a request body JSON object.\&
+Escaping and other corner-cases aren't handled.\&
+.P
+\fB==\fR
+.RS 4
+Query parameter.\& Key and Value both passed as strings.\&
+.P
+.RE
+\fB=\fR
+.RS 4
+Body fields, combined together as a JSON object.\& Keys are strings, values are parsed as JSON with fall-through to string type.\&
+.P
+.RE
+For example, the argument list \fBlimit==25 title="regarding documentation" year=2022 tags='["blue", "green"]'\fR
+would be interpreted as a single query parameter "limit" with value "25", and a
+JSON object with keys "title" (string value), "year" (number value), "tags"
+(array of strings).\&
 .P
 .SH COMMANDS
 .P
-.SS Other Commands
-.P
+\fBstatus\fR
 .RS 4
-\fBstatus\fR [--json]
-.RS 4
-Summarizes connection and authentication to the API server.\& Useful for debugging
+Summarizes configuration, and (TODO) connection and authentication to the API server.\& Useful for debugging.\&
 .P
 .RE
+\fBdescribe\fR [name]
+.RS 4
+Prints repository description fetched from PDS
+.P
+.RE
+\fBresolve\fR <name>
+.RS 4
+Has PDS resolve username to a DID
+.P
+.RE
+.SS Generic XRPC Requests
+.P
+It is possible to construct and submit a generic XRPC request to the PDS, and
+prints any response.\&See field syntax section above about query parameters and
+body fields.\& Body fields only used for "post" requests.\&
+.P
+\fBxrpc\fR <"get"|"post"> <nsid> [fields]+
+.P
+.SS Generic Record Interaction
+.P
+\fBls\fR <at-uri>
+.RS 4
+List either collections under a repository, or records under a collection
+.P
+.RE
+\fBget\fR <at-uri>
+.RS 4
+Fetch and print a single record
+.P
+.RE
+\fBcreate\fR <collection> [fields].\&.\&.\&
+.RS 4
+Construct and create a generic record, printing the resulting AT-URI and CID
+.P
+.RE
+\fBupdate\fR <at-uri> [fields].\&.\&.\&
+.RS 4
+Fetch record, update fields, "put" back to same record path
+.P
+.RE
+\fBdelete\fR <at-uri>
+.RS 4
+Delete a single record from repository
+.P
+.RE
+.SS Bluesky (bsky.app)
+.P
+\fBbsky feed\fR
+.RS 4
+Fetch the home feed, or account feed for a specific user
+.P
+.RE
+\fBbsky follow\fR
+.RS 4
+Create a 'follow' record for the target by AT URI
+.P
+.RE
+\fBbsky like\fR
+.RS 4
+Create a 'like' record for the target by AT URI
+.P
+.RE
+\fBbsky notifications\fR
+.RS 4
+Fetch notification feed
+.P
+.RE
+\fBbsky post\fR
+.RS 4
+Create a new 'post' record
+.P
+.RE
+\fBbsky profile\fR
+.RS 4
+Display a profile record (or self if not provided)
+.P
+.RE
+\fBbsky repost\fR
+.RS 4
+Create a 'repost' record for the target by AT URI
+.P
+.RE
+\fBbsky search-users\fR
+.RS 4
+Query by partial username
+.P
+.P
+.RE
+.SS Account Management
+.P
+\fBaccount register --email <email> --password <password> --username <username>\fR
+.P
+\fBaccount info\fR
+.RS 4
+Fetches account metadata for the current session
+.P
+.RE
+\fBaccount login --password <password> --username <username>\fR
+.RS 4
+Create a new authenticated session
+.P
+.RE
+\fBaccount logout\fR
+.RS 4
+Deletes the current login session
+.P
+.RE
+.SS Raw Repository Management
+.P
+\fBrepo export [did]\fR
+.RS 4
+Dump raw binary repository as CAR format to stdout
+.P
+.RE
+\fBrepo import [did]\fR
+.RS 4
+Read raw binary repository as CAR format from stdin, and import to PDS
+.P
+.RE
+\fBrepo root [did]\fR
+.RS 4
+Get the current 'root' commit for a DID
+.P
 .RE
 .SH OPTIONS
 .P
@@ -52,6 +204,56 @@ By default, it'll only report errors.\& Passing `-v` one time also prints warnin
 .P
 \fB--auth-token <auth-token>\fR [env: ATP_AUTH_TOKEN]
 .P
-.SH EXAMPLES
+.SH GETTING STARTED
 .P
-TODO
+To start interacting with a PDS, set the `ATP_HOST` environment variable.\& Then
+either register a test account, or create a new session for an existing
+account, and save the JWT token to the `ATP_AUTH_TOKEN`:
+.P
+.nf
+.RS 4
+# default port for bluesky-social/atproto implementation
+export ATP_HOST=http://localhost:2583
+
+# register a new account
+adenosine account register -u voltaire\&.test -p bogus -e voltaire@example\&.com
+{
+	"did": "did:plc:yqtuksvatmmgngd5nkkw75hn",
+	"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\&.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjMwNn0\&.MMQa4JIQdwvhy-rjJ0kO-z8-KdoOL0Lto9JtOkK-lwE",
+	"username": "voltaire\&.test"
+}
+
+export ATP_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\&.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjMwNn0\&.MMQa4JIQdwvhy-rjJ0kO-z8-KdoOL0Lto9JtOkK-lwE
+
+# to clear the auth token env variable
+unset ATP_AUTH_TOKEN
+
+# create a new session (login) for existing account
+adenosine account login -u voltaire\&.test -p bogus
+{
+	"did": "did:plc:yqtuksvatmmgngd5nkkw75hn",
+	"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\&.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjQxNX0\&.j2wcF1g9NxT_1AvYRiplNf_jtK6S81y3L38AkcBwOqY",
+	"name": "voltaire\&.test"
+}
+
+export ATP_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\&.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjQxNX0\&.j2wcF1g9NxT_1AvYRiplNf_jtK6S81y3L38AkcBwOqY
+.fi
+.RE
+.P
+You could save the `ATP_HOST` and `ATP_AUTH_TOKEN` values in `~/.\&bashrc` so you
+don't need to enter them every time.\&
+.P
+Now you can start posting and poking around:
+.P
+.nf
+.RS 4
+adenosine bsky post "gruel again for breakfast"
+{
+	"cid": "bafyreig2aqlsg4arslck64wbo2hnhe6k2a4z3z2sjfzh3uapv3a4zjld7e",
+	"uri": "at://did:plc:yqtuksvatmmgngd5nkkw75hn/app\&.bsky\&.post/3jg5zkr322c2a"
+}
+
+adenosine ls at://voltaire\&.test
+app\&.bsky\&.post
+.fi
+.RE

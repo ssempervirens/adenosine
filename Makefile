@@ -30,11 +30,14 @@ completions: build  ## generate shell completions
 	./target/debug/adenosine --shell-completions bash status > extra/adenosine.bash_completions
 	./target/debug/adenosine --shell-completions bash status > extra/adenosine.zsh_completions
 
-extra/adenosine.1: extra/adenosine.1.scdoc
+extra/%.1: extra/%.1.scdoc
 	scdoc < extra/adenosine.1.scdoc > extra/adenosine.1
 
+extra/adenosine.1.md: extra/adenosine.1
+	pandoc extra/adenosine.1 -o extra/adenosine.1.md
+
 .PHONY: manpage
-manpage: extra/adenosine.1  ## Rebuild manpage using scdoc
+manpage: extra/adenosine.1.md  ## Rebuild manpages using scdoc and pandoc
 
 .PHONY: deb
 deb: ## Build debian packages (.deb files)

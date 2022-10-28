@@ -1,4 +1,4 @@
-adenosine(1) "adenosine Client Tool Manual Page"
+adenosine(1) "adenosine CLI Client Manual Page"
 
 # NAME
 
@@ -10,14 +10,122 @@ adenosine [OPTIONS] <COMMAND> <ARGS>
 
 # DESCRIPTION
 
-TODO
+This is a simple, enthusiast-grade CLI client for the work-in-progress AT
+Protocol (atproto.com). It is an entirely "delegated" client, which means that
+it does not store or cache any user content locally; everything works by making
+HTTP/XRPC requests to a Personal Data Server (PDS), which is usually a remote
+service.
+
+The only real utility of this tool currently is messing around with prototype
+implementations, possibly while developing them.
+
+This client does not currently do any schema validation of Lexicons, either at
+compile time or runtime (eg, dynamically fetching Lexicons). The Bluesky
+Lexicon (bsky.app) is partially supported with helper commands.
+
+# FIELD SYNTAX
+
+Several commands accept generic key/value fields which are passed through as
+either query parameters or combined together in to a request body JSON object.
+Escaping and other corner-cases aren't handled.
+
+*==*
+	Query parameter. Key and Value both passed as strings.
+
+*=*
+	Body fields, combined together as a JSON object. Keys are strings, values are parsed as JSON with fall-through to string type.
+
+For example, the argument list *limit==25 title="regarding documentation" year=2022 tags='["blue", "green"]'*
+would be interpreted as a single query parameter "limit" with value "25", and a
+JSON object with keys "title" (string value), "year" (number value), "tags"
+(array of strings).
 
 # COMMANDS
 
-## Other Commands
+*status*
+	Summarizes configuration, and (TODO) connection and authentication to the API server. Useful for debugging.
 
-	*status* [--json]
-		Summarizes connection and authentication to the API server. Useful for debugging
+*describe* [name]
+	Prints repository description fetched from PDS
+
+*resolve* <name>
+	Has PDS resolve username to a DID
+
+## Generic XRPC Requests
+
+It is possible to construct and submit a generic XRPC request to the PDS, and
+prints any response.See field syntax section above about query parameters and
+body fields. Body fields only used for "post" requests.
+
+*xrpc* <"get"|"post"> <nsid> [fields]+
+
+## Generic Record Interaction
+
+*ls* <at-uri>
+	List either collections under a repository, or records under a collection
+
+*get* <at-uri>
+	Fetch and print a single record
+
+*create* <collection> [fields]...
+	Construct and create a generic record, printing the resulting AT-URI and CID
+
+*update* <at-uri> [fields]...
+	Fetch record, update fields, "put" back to same record path
+
+*delete* <at-uri>
+	Delete a single record from repository
+
+## Bluesky (bsky.app)
+
+*bsky feed*
+	Fetch the home feed, or account feed for a specific user
+
+*bsky follow*
+	Create a 'follow' record for the target by AT URI
+
+*bsky like*
+	Create a 'like' record for the target by AT URI
+
+*bsky notifications*
+	Fetch notification feed
+
+*bsky post*
+	Create a new 'post' record
+
+*bsky profile*
+	Display a profile record (or self if not provided)
+
+*bsky repost*
+	Create a 'repost' record for the target by AT URI
+
+*bsky search-users*
+	Query by partial username
+
+
+## Account Management
+
+*account register --email <email> --password <password> --username <username>*
+
+*account info*
+	Fetches account metadata for the current session
+
+*account login --password <password> --username <username>*
+	Create a new authenticated session
+
+*account logout*
+	Deletes the current login session
+
+## Raw Repository Management
+
+*repo export [did]*
+	Dump raw binary repository as CAR format to stdout
+
+*repo import [did]*
+	Read raw binary repository as CAR format from stdin, and import to PDS
+
+*repo root [did]*
+	Get the current 'root' commit for a DID
 
 # OPTIONS
 
@@ -35,6 +143,52 @@ TODO
 
 *--auth-token <auth-token>* [env: ATP_AUTH_TOKEN]
 
-# EXAMPLES
+# GETTING STARTED
 
-TODO
+To start interacting with a PDS, set the `ATP_HOST` environment variable. Then
+either register a test account, or create a new session for an existing
+account, and save the JWT token to the `ATP_AUTH_TOKEN`:
+
+```
+# default port for bluesky-social/atproto implementation
+export ATP_HOST=http://localhost:2583
+
+# register a new account
+adenosine account register -u voltaire.test -p bogus -e voltaire@example.com
+{
+	"did": "did:plc:yqtuksvatmmgngd5nkkw75hn",
+	"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjMwNn0.MMQa4JIQdwvhy-rjJ0kO-z8-KdoOL0Lto9JtOkK-lwE",
+	"username": "voltaire.test"
+}
+
+export ATP_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjMwNn0.MMQa4JIQdwvhy-rjJ0kO-z8-KdoOL0Lto9JtOkK-lwE
+
+# to clear the auth token env variable
+unset ATP_AUTH_TOKEN
+
+# create a new session (login) for existing account
+adenosine account login -u voltaire.test -p bogus
+{
+	"did": "did:plc:yqtuksvatmmgngd5nkkw75hn",
+	"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjQxNX0.j2wcF1g9NxT_1AvYRiplNf_jtK6S81y3L38AkcBwOqY",
+	"name": "voltaire.test"
+}
+
+export ATP_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjQxNX0.j2wcF1g9NxT_1AvYRiplNf_jtK6S81y3L38AkcBwOqY
+```
+
+You could save the `ATP_HOST` and `ATP_AUTH_TOKEN` values in `~/.bashrc` so you
+don't need to enter them every time.
+
+Now you can start posting and poking around:
+
+```
+adenosine bsky post "gruel again for breakfast"
+{
+	"cid": "bafyreig2aqlsg4arslck64wbo2hnhe6k2a4z3z2sjfzh3uapv3a4zjld7e",
+	"uri": "at://did:plc:yqtuksvatmmgngd5nkkw75hn/app.bsky.post/3jg5zkr322c2a"
+}
+
+adenosine ls at://voltaire.test
+app.bsky.post
+```
