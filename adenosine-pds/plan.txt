@@ -1,12 +1,19 @@
 
 PDS proof of concept:
-- ipld sqlite driver importing CAR file
-- MST code to read and mutate state
-- sqlite schema
-- JSON schema type generation (separate crate?)
+x ipld sqlite driver importing CAR file
+    => simple binary, two args
+- MST code to read and mutate tree state
+    => with tests
+- implement basic non-authenticated CRUD on repository
+? python test script
+- sqlite schema (for application)
 - write wrapper which updates MST *and* updates other tables in a transaction
-- did:web thingie?
+- JSON schema type generation (separate crate?)
 - HTTP API handler implementing most endpoints
+- did:web handler?
+
+other utils/helpers:
+- pack/unpack a repo CAR into JSON files in a directory tree (plus a commit.json with sig?)
 
 libraries:
 - `jsonschema` to validate requests and records (rich validation)
