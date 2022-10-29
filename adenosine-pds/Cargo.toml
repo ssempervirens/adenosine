@@ -18,7 +18,7 @@ serde_json = "*"
 log = "*"
 pretty_env_logger = "*"
 ipfs-sqlite-block-store = "*"
-rusqlite = { version = "0.28", features = ["bundled"] }
+rusqlite = { version = "*", features = ["bundled"] }
 jsonschema = "*"
 schemafy = "*"
 warp = "*"
