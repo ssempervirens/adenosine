@@ -3,13 +3,50 @@ PDS proof of concept:
 x ipld sqlite driver importing CAR file
     => simple binary, two args
 - MST code to read and mutate tree state
+    => just read the whole tree and then write the whole tree
     => with tests
-- implement basic non-authenticated CRUD on repository
+- skeleton
+    env config: DB paths, port
+    commands: serve, import, resolve, generate-secret
+    warp: homepage, serving XRPC endpoint (or individually?)
+    database wrappers
+    integration tests
+- implement basic non-authenticated CRUD on repository, test with CLI
+    createAccount
+    repoGetRecord
+    repoListRecords
+    repoBatchWrite
+    repoCreateRecord
+    repoPutRecord
+    repoDeleteRecord
+    syncGetRepo
+    syncGetRoot
+    syncUpdateRepo
 ? python test script
 - sqlite schema (for application)
 - write wrapper which updates MST *and* updates other tables in a transaction
 - JSON schema type generation (separate crate?)
-- HTTP API handler implementing most endpoints
+- HTTP API handler implementing many endpoints
+    com.atproto
+        createSession
+        getAccountsConfig
+        getSession
+        repoDescribe
+        resolveName
+    app.bsky
+        getHomeFeed
+        getAuthorFeed
+        getLikedBy
+        getNotificationCount
+        getNotifications
+        getPostThread
+        getProfile
+        getRepostedBy
+        getUserFollowers
+        getUserFollows
+        getUsersSearch
+        postNotificationsSeen
+        updateProfile
 - did:web handler?
 
 other utils/helpers:
@@ -21,8 +58,115 @@ libraries:
 - `rusqlite` with "bundled" sqlite for datastore
 - `ipfs-sqlite-block-store` and `libipld` to parse and persist repo content 
 - `warp` as async HTTP service
+- `deadpool-sqlite` or `tokio-rusqlite` to use rusqlite from async code?
 - `r2d2` to wrap rusqlite (?)
 - pretty_env_logger
 - ??? for CBOR (de)serialization of MST, separate from the IPLD stuff?
 - no good crate for working with CAR files... could rip out this code?
     https://github.com/n0-computer/iroh/tree/main/iroh-car
+
+## concurrency (in warp app)
+
+note that there isn't really any point in having this be async, given that we
+just have a single shared sqlite on disk. could try `rouille` instead of
+`warp`?
+
+maybe good for remote stuff like did:web resolution?
+
+could try using sqlx instead of rusqlite for natively-async database stuff?
+
+for block store:
+- open a single connection at startup, store in mutex
+- handlers get a reference to mutex. if they need a connection, they enter a blocking thread then:
+    block on the mutex, then create a new connection, unlock the mutex
+    do any operations on connection synchronously
+    exit the block
+
+## system tables
+
+account
+    did (PK)
+    username (UNIQUE, indexed)
+    email (UNIQUE)
+    password_bcrypt
+    signing_key
+
+did_doc
+    did (PK)
+    seen_at (timestamp)
+
+session
+    did
+    jwt
+    ???
+
+repo
+    did
+    head_commit
+
+record (should this exist? good for queries)
+    did
+    collection
+    tid
+    record_cid
+    record_cbor (CBOR bytes? JSON?)
+
+password_reset
+    did
+    token
+
+
+## atp tables
+
+what actually needs to be indexed?
+- post replies (forwards and backwards
+- likes (back index)
+- follows (back index)
+- usernames (as part of profile?)
+- mentions? hashtags?
+
+additional state
+- notifications
+
+bsky_post
+    did
+    tid (or timestamp from tid?)
+    text
+    reply_root (nullable)
+    reply_parent (nullable)
+    entities: JSON (?)
+
+bsky_profile
+    did
+    tid
+    display_name
+    description
+    my_state (JSON)
+
+bsky_follow
+    did
+    tid
+    target_did
+
+bsky_like
+    did
+    tid
+    target_uri
+    target_cid (what is this? the commit, or record CID?)
+
+bsky_repost
+    did
+    tid
+    target_uri
+    target_cid
+
+bsky_notification
+    did
+    created_at (timestamp)
+    seen (boolean)
+    reason
+    target_uri
+
+TODO:
+- bsky_badge (etc)
+- bsky_media_embed
