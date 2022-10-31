@@ -23,7 +23,7 @@ ipfs-sqlite-block-store = "*"
 rusqlite = { version = "*", features = ["bundled"] }
 jsonschema = "*"
 schemafy = "*"
-warp = "*"
+rouille = "*"
 iroh-car = { version = "0.1.0-vendored.0", path = "../iroh-car" }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"

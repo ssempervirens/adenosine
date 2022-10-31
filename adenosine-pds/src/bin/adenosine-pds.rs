@@ -53,8 +53,7 @@ enum Command {
     Inspect,
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let opt = Opt::from_args();
 
     let log_level = match opt.verbose {
@@ -77,7 +76,7 @@ async fn main() -> Result<()> {
     match opt.cmd {
         Command::Serve {} => {
             // TODO: log some config stuff?
-            run_server().await
+            run_server()
         },
         Command::Import {} => {
             unimplemented!()
