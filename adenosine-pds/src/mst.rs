@@ -1,5 +1,3 @@
-/// Development helper which loads MST keys and CIDs, re-generates MST structure, then compares
-/// root node with what was originally found.
 use anyhow::{anyhow, Result};
 use ipfs_sqlite_block_store::BlockStore;
 use libipld::cbor::DagCborCodec;
@@ -8,9 +6,10 @@ use libipld::prelude::Codec;
 use libipld::store::DefaultParams;
 use libipld::Block;
 use libipld::{Cid, DagCbor};
+use log::{debug, error, info};
 use std::collections::BTreeMap;
-
-use std::env;
+use std::path::PathBuf;
+use crate::load_car_to_blockstore;
 
 #[derive(Debug, DagCbor, PartialEq, Eq)]
 struct CommitNode {
@@ -67,6 +66,71 @@ fn get_mst_node(db: &mut BlockStore<libipld::DefaultParams>, cid: &Cid) -> Resul
             .ok_or(anyhow!("expected block in store"))?,
     )?;
     Ok(mst_node)
+}
+
+fn print_mst_keys(db: &mut BlockStore<libipld::DefaultParams>, cid: &Cid) -> Result<()> {
+    let node = get_mst_node(db, cid)?;
+    if let Some(ref left) = node.l {
+        print_mst_keys(db, left)?;
+    }
+    let mut key: String = "".to_string();
+    for entry in node.e.iter() {
+        key = format!("{}{}", &key[0..entry.p as usize], entry.k);
+        println!("{}\t-> {}", key, entry.v);
+        if let Some(ref right) = entry.t {
+            print_mst_keys(db, right)?;
+        }
+    }
+    Ok(())
+}
+
+pub fn dump_mst_keys(db_path: &PathBuf) -> Result<()> {
+    let mut db: BlockStore<libipld::DefaultParams> =
+        { BlockStore::open(db_path, Default::default())? };
+
+    let all_aliases: Vec<(Vec<u8>, Cid)> = db.aliases()?;
+    if all_aliases.is_empty() {
+        error!("expected at least one alias in block store");
+        std::process::exit(-1);
+    }
+    let (alias, commit_cid) = all_aliases[0].clone();
+    info!(
+        "starting from {} [{}]",
+        commit_cid,
+        String::from_utf8_lossy(&alias)
+    );
+
+    // NOTE: the faster way to develop would have been to decode to libipld::ipld::Ipld first? meh
+
+    debug!(
+        "raw commit: {:?}",
+        &db.get_block(&commit_cid)?
+            .ok_or(anyhow!("expected commit block in store"))?
+    );
+    let commit: CommitNode = DagCborCodec.decode(
+        &db.get_block(&commit_cid)?
+            .ok_or(anyhow!("expected commit block in store"))?,
+    )?;
+    debug!("Commit: {:?}", commit);
+    let root: RootNode = DagCborCodec.decode(
+        &db.get_block(&commit.root)?
+            .ok_or(anyhow!("expected root block in store"))?,
+    )?;
+    debug!("Root: {:?}", root);
+    let metadata: MetadataNode = DagCborCodec.decode(
+        &db.get_block(&root.meta)?
+            .ok_or(anyhow!("expected metadata block in store"))?,
+    )?;
+    debug!("Metadata: {:?}", metadata);
+    let mst_node: MstNode = DagCborCodec.decode(
+        &db.get_block(&root.data)?
+            .ok_or(anyhow!("expected block in store"))?,
+    )?;
+    debug!("MST root node: {:?}", mst_node);
+    debug!("============");
+
+    print_mst_keys(&mut db, &root.data)?;
+    Ok(())
 }
 
 fn collect_mst_keys(
@@ -174,7 +238,7 @@ fn common_prefix_len(a: &str, b: &str) -> usize {
         }
     }
     // strings are the same, up to common length
-    a.len()
+    std::cmp::min(a.len(), b.len())
 }
 
 #[test]
@@ -222,16 +286,19 @@ fn serialize_wip_tree(
     Ok(cid)
 }
 
-async fn repro_mst(db_path: &str) -> Result<()> {
+pub fn repro_mst(car_path: &PathBuf) -> Result<()> {
+
+    // open a temp block store
     let mut db: BlockStore<libipld::DefaultParams> = {
-        let path = std::path::PathBuf::from(db_path);
-        let path = ipfs_sqlite_block_store::DbPath::File(path);
-        BlockStore::open_path(path, Default::default())?
+        BlockStore::open_path(ipfs_sqlite_block_store::DbPath::Memory, Default::default())?
     };
+
+    // load CAR contents from file
+    load_car_to_blockstore(&mut db, car_path)?;
 
     let all_aliases: Vec<(Vec<u8>, Cid)> = db.aliases()?;
     if all_aliases.is_empty() {
-        println!("expected at least one alias in block store");
+        error!("expected at least one alias in block store");
         std::process::exit(-1);
     }
     let (_alias, commit_cid) = all_aliases[0].clone();
@@ -253,34 +320,17 @@ async fn repro_mst(db_path: &str) -> Result<()> {
     let mut repo_map: BTreeMap<String, Cid> = BTreeMap::new();
     collect_mst_keys(&mut db, &root_node.data, &mut repo_map)?;
 
-    for (k, v) in repo_map.iter() {
-        println!("{}\t-> {}", k, v);
-    }
-
     // now re-generate nodes
     let updated = generate_mst(&mut db, &mut repo_map)?;
 
-    println!("original root: {}", root_node.data);
-    println!("regenerated  : {}", updated);
+    info!("original root: {}", root_node.data);
+    info!("regenerated  : {}", updated);
     if root_node.data == updated {
-        println!("SUCCESS! (amazing)");
+        Ok(())
     } else {
         println!("FAILED");
         let a = get_mst_node(&mut db, &root_node.data)?;
         let b = get_mst_node(&mut db, &updated)?;
-        println!("A: {:?}", a);
-        println!("B: {:?}", b);
-    };
-    Ok(())
-}
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        println!("expected 1 args: <db_path>");
-        std::process::exit(-1);
+        Err(anyhow!("FAILED to reproduce MST: {:?} != {:?}", a, b))
     }
-    let db_path = &args[1];
-    repro_mst(db_path).await
 }

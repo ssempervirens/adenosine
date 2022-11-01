@@ -4,7 +4,6 @@ use anyhow::Result;
 use log::{self, debug};
 use structopt::StructOpt;
 
-
 #[derive(StructOpt)]
 #[structopt(
     rename_all = "kebab-case",
@@ -12,7 +11,6 @@ use structopt::StructOpt;
 )]
 struct Opt {
     // TODO: different path type for structopt?
-
     /// File path of sqlite database for storing IPLD blocks (aka, repository content)
     #[structopt(
         parse(from_os_str),
@@ -44,12 +42,18 @@ struct Opt {
 #[derive(StructOpt)]
 enum Command {
     /// Start ATP server as a foreground process
-    Serve,
+    Serve {
+        #[structopt(long, default_value = "3030")]
+        port: u16,
+    },
 
-    /// Import a CAR file (TODO)
-    Import,
+    /// Helper to import an IPLD CARv1 file in to sqlite data store
+    Import {
+        /// CARv1 file path to import from
+        car_path: std::path::PathBuf,
+    },
 
-    /// Dump info from databases (TODO)
+    /// Helper to print MST keys/docs from a sqlite repo
     Inspect,
 }
 
@@ -74,16 +78,13 @@ fn main() -> Result<()> {
     debug!("config parsed, starting up");
 
     match opt.cmd {
-        Command::Serve {} => {
+        Command::Serve { port } => {
             // TODO: log some config stuff?
-            run_server()
-        },
-        Command::Import {} => {
-            unimplemented!()
-        },
-        Command::Inspect {} => {
-            unimplemented!()
-        },
+            run_server(port)
+        }
+        Command::Import { car_path } => {
+            load_car_to_sqlite(&opt.blockstore_db_path, &car_path)
+        }
+        Command::Inspect {} => dump_mst_keys(&opt.blockstore_db_path),
     }
 }
-
