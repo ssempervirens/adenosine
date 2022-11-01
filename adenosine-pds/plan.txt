@@ -6,22 +6,22 @@ x ipld sqlite driver importing CAR file
     => just read the whole tree and then write the whole tree
     => with tests
 - skeleton
-    env config: DB paths, port
-    commands: serve, import, resolve, generate-secret
-    warp: homepage, serving XRPC endpoint (or individually?)
+  x env config: DB paths, port
+  x commands: serve, import, inspect
+  x integration test
     database wrappers
-    integration tests
 - implement basic non-authenticated CRUD on repository, test with CLI
-    createAccount
-    repoGetRecord
-    repoListRecords
-    repoBatchWrite
-    repoCreateRecord
-    repoPutRecord
-    repoDeleteRecord
-    syncGetRepo
-    syncGetRoot
-    syncUpdateRepo
+    com.atproto
+        createAccount
+        repoGetRecord
+        repoListRecords
+        repoBatchWrite
+        repoCreateRecord
+        repoPutRecord
+        repoDeleteRecord
+        syncGetRepo
+        syncGetRoot
+        syncUpdateRepo
 ? python test script
 - sqlite schema (for application)
 - write wrapper which updates MST *and* updates other tables in a transaction
