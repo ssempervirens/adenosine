@@ -1,3 +1,4 @@
+use crate::load_car_to_blockstore;
 use anyhow::{anyhow, Result};
 use ipfs_sqlite_block_store::BlockStore;
 use libipld::cbor::DagCborCodec;
@@ -9,7 +10,6 @@ use libipld::{Cid, DagCbor};
 use log::{debug, error, info};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
-use crate::load_car_to_blockstore;
 
 #[derive(Debug, DagCbor, PartialEq, Eq)]
 struct CommitNode {
@@ -85,8 +85,7 @@ fn print_mst_keys(db: &mut BlockStore<libipld::DefaultParams>, cid: &Cid) -> Res
 }
 
 pub fn dump_mst_keys(db_path: &PathBuf) -> Result<()> {
-    let mut db: BlockStore<libipld::DefaultParams> =
-        { BlockStore::open(db_path, Default::default())? };
+    let mut db: BlockStore<libipld::DefaultParams> = BlockStore::open(db_path, Default::default())?;
 
     let all_aliases: Vec<(Vec<u8>, Cid)> = db.aliases()?;
     if all_aliases.is_empty() {
@@ -287,11 +286,9 @@ fn serialize_wip_tree(
 }
 
 pub fn repro_mst(car_path: &PathBuf) -> Result<()> {
-
     // open a temp block store
-    let mut db: BlockStore<libipld::DefaultParams> = {
-        BlockStore::open_path(ipfs_sqlite_block_store::DbPath::Memory, Default::default())?
-    };
+    let mut db: BlockStore<libipld::DefaultParams> =
+        { BlockStore::open_path(ipfs_sqlite_block_store::DbPath::Memory, Default::default())? };
 
     // load CAR contents from file
     load_car_to_blockstore(&mut db, car_path)?;

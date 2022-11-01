@@ -80,11 +80,9 @@ fn main() -> Result<()> {
     match opt.cmd {
         Command::Serve { port } => {
             // TODO: log some config stuff?
-            run_server(port)
+            run_server(port, &opt.blockstore_db_path, &opt.atp_db_path)
         }
-        Command::Import { car_path } => {
-            load_car_to_sqlite(&opt.blockstore_db_path, &car_path)
-        }
+        Command::Import { car_path } => load_car_to_sqlite(&opt.blockstore_db_path, &car_path),
         Command::Inspect {} => dump_mst_keys(&opt.blockstore_db_path),
     }
 }

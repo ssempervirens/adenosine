@@ -15,12 +15,14 @@ repository = "https://gitlab.com/bnewbold/adenosine"
 [dependencies]
 anyhow = "*"
 structopt = "*"
+serde = "1"
 serde_json = "*"
 log = "*"
 pretty_env_logger = "*"
 libipld = "*"
 ipfs-sqlite-block-store = "*"
 rusqlite = { version = "*", features = ["bundled"] }
+rusqlite_migration = "*"
 jsonschema = "*"
 schemafy = "*"
 rouille = "*"
@@ -28,6 +30,8 @@ iroh-car = { version = "0.1.0-vendored.0", path = "../iroh-car" }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 sha256 = "*"
+lazy_static = "*"
+bcrypt = "0.13"
 
 [package.metadata.deb]
 maintainer = "Bryan Newbold <bnewbold@robocracy.org>"
