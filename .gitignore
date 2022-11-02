@@ -18,6 +18,8 @@ src/build/
 *.log
 target/
 *.sqlite
+*.sqlite-shm
+*.sqlite-wal
 
 # Don't ignore this file itself
 !.gitignore
