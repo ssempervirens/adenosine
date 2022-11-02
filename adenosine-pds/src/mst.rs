@@ -76,7 +76,7 @@ fn print_mst_keys(db: &mut BlockStore<libipld::DefaultParams>, cid: &Cid) -> Res
     let mut key: String = "".to_string();
     for entry in node.e.iter() {
         key = format!("{}{}", &key[0..entry.p as usize], entry.k);
-        println!("{}\t-> {}", key, entry.v);
+        println!("\t{}\t-> {}", key, entry.v);
         if let Some(ref right) = entry.t {
             print_mst_keys(db, right)?;
         }
@@ -92,12 +92,16 @@ pub fn dump_mst_keys(db_path: &PathBuf) -> Result<()> {
         error!("expected at least one alias in block store");
         std::process::exit(-1);
     }
-    let (alias, commit_cid) = all_aliases[0].clone();
-    info!(
-        "starting from {} [{}]",
-        commit_cid,
-        String::from_utf8_lossy(&alias)
-    );
+
+    // print all the aliases
+    for (alias, commit_cid) in all_aliases.iter() {
+        let did = String::from_utf8_lossy(&alias);
+        println!("{} -> {}", did, commit_cid);
+    }
+
+    let (did, commit_cid) = all_aliases[0].clone();
+    let did = String::from_utf8_lossy(&did);
+    info!("starting from {} [{}]", commit_cid, did);
 
     // NOTE: the faster way to develop would have been to decode to libipld::ipld::Ipld first? meh
 
@@ -128,6 +132,7 @@ pub fn dump_mst_keys(db_path: &PathBuf) -> Result<()> {
     debug!("MST root node: {:?}", mst_node);
     debug!("============");
 
+    println!("{}", did);
     print_mst_keys(&mut db, &root.data)?;
     Ok(())
 }

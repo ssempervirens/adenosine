@@ -51,6 +51,9 @@ enum Command {
     Import {
         /// CARv1 file path to import from
         car_path: std::path::PathBuf,
+
+        /// name of pointer to root of CAR DAG tree. Usually a DID
+        alias: String,
     },
 
     /// Helper to print MST keys/docs from a sqlite repo
@@ -82,7 +85,10 @@ fn main() -> Result<()> {
             // TODO: log some config stuff?
             run_server(port, &opt.blockstore_db_path, &opt.atp_db_path)
         }
-        Command::Import { car_path } => load_car_to_sqlite(&opt.blockstore_db_path, &car_path),
+        // TODO: handle alias
+        Command::Import { car_path, alias } => {
+            load_car_to_sqlite(&opt.blockstore_db_path, &car_path)
+        }
         Command::Inspect {} => mst::dump_mst_keys(&opt.blockstore_db_path),
     }
 }

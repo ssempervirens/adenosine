@@ -35,6 +35,12 @@ impl RepoStore {
         })
     }
 
+    pub fn new_connection(&mut self) -> Result<Self> {
+        Ok(RepoStore {
+            db: self.db.additional_connection()?,
+        })
+    }
+
     pub fn get_ipld(&mut self, cid: &str) -> Result<Ipld> {
         let ipld_cid = Cid::from_str(cid)?;
         if let Some(b) = self.db.get_block(&ipld_cid)? {
@@ -67,7 +73,7 @@ impl RepoStore {
     }
 
     /// Quick alias lookup
-    pub fn get_root(&mut self, did: &str) -> Result<Option<String>> {
+    pub fn lookup_commit(&mut self, did: &str) -> Result<Option<String>> {
         Ok(self
             .db
             .resolve(Cow::from(did.as_bytes()))?

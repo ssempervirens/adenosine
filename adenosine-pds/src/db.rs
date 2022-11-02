@@ -2,6 +2,7 @@ use crate::AtpSession;
 /// ATP database (as distinct from blockstore)
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
+use log::debug;
 use rusqlite::{params, Connection};
 use rusqlite_migration::{Migrations, M};
 use serde_json::Value;
@@ -107,6 +108,7 @@ impl AtpDatabase {
         // TODO: insert did_doc
         // TODO: also need to initialize repo with... profile?
         {
+            debug!("bcrypt hashing password (can be slow)...");
             let password_bcrypt = bcrypt::hash(password, bcrypt::DEFAULT_COST)?;
             let signing_key = "key:TODO";
             let did = "did:TODO";
