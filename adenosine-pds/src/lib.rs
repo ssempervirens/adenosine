@@ -9,12 +9,13 @@ use ipfs_sqlite_block_store::BlockStore;
 mod car;
 mod db;
 mod models;
-mod mst;
+pub mod mst;
+mod repo;
 
 pub use car::{load_car_to_blockstore, load_car_to_sqlite};
 pub use db::AtpDatabase;
 pub use models::*;
-pub use mst::{dump_mst_keys, repro_mst};
+pub use repo::{RepoCommit, RepoStore};
 
 pub fn run_server(port: u16, blockstore_db_path: &PathBuf, atp_db_path: &PathBuf) -> Result<()> {
     // TODO: some static files? https://github.com/tomaka/rouille/blob/master/examples/static-files.rs

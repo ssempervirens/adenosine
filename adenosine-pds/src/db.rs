@@ -61,7 +61,7 @@ impl AtpDatabase {
 
     pub fn get_record(&mut self, did: &str, collection: &str, tid: &str) -> Result<Value> {
         let mut stmt = self.conn.prepare_cached(
-            "SELECT record_json FROM record WHERE did = ?1 collection = ?2 tid = ?3",
+            "SELECT record_json FROM record WHERE did = ?1 AND collection = ?2 AND tid = ?3",
         )?;
         Ok(stmt.query_row(params!(did, collection, tid), |row| {
             row.get(0).map(|v: String| Value::from_str(&v))
@@ -71,7 +71,7 @@ impl AtpDatabase {
     pub fn get_record_list(&mut self, did: &str, collection: &str) -> Result<Vec<String>> {
         let mut stmt = self
             .conn
-            .prepare_cached("SELECT tid FROM record WHERE did = ?1 collection = ?2")?;
+            .prepare_cached("SELECT tid FROM record WHERE did = ?1 AND collection = ?2")?;
         let ret = stmt
             .query_and_then(params!(did, collection), |row| {
                 let v: String = row.get(0)?;

@@ -1,4 +1,4 @@
-use adenosine_pds::repro_mst;
+use adenosine_pds::mst::repro_mst;
 use std::path::PathBuf;
 use std::str::FromStr;
 

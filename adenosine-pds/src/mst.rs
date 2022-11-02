@@ -12,25 +12,25 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 #[derive(Debug, DagCbor, PartialEq, Eq)]
-struct CommitNode {
-    root: Cid,
-    sig: Box<[u8]>,
+pub struct CommitNode {
+    pub root: Cid,
+    pub sig: Box<[u8]>,
 }
 
 #[derive(Debug, DagCbor, PartialEq, Eq)]
-struct RootNode {
-    auth_token: Option<String>,
-    prev: Option<Cid>,
+pub struct RootNode {
+    pub auth_token: Option<String>,
+    pub prev: Option<Cid>,
     // TODO: not 'metadata'?
-    meta: Cid,
-    data: Cid,
+    pub meta: Cid,
+    pub data: Cid,
 }
 
 #[derive(Debug, DagCbor, PartialEq, Eq)]
-struct MetadataNode {
-    datastore: String, // "mst"
-    did: String,
-    version: u8, // 1
+pub struct MetadataNode {
+    pub datastore: String, // "mst"
+    pub did: String,
+    pub version: u8, // 1
 }
 
 #[derive(Debug, DagCbor, PartialEq, Eq)]
@@ -132,7 +132,7 @@ pub fn dump_mst_keys(db_path: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn collect_mst_keys(
+pub fn collect_mst_keys(
     db: &mut BlockStore<libipld::DefaultParams>,
     cid: &Cid,
     map: &mut BTreeMap<String, Cid>,
