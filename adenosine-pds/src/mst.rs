@@ -1,5 +1,5 @@
 use crate::load_car_to_blockstore;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use ipfs_sqlite_block_store::BlockStore;
 use libipld::cbor::DagCborCodec;
 use libipld::multihash::Code;
@@ -61,10 +61,13 @@ struct WipNode {
 }
 
 fn get_mst_node(db: &mut BlockStore<libipld::DefaultParams>, cid: &Cid) -> Result<MstNode> {
-    let mst_node: MstNode = DagCborCodec.decode(
-        &db.get_block(cid)?
-            .ok_or(anyhow!("expected block in store"))?,
-    )?;
+    let block = &db
+        .get_block(cid)?
+        .ok_or(anyhow!("reading MST node from blockstore"))?;
+    //println!("{:?}", block);
+    let mst_node: MstNode = DagCborCodec
+        .decode(block)
+        .context("parsing MST DAG-CBOR IPLD node from blockstore")?;
     Ok(mst_node)
 }
 
@@ -168,9 +171,9 @@ fn leading_zeros(key: &str) -> u8 {
     digest.len() as u8
 }
 
-fn generate_mst(
+pub fn generate_mst(
     db: &mut BlockStore<libipld::DefaultParams>,
-    map: &mut BTreeMap<String, Cid>,
+    map: &BTreeMap<String, Cid>,
 ) -> Result<Cid> {
     // construct a "WIP" tree
     let mut root: Option<WipNode> = None;
@@ -192,7 +195,12 @@ fn generate_mst(
             });
         }
     }
-    serialize_wip_tree(db, root.expect("non-empty MST tree"))
+    let empty_node = WipNode {
+        height: 0,
+        left: None,
+        entries: vec![],
+    };
+    serialize_wip_tree(db, root.unwrap_or(empty_node))
 }
 
 fn insert_entry(mut node: WipNode, entry: WipEntry) -> WipNode {

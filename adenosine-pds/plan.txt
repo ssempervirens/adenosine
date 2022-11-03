@@ -14,11 +14,13 @@ x skeleton
   x wrap both database in a struct with mutexes; have "get handle" helper that unlocks and returns a connection copy of the given type
   x repo store database wrapper (with methods)
   x response error handling (especially for XRPC endpoints)
-- basic crypto and did:plc stuff
-    did:key read/write helpers
-    signature read/write helpers
-    test that did:plc generated as expected
+x basic crypto and did:plc stuff
+  x did:key read/write helpers
+  x test that did:plc generated as expected
+  x signature read/write helpers
+- TODO: why are the multiformat keys so long in did doc?
 - MST code to read and mutate tree state
+    => mutation batches
     => just read the whole tree and then write the whole tree
     => check that empty tree works (eg, for account creation, and after deletes)
     => with in-memory tests

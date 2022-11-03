@@ -93,10 +93,8 @@ pub fn run_server(port: u16, blockstore_db_path: &PathBuf, atp_db_path: &PathBuf
                 (GET) ["/"] => {
                     Response::text("Not much to see here yet!")
                 },
-                (POST) ["/xrpc/com.atproto.createAccount"] => {
-                    let req: AccountRequest = try_or_400!(rouille::input::json_input(request));
-                    let mut srv = srv.lock().unwrap();
-                    xrpc_wrap(srv.atp_db.create_account(&req.username, &req.password, &req.email))
+                (POST) ["/xrpc/com.atproto.{endpoint}", endpoint: String] => {
+                    xrpc_wrap(xrpc_post_atproto(&srv, &endpoint, request))
                 },
                 (GET) ["/xrpc/com.atproto.{endpoint}", endpoint: String] => {
                     xrpc_wrap(xrpc_get_atproto(&srv, &endpoint, request))
@@ -120,11 +118,9 @@ fn xrpc_get_atproto(
             let did = request.get_param("user").unwrap();
             let collection = request.get_param("collection").unwrap();
             let rkey = request.get_param("rkey").unwrap();
-            let repo_key = format!("/{}/{}", collection, rkey);
             let mut srv = srv.lock().expect("service mutex");
-            let commit_cid = srv.repo.lookup_commit(&did)?.unwrap();
             let key = format!("/{}/{}", collection, rkey);
-            match srv.repo.get_record_by_key(&commit_cid, &key) {
+            match srv.repo.get_atp_record(&did, &collection, &rkey) {
                 // TODO: format as JSON, not text debug
                 Ok(Some(ipld)) => Ok(json!({ "thing": format!("{:?}", ipld) })),
                 Ok(None) => Err(anyhow!(XrpcError::NotFound(format!(
@@ -141,6 +137,30 @@ fn xrpc_get_atproto(
                 .lookup_commit(&did)?
                 .map(|v| json!({ "root": v }))
                 .ok_or(anyhow!("XXX: missing"))
+        }
+        _ => Err(anyhow!(XrpcError::NotFound(format!(
+            "XRPC endpoint handler not found: com.atproto.{}",
+            method
+        )))),
+    }
+}
+
+fn xrpc_post_atproto(
+    srv: &Mutex<AtpService>,
+    method: &str,
+    request: &Request,
+) -> Result<serde_json::Value> {
+    match method {
+        "createAccount" => {
+            // TODO: failure here is a 400, not 500
+            let req: AccountRequest = rouille::input::json_input(request)
+                .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
+            let mut srv = srv.lock().unwrap();
+            Ok(serde_json::to_value(srv.atp_db.create_account(
+                &req.username,
+                &req.password,
+                &req.email,
+            )?)?)
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
             "XRPC endpoint handler not found: com.atproto.{}",
