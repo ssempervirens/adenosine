@@ -21,7 +21,7 @@ To enter the dev environment in a new terminal:
 Run an atproto example PDS server (in memory), and create a test user:
 
 - (enter dev environment)
-- `cd packages/dev_env`
+- `cd packages/dev-env`
 - `yarn run start`
 - `> status()`
 - `> mkuser("hyde")`
