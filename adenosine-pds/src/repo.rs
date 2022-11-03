@@ -5,7 +5,7 @@ use libipld::cbor::DagCborCodec;
 use libipld::multihash::Code;
 use libipld::prelude::Codec;
 use libipld::store::DefaultParams;
-use libipld::{Block, Cid, DagCbor, Ipld};
+use libipld::{Block, Cid, Ipld};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::path::PathBuf;

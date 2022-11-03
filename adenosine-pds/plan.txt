@@ -2,26 +2,55 @@
 PDS proof of concept:
 x ipld sqlite driver importing CAR file
     => simple binary, two args
-- MST code to read and mutate tree state
-    => just read the whole tree and then write the whole tree
-    => with tests
-- skeleton
+x skeleton
   x env config: DB paths, port
   x commands: serve, import, inspect
   x integration test
-    database wrappers
+  x atp db wrapper (with methods)
+        schema in a single .sql file
+        https://docs.rs/rusqlite_migration/latest/rusqlite_migration/
+        test version (in memory, per-thread)
+        wrap in a mutex, unwrap and make new connection when desired
+  x wrap both database in a struct with mutexes; have "get handle" helper that unlocks and returns a connection copy of the given type
+  x repo store database wrapper (with methods)
+  x response error handling (especially for XRPC endpoints)
+- basic crypto and did:plc stuff
+    did:key read/write helpers
+    signature read/write helpers
+    test that did:plc generated as expected
+- MST code to read and mutate tree state
+    => just read the whole tree and then write the whole tree
+    => check that empty tree works (eg, for account creation, and after deletes)
+    => with in-memory tests
+- service-level config
+    domain suffixes (eg, just ".test" for now)
+    account registration allowed or not
+    CLI account creation (?)
+    PDS signing key
+- 
 - implement basic non-authenticated CRUD on repository, test with CLI
     com.atproto
         createAccount
+        repoDescribe
         repoGetRecord
         repoListRecords
         repoBatchWrite
-        repoCreateRecord
-        repoPutRecord
-        repoDeleteRecord
-        syncGetRepo
+            repoCreateRecord
+            repoPutRecord
+            repoDeleteRecord
         syncGetRoot
+        syncGetRepo
         syncUpdateRepo
+- single shared signing key for all users (not what I expected)
+- helper web methods
+
+    xrpc_wrap<S: Serialize>(resp: Result<S>) -> Response
+
+    xrpc_get_atproto(endpoint: &str, req) -> Result<Value>
+    xrpc_post_atproto(endpoint: &str, req) -> Result<Value>
+
+    xrpc_wrap(xrpc_get_atproto(srv, "asdf", req))
+
 ? python test script
 - sqlite schema (for application)
 - write wrapper which updates MST *and* updates other tables in a transaction
@@ -31,7 +60,6 @@ x ipld sqlite driver importing CAR file
         createSession
         getAccountsConfig
         getSession
-        repoDescribe
         resolveName
     app.bsky
         getHomeFeed
@@ -55,15 +83,21 @@ other utils/helpers:
 libraries:
 - `jsonschema` to validate requests and records (rich validation)
 - `schemafy` to codegen serde types for records (ahead of time?)
-- `rusqlite` with "bundled" sqlite for datastore
-- `ipfs-sqlite-block-store` and `libipld` to parse and persist repo content 
-- `warp` as async HTTP service
-- `deadpool-sqlite` or `tokio-rusqlite` to use rusqlite from async code?
-- `r2d2` to wrap rusqlite (?)
 - pretty_env_logger
-- ??? for CBOR (de)serialization of MST, separate from the IPLD stuff?
-- no good crate for working with CAR files... could rip out this code?
+- no good published crate for working with CAR files... could rip out this code?
     https://github.com/n0-computer/iroh/tree/main/iroh-car
+- ??? for CBOR (de)serialization of MST, separate from the IPLD stuff?
+
+sync option:
+- `rouille` web framework
+- `rusqlite` with "bundled" sqlite for datastore
+- `rusqlite_migration`
+- `ipfs-sqlite-block-store` and `libipld` to parse and persist repo content 
+
+async option:
+- `warp` as async HTTP service
+- `sqlx` for async pooled sqlite or postgresql db
+- `iroh-store` for async rocksdb IPFS blockstore
 
 ## concurrency (in warp app)
 

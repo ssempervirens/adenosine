@@ -6,15 +6,16 @@ use std::fmt;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use ipfs_sqlite_block_store::BlockStore;
-
 mod car;
+mod crypto;
 mod db;
+mod did;
 mod models;
 pub mod mst;
 mod repo;
 
 pub use car::{load_car_to_blockstore, load_car_to_sqlite};
+pub use crypto::{KeyPair, PubKey};
 pub use db::AtpDatabase;
 pub use models::*;
 pub use repo::{RepoCommit, RepoStore};
@@ -112,6 +113,9 @@ fn xrpc_get_atproto(
     request: &Request,
 ) -> Result<serde_json::Value> {
     match method {
+        "getAccountsConfig" => {
+            Ok(json!({"availableUserDomains": ["test"], "inviteCodeRequired": false}))
+        }
         "getRecord" => {
             let did = request.get_param("user").unwrap();
             let collection = request.get_param("collection").unwrap();

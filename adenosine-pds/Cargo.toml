@@ -32,6 +32,10 @@ futures = "0.3"
 sha256 = "*"
 lazy_static = "*"
 bcrypt = "0.13"
+data-encoding = "*"
+k256 = { version = "*", features = ["ecdsa"] }
+p256 = { version = "*", features = ["ecdsa"] }
+multibase = "*"
 
 [package.metadata.deb]
 maintainer = "Bryan Newbold <bnewbold@robocracy.org>"
