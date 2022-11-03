@@ -95,45 +95,67 @@ impl AtpDatabase {
         ret
     }
 
+    /// Quick check if an account already exists for given username or email
+    pub fn account_exists(&mut self, username: &str, email: &str) -> Result<bool> {
+        let mut stmt = self
+            .conn
+            .prepare_cached("SELECT COUNT(*) FROM account WHERE username = $1 OR email = $2")?;
+        let count: i32 = stmt.query_row(params!(username, email), |row| row.get(0))?;
+        Ok(count > 0)
+    }
+
     pub fn create_account(
         &mut self,
+        did: &str,
         username: &str,
         password: &str,
         email: &str,
-    ) -> Result<AtpSession> {
-        // TODO: validate email (regex?)
-        // TODO: validate username
-        // TODO: generate and store signing key
-        // TODO: generate plc did (randomly for now?)
-        // TODO: insert did_doc
-        // TODO: also need to initialize repo with... profile?
-        {
-            debug!("bcrypt hashing password (can be slow)...");
-            let password_bcrypt = bcrypt::hash(password, bcrypt::DEFAULT_COST)?;
-            let signing_key = "key:TODO";
-            let did = "did:TODO";
-            let mut stmt = self
-                .conn
-                .prepare_cached("INSERT INTO account (username, password_bcrypt, email, did, signing_key) VALUES (?1, ?2, ?3, ?4, ?5)")?;
-            stmt.execute(params!(username, password_bcrypt, email, did, signing_key))?;
-        }
-        self.create_session(username, password)
+    ) -> Result<()> {
+        debug!("bcrypt hashing password (can be slow)...");
+        let password_bcrypt = bcrypt::hash(password, bcrypt::DEFAULT_COST)?;
+        let did = "did:TODO";
+        let mut stmt = self.conn.prepare_cached(
+            "INSERT INTO account (username, password_bcrypt, email, did) VALUES (?1, ?2, ?3, ?4)",
+        )?;
+        stmt.execute(params!(username, password_bcrypt, email, did))?;
+        Ok(())
     }
 
+    /// Returns a JWT session token
     pub fn create_session(&mut self, username: &str, password: &str) -> Result<AtpSession> {
         let mut stmt = self
             .conn
-            .prepare_cached("SELECT password_bcrypt FROM account WHERE username = ?1")?;
-        let password_bcrypt: String = stmt.query_row(params!(username), |row| row.get(0))?;
+            .prepare_cached("SELECT did, password_bcrypt FROM account WHERE username = ?1")?;
+        let (did, password_bcrypt): (String, String) =
+            stmt.query_row(params!(username), |row| Ok((row.get(0)?, row.get(1)?)))?;
         if !bcrypt::verify(password, &password_bcrypt)? {
             return Err(anyhow!("password did not match"));
         }
         // TODO: generate JWT
-        // TODO: insert session wtih JWT
+        // TODO: insert session with JWT
+        let jwt = "jwt:BOGUS";
         Ok(AtpSession {
+            did,
             name: username.to_string(),
-            did: "did:TODO".to_string(),
-            jwt: "jwt:TODO".to_string(),
+            accessJwt: jwt.to_string(),
+            refreshJwt: jwt.to_string(),
         })
+    }
+
+    /// Returns the DID that a token is valid for
+    pub fn check_auth_token(&mut self, jwt: &str) -> Result<String> {
+        let mut stmt = self
+            .conn
+            .prepare_cached("SELECT did FROM session WHERE jwt = $1")?;
+        let did = stmt.query_row(params!(jwt), |row| row.get(0))?;
+        Ok(did)
+    }
+
+    pub fn put_did_doc(&mut self, did: &str, did_doc: &Value) -> Result<()> {
+        let mut stmt = self
+            .conn
+            .prepare_cached("INSERT INTO did_doc (did, doc_json) VALUES (?1, ?2)")?;
+        stmt.execute(params!(did, did_doc.to_string()))?;
+        Ok(())
     }
 }

@@ -12,7 +12,7 @@ use serde_json::json;
 
 #[allow(non_snake_case)]
 #[derive(Debug, DagCbor, PartialEq, Eq, Clone)]
-struct CreateOp {
+pub struct CreateOp {
     #[ipld(rename = "type")]
     pub op_type: String,
     pub signingKey: String,
@@ -50,7 +50,7 @@ impl UnsignedCreateOp {
 }
 
 impl CreateOp {
-    fn new(
+    pub fn new(
         username: String,
         atp_pds: String,
         keypair: &KeyPair,
@@ -72,7 +72,7 @@ impl CreateOp {
         unsigned.into_signed(sig)
     }
 
-    fn did_plc(&self) -> String {
+    pub fn did_plc(&self) -> String {
         // dump DAG-CBOR
         let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, self)
             .expect("encode DAG-CBOR");
@@ -89,7 +89,7 @@ impl CreateOp {
         format!("did:plc:{}", &digest_b32[0..24])
     }
 
-    fn did_doc(&self) -> serde_json::Value {
+    pub fn did_doc(&self) -> serde_json::Value {
         let did = self.did_plc();
         // TODO:
         let user_url = format!("https://{}.test", self.username);
@@ -140,7 +140,7 @@ impl CreateOp {
     }
 
     /// This method only makes sense on the "genesis" create object
-    fn verify_self(&self) -> Result<()> {
+    pub fn verify_self(&self) -> Result<()> {
         let key = PubKey::from_did_key(&self.signingKey)?;
         let unsigned = {
             let cpy = (*self).clone();

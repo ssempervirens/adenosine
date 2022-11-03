@@ -1,7 +1,8 @@
 use anyhow::{anyhow, Result};
+use libipld::Ipld;
 use log::{error, info};
-use rouille::{router, try_or_400, Request, Response};
-use serde_json::json;
+use rouille::{router, Request, Response};
+use serde_json::{json, Value};
 use std::fmt;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -25,11 +26,15 @@ struct AccountRequest {
     email: String,
     username: String,
     password: String,
+    inviteCode: Option<String>,
+    recoveryKey: Option<String>,
 }
 
 struct AtpService {
     pub repo: RepoStore,
     pub atp_db: AtpDatabase,
+    pub pds_keypair: KeyPair,
+    pub pds_public_url: String,
 }
 
 #[derive(Debug)]
@@ -74,6 +79,9 @@ pub fn run_server(port: u16, blockstore_db_path: &PathBuf, atp_db_path: &PathBuf
     let srv = Mutex::new(AtpService {
         repo: RepoStore::open(blockstore_db_path)?,
         atp_db: AtpDatabase::open(atp_db_path)?,
+        // XXX: reuse a keypair
+        pds_keypair: KeyPair::new_random(),
+        pds_public_url: format!("http://localhost:{}", port).to_string(),
     });
 
     let log_ok = |req: &Request, _resp: &Response, elap: std::time::Duration| {
@@ -105,6 +113,31 @@ pub fn run_server(port: u16, blockstore_db_path: &PathBuf, atp_db_path: &PathBuf
     });
 }
 
+/// Intentionally serializing with this instead of DAG-JSON, because ATP schemas don't encode CID
+/// links in any special way, they just pass the CID as a string.
+fn ipld_into_json_value(val: Ipld) -> Value {
+    match val {
+        Ipld::Null => Value::Null,
+        Ipld::Bool(b) => Value::Bool(b),
+        Ipld::Integer(v) => json!(v),
+        Ipld::Float(v) => json!(v),
+        Ipld::String(s) => Value::String(s),
+        Ipld::Bytes(b) => Value::String(data_encoding::BASE64_NOPAD.encode(&b)),
+        Ipld::List(l) => Value::Array(l.into_iter().map(|v| ipld_into_json_value(v)).collect()),
+        Ipld::Map(m) => Value::Object(serde_json::Map::from_iter(
+            m.into_iter().map(|(k, v)| (k, ipld_into_json_value(v))),
+        )),
+        Ipld::Link(c) => Value::String(c.to_string()),
+    }
+}
+
+fn xrpc_required_param(request: &Request, key: &str) -> Result<String> {
+    Ok(request.get_param(key).ok_or(XrpcError::BadRequest(format!(
+        "require '{}' query parameter",
+        key
+    )))?)
+}
+
 fn xrpc_get_atproto(
     srv: &Mutex<AtpService>,
     method: &str,
@@ -115,14 +148,14 @@ fn xrpc_get_atproto(
             Ok(json!({"availableUserDomains": ["test"], "inviteCodeRequired": false}))
         }
         "getRecord" => {
-            let did = request.get_param("user").unwrap();
-            let collection = request.get_param("collection").unwrap();
-            let rkey = request.get_param("rkey").unwrap();
+            let did = xrpc_required_param(request, "did")?;
+            let collection = xrpc_required_param(request, "collection")?;
+            let rkey = xrpc_required_param(request, "rkey")?;
             let mut srv = srv.lock().expect("service mutex");
             let key = format!("/{}/{}", collection, rkey);
             match srv.repo.get_atp_record(&did, &collection, &rkey) {
                 // TODO: format as JSON, not text debug
-                Ok(Some(ipld)) => Ok(json!({ "thing": format!("{:?}", ipld) })),
+                Ok(Some(ipld)) => Ok(ipld_into_json_value(ipld)),
                 Ok(None) => Err(anyhow!(XrpcError::NotFound(format!(
                     "could not find record: {}",
                     key
@@ -131,12 +164,12 @@ fn xrpc_get_atproto(
             }
         }
         "syncGetRoot" => {
-            let did = request.get_param("did").unwrap();
+            let did = xrpc_required_param(request, "did")?;
             let mut srv = srv.lock().expect("service mutex");
             srv.repo
                 .lookup_commit(&did)?
                 .map(|v| json!({ "root": v }))
-                .ok_or(anyhow!("XXX: missing"))
+                .ok_or(XrpcError::NotFound(format!("no repository found for DID: {}", did)).into())
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
             "XRPC endpoint handler not found: com.atproto.{}",
@@ -149,18 +182,50 @@ fn xrpc_post_atproto(
     srv: &Mutex<AtpService>,
     method: &str,
     request: &Request,
-) -> Result<serde_json::Value> {
+) -> Result<impl serde::Serialize> {
     match method {
         "createAccount" => {
-            // TODO: failure here is a 400, not 500
+            // TODO: generate did:plc, and insert an empty record/pointer to repo
+
+            // validate account request
             let req: AccountRequest = rouille::input::json_input(request)
                 .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
+            // TODO: validate username, email, recoverykey
+
+            // check if account already exists (fast path, also confirmed by database schema)
             let mut srv = srv.lock().unwrap();
-            Ok(serde_json::to_value(srv.atp_db.create_account(
-                &req.username,
-                &req.password,
-                &req.email,
-            )?)?)
+            if srv.atp_db.account_exists(&req.username, &req.email)? {
+                Err(XrpcError::BadRequest(format!(
+                    "username or email already exists"
+                )))?;
+            };
+
+            // generate DID
+            let create_op = did::CreateOp::new(
+                req.username.clone(),
+                srv.pds_public_url.clone(),
+                &srv.pds_keypair,
+                req.recoveryKey,
+            );
+            create_op.verify_self()?;
+            let did = create_op.did_plc();
+            let did_doc = create_op.did_doc();
+
+            // register in ATP DB and generate DID doc
+            srv.atp_db
+                .create_account(&did, &req.username, &req.password, &req.email)?;
+            srv.atp_db.put_did_doc(&did, &did_doc)?;
+
+            // insert empty MST repository
+            let root_cid = {
+                let empty_map_cid: String = srv.repo.mst_from_map(&Default::default())?;
+                let meta_cid = srv.repo.write_metadata(&did)?;
+                srv.repo.write_root(&did, &meta_cid, None, &empty_map_cid)?
+            };
+            let _commit_cid = srv.repo.write_commit(&did, &root_cid, "XXX-dummy-sig")?;
+
+            let sess = srv.atp_db.create_session(&req.username, &req.password)?;
+            Ok(sess)
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
             "XRPC endpoint handler not found: com.atproto.{}",
