@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use libipld::Ipld;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use rouille::{router, Request, Response};
 use serde_json::{json, Value};
 use std::fmt;
@@ -22,16 +22,6 @@ pub use db::AtpDatabase;
 pub use models::*;
 pub use repo::{RepoCommit, RepoStore};
 pub use ucan_p256::P256KeyMaterial;
-
-#[allow(non_snake_case)]
-#[derive(Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
-struct AccountRequest {
-    email: String,
-    username: String,
-    password: String,
-    inviteCode: Option<String>,
-    recoveryKey: Option<String>,
-}
 
 struct AtpService {
     pub repo: RepoStore,
@@ -77,14 +67,16 @@ fn xrpc_wrap<S: serde::Serialize>(resp: Result<S>) -> Response {
     }
 }
 
-pub fn run_server(port: u16, blockstore_db_path: &PathBuf, atp_db_path: &PathBuf) -> Result<()> {
-    // TODO: some static files? https://github.com/tomaka/rouille/blob/master/examples/static-files.rs
-
+pub fn run_server(
+    port: u16,
+    blockstore_db_path: &PathBuf,
+    atp_db_path: &PathBuf,
+    keypair: KeyPair,
+) -> Result<()> {
     let srv = Mutex::new(AtpService {
         repo: RepoStore::open(blockstore_db_path)?,
         atp_db: AtpDatabase::open(atp_db_path)?,
-        // XXX: reuse a keypair
-        pds_keypair: KeyPair::new_random(),
+        pds_keypair: keypair,
         pds_public_url: format!("http://localhost:{}", port).to_string(),
     });
 
@@ -99,6 +91,9 @@ pub fn run_server(port: u16, blockstore_db_path: &PathBuf, atp_db_path: &PathBuf
             elap
         );
     };
+
+    // TODO: robots.txt
+    // TODO: some static files? https://github.com/tomaka/rouille/blob/master/examples/static-files.rs
     rouille::start_server(format!("localhost:{}", port), move |request| {
         rouille::log_custom(request, log_ok, log_err, || {
             router!(request,
@@ -142,6 +137,21 @@ fn xrpc_required_param(request: &Request, key: &str) -> Result<String> {
     )))?)
 }
 
+/// Returns DID of validated user
+fn xrpc_check_auth_header(srv: &mut AtpService, request: &Request) -> Result<String> {
+    let header = request
+        .header("Authorization")
+        .ok_or(XrpcError::Forbidden(format!("require auth header")))?;
+    if !header.starts_with("Bearer ") {
+        Err(XrpcError::Forbidden(format!("require bearer token")))?;
+    }
+    let jwt = header.split(" ").nth(1).unwrap();
+    match srv.atp_db.check_auth_token(&jwt)? {
+        Some(did) => Ok(did),
+        None => Err(XrpcError::Forbidden(format!("session token not found")))?,
+    }
+}
+
 fn xrpc_get_handler(
     srv: &Mutex<AtpService>,
     method: &str,
@@ -175,6 +185,45 @@ fn xrpc_get_handler(
                 .map(|v| json!({ "root": v }))
                 .ok_or(XrpcError::NotFound(format!("no repository found for DID: {}", did)).into())
         }
+        "com.atproto.repoListRecords" => {
+            // TODO: limit, before, after, tid, reverse
+            // TODO: handle non-DID 'user'
+            // TODO: validate 'collection' as an NSID
+            // TODO: limit result set size
+            let did = xrpc_required_param(request, "user")?;
+            let collection = xrpc_required_param(request, "collection")?;
+            let mut record_list: Vec<Value> = vec![];
+            let mut srv = srv.lock().expect("service mutex");
+            let full_map = srv.repo.mst_to_map(&did)?;
+            let prefix = format!("/{}/", collection);
+            for (mst_key, cid) in full_map.iter() {
+                if mst_key.starts_with(&prefix) {
+                    let record = srv.repo.get_ipld(cid)?;
+                    record_list.push(json!({
+                        "uri": format!("at://{}{}", did, mst_key),
+                        "cid": cid,
+                        "value": ipld_into_json_value(record),
+                    }));
+                }
+            }
+            Ok(json!({ "records": record_list }))
+        }
+        "com.atproto.repoDescribe" => {
+            let did = xrpc_required_param(request, "user")?;
+            // TODO: resolve username?
+            let username = did.clone();
+            let mut srv = srv.lock().expect("service mutex");
+            let did_doc = srv.atp_db.get_did_doc(&did)?;
+            let collections: Vec<String> = srv.repo.collections(&did)?;
+            let desc = RepoDescribe {
+                name: username,
+                did: did,
+                didDoc: did_doc,
+                collections: collections,
+                nameIsCorrect: true,
+            };
+            Ok(json!(desc))
+        }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
             "XRPC endpoint handler not found: {}",
             method
@@ -186,12 +235,9 @@ fn xrpc_post_handler(
     srv: &Mutex<AtpService>,
     method: &str,
     request: &Request,
-) -> Result<impl serde::Serialize> {
+) -> Result<serde_json::Value> {
     match method {
         "com.atproto.createAccount" => {
-            // TODO: generate did:plc, and insert an empty record/pointer to repo
-            info!("creating new account");
-
             // validate account request
             let req: AccountRequest = rouille::input::json_input(request)
                 .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
@@ -204,6 +250,8 @@ fn xrpc_post_handler(
                     "username or email already exists"
                 )))?;
             };
+
+            debug!("trying to create new account: {}", &req.username);
 
             // generate DID
             let create_op = did::CreateOp::new(
@@ -241,7 +289,35 @@ fn xrpc_post_handler(
             let sess = srv
                 .atp_db
                 .create_session(&req.username, &req.password, &keypair)?;
-            Ok(sess)
+            Ok(json!(sess))
+        }
+        "com.atproto.createSession" => {
+            let req: AccountRequest = rouille::input::json_input(request)
+                .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
+            let mut srv = srv.lock().unwrap();
+            let keypair = srv.pds_keypair.clone();
+            Ok(json!(srv.atp_db.create_session(
+                &req.username,
+                &req.password,
+                &keypair
+            )?))
+        }
+        "com.atproto.deleteSession" => {
+            let mut srv = srv.lock().unwrap();
+            let _did = xrpc_check_auth_header(&mut srv, request)?;
+            let header = request
+                .header("Authorization")
+                .ok_or(XrpcError::Forbidden(format!("require auth header")))?;
+            if !header.starts_with("Bearer ") {
+                Err(XrpcError::Forbidden(format!("require bearer token")))?;
+            }
+            let jwt = header.split(" ").nth(1).expect("JWT in header");
+            if !srv.atp_db.delete_session(&jwt)? {
+                Err(anyhow!(
+                    "session token not found, even after using for auth"
+                ))?
+            };
+            Ok(json!({}))
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
             "XRPC endpoint handler not found: {}",

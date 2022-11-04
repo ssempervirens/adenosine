@@ -43,8 +43,17 @@ struct Opt {
 enum Command {
     /// Start ATP server as a foreground process
     Serve {
-        #[structopt(long, default_value = "3030")]
+        /// Localhost port to listen on
+        #[structopt(long, default_value = "3030", env = "ATP_PDS_PORT")]
         port: u16,
+
+        /// Secret key, encoded in hex. Use 'generate-secret' to create a new one
+        #[structopt(
+            long = "--pds-secret-key",
+            env = "ATP_PDS_SECRET_KEY",
+            hide_env_values = true
+        )]
+        pds_secret_key: String,
     },
 
     /// Helper to import an IPLD CARv1 file in to sqlite data store
@@ -53,11 +62,15 @@ enum Command {
         car_path: std::path::PathBuf,
 
         /// name of pointer to root of CAR DAG tree. Usually a DID
+        #[structopt(long, default_value = "last-import")]
         alias: String,
     },
 
     /// Helper to print MST keys/docs from a sqlite repo
     Inspect,
+
+    /// Generate a PDS secret key and print to stdout (as hex)
+    GenerateSecret,
 }
 
 fn main() -> Result<()> {
@@ -82,14 +95,23 @@ fn main() -> Result<()> {
     debug!("config parsed, starting up");
 
     match opt.cmd {
-        Command::Serve { port } => {
+        Command::Serve {
+            port,
+            pds_secret_key,
+        } => {
             // TODO: log some config stuff?
-            run_server(port, &opt.blockstore_db_path, &opt.atp_db_path)
+            let keypair = KeyPair::from_hex(&pds_secret_key)?;
+            run_server(port, &opt.blockstore_db_path, &opt.atp_db_path, keypair)
         }
         // TODO: handle alias
         Command::Import { car_path, alias } => {
-            load_car_to_sqlite(&opt.blockstore_db_path, &car_path)
+            load_car_to_sqlite(&opt.blockstore_db_path, &car_path, &alias)
         }
         Command::Inspect {} => mst::dump_mst_keys(&opt.blockstore_db_path),
+        Command::GenerateSecret {} => {
+            let keypair = KeyPair::new_random();
+            println!("{}", keypair.to_hex());
+            Ok(())
+        }
     }
 }

@@ -3,7 +3,7 @@ use crate::{AtpSession, KeyPair};
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use log::debug;
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 use rusqlite_migration::{Migrations, M};
 use serde_json::Value;
 use std::path::PathBuf;
@@ -58,41 +58,6 @@ impl AtpDatabase {
         let path = std::path::PathBuf::from(self.conn.path().expect("expected real database"));
         let conn = Connection::open(path)?;
         Ok(AtpDatabase { conn })
-    }
-
-    pub fn get_record(&mut self, did: &str, collection: &str, tid: &str) -> Result<Value> {
-        let mut stmt = self.conn.prepare_cached(
-            "SELECT record_json FROM record WHERE did = ?1 AND collection = ?2 AND tid = ?3",
-        )?;
-        Ok(stmt.query_row(params!(did, collection, tid), |row| {
-            row.get(0).map(|v: String| Value::from_str(&v))
-        })??)
-    }
-
-    pub fn get_record_list(&mut self, did: &str, collection: &str) -> Result<Vec<String>> {
-        let mut stmt = self
-            .conn
-            .prepare_cached("SELECT tid FROM record WHERE did = ?1 AND collection = ?2")?;
-        let ret = stmt
-            .query_and_then(params!(did, collection), |row| {
-                let v: String = row.get(0)?;
-                Ok(v)
-            })?
-            .collect();
-        ret
-    }
-
-    pub fn get_collection_list(&mut self, did: &str) -> Result<Vec<String>> {
-        let mut stmt = self
-            .conn
-            .prepare_cached("SELECT collection FROM record WHERE did = ?1 GROUP BY collection")?;
-        let ret = stmt
-            .query_and_then(params!(did), |row| {
-                let v: String = row.get(0)?;
-                Ok(v)
-            })?
-            .collect();
-        ret
     }
 
     /// Quick check if an account already exists for given username or email
@@ -155,13 +120,21 @@ impl AtpDatabase {
         })
     }
 
-    /// Returns the DID that a token is valid for
-    pub fn check_auth_token(&mut self, jwt: &str) -> Result<String> {
+    /// Returns the DID that a token is valid for, or None if session not found
+    pub fn check_auth_token(&mut self, jwt: &str) -> Result<Option<String>> {
         let mut stmt = self
             .conn
             .prepare_cached("SELECT did FROM session WHERE jwt = $1")?;
-        let did = stmt.query_row(params!(jwt), |row| row.get(0))?;
-        Ok(did)
+        let did_maybe = stmt.query_row(params!(jwt), |row| row.get(0)).optional()?;
+        Ok(did_maybe)
+    }
+
+    pub fn delete_session(&mut self, jwt: &str) -> Result<bool> {
+        let mut stmt = self
+            .conn
+            .prepare_cached("DELETE FROM session WHERE jwt = $1")?;
+        let count = stmt.execute(params!(jwt))?;
+        Ok(count >= 1)
     }
 
     pub fn put_did_doc(&mut self, did: &str, did_doc: &Value) -> Result<()> {
@@ -170,5 +143,12 @@ impl AtpDatabase {
             .prepare_cached("INSERT INTO did_doc (did, doc_json) VALUES (?1, ?2)")?;
         stmt.execute(params!(did, did_doc.to_string()))?;
         Ok(())
+    }
+    pub fn get_did_doc(&mut self, did: &str) -> Result<Value> {
+        let mut stmt = self
+            .conn
+            .prepare_cached("SELECT doc_json FROM did_doc WHERE did = $1")?;
+        let doc_json: String = stmt.query_row(params!(did), |row| row.get(0))?;
+        Ok(Value::from_str(&doc_json)?)
     }
 }

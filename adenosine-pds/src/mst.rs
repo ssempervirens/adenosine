@@ -304,7 +304,7 @@ pub fn repro_mst(car_path: &PathBuf) -> Result<()> {
         { BlockStore::open_path(ipfs_sqlite_block_store::DbPath::Memory, Default::default())? };
 
     // load CAR contents from file
-    load_car_to_blockstore(&mut db, car_path)?;
+    load_car_to_blockstore(&mut db, car_path, "repro-import")?;
 
     let all_aliases: Vec<(Vec<u8>, Cid)> = db.aliases()?;
     if all_aliases.is_empty() {

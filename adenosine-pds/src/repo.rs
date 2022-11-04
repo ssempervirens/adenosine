@@ -9,6 +9,7 @@ use libipld::store::DefaultParams;
 use libipld::{Block, Cid, Ipld};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -141,6 +142,21 @@ impl RepoStore {
         }
     }
 
+    pub fn collections(&mut self, did: &str) -> Result<Vec<String>> {
+        let commit = if let Some(c) = self.lookup_commit(did)? {
+            self.get_commit(&c)?
+        } else {
+            return Err(anyhow!("DID not found in repositories: {}", did));
+        };
+        let map = self.mst_to_map(&commit.mst_cid)?;
+        let mut collections: HashSet<String> = Default::default();
+        for k in map.keys() {
+            let coll = k.split("/").nth(0).unwrap();
+            collections.insert(coll.to_string());
+        }
+        Ok(collections.into_iter().collect())
+    }
+
     pub fn get_atp_record(
         &mut self,
         did: &str,
@@ -217,8 +233,8 @@ impl RepoStore {
     }
 
     /// returns the root commit from CAR file
-    pub fn load_car(&mut self, car_path: &PathBuf) -> Result<String> {
-        let cid = load_car_to_blockstore(&mut self.db, car_path)?;
+    pub fn load_car(&mut self, car_path: &PathBuf, alias: &str) -> Result<String> {
+        let cid = load_car_to_blockstore(&mut self.db, car_path, alias)?;
         Ok(cid.to_string())
     }
 
