@@ -78,5 +78,5 @@ CREATE TABLE bsky_notification(
     subject_cid         TEXT NOT NULL,
     reason              TEXT NOT NULL,
     seen_at             TIMESTAMP WITH TIME ZONE,
-    indexed_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT ( DATETIME('now') ),
+    indexed_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT ( DATETIME('now') )
 );
