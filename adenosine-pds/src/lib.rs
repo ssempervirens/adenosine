@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use libipld::Ipld;
-use log::{error, info};
+use log::{error, info, warn};
 use rouille::{router, Request, Response};
 use serde_json::{json, Value};
 use std::fmt;
@@ -14,13 +14,16 @@ mod did;
 mod models;
 pub mod mst;
 mod repo;
+mod ucan_p256;
 
 pub use car::{load_car_to_blockstore, load_car_to_sqlite};
 pub use crypto::{KeyPair, PubKey};
 pub use db::AtpDatabase;
 pub use models::*;
 pub use repo::{RepoCommit, RepoStore};
+pub use ucan_p256::P256KeyMaterial;
 
+#[allow(non_snake_case)]
 #[derive(Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
 struct AccountRequest {
     email: String,
@@ -68,6 +71,7 @@ fn xrpc_wrap<S: serde::Serialize>(resp: Result<S>) -> Response {
                 Some(XrpcError::Forbidden(_)) => 403,
                 None => 500,
             };
+            warn!("HTTP {}: {}", code, msg);
             Response::json(&json!({ "message": msg })).with_status_code(code)
         }
     }
@@ -101,11 +105,11 @@ pub fn run_server(port: u16, blockstore_db_path: &PathBuf, atp_db_path: &PathBuf
                 (GET) ["/"] => {
                     Response::text("Not much to see here yet!")
                 },
-                (POST) ["/xrpc/com.atproto.{endpoint}", endpoint: String] => {
-                    xrpc_wrap(xrpc_post_atproto(&srv, &endpoint, request))
+                (POST) ["/xrpc/{endpoint}", endpoint: String] => {
+                    xrpc_wrap(xrpc_post_handler(&srv, &endpoint, request))
                 },
-                (GET) ["/xrpc/com.atproto.{endpoint}", endpoint: String] => {
-                    xrpc_wrap(xrpc_get_atproto(&srv, &endpoint, request))
+                (GET) ["/xrpc/{endpoint}", endpoint: String] => {
+                    xrpc_wrap(xrpc_get_handler(&srv, &endpoint, request))
                 },
                 _ => rouille::Response::empty_404()
             )
@@ -138,16 +142,16 @@ fn xrpc_required_param(request: &Request, key: &str) -> Result<String> {
     )))?)
 }
 
-fn xrpc_get_atproto(
+fn xrpc_get_handler(
     srv: &Mutex<AtpService>,
     method: &str,
     request: &Request,
 ) -> Result<serde_json::Value> {
     match method {
-        "getAccountsConfig" => {
+        "com.atproto.getAccountsConfig" => {
             Ok(json!({"availableUserDomains": ["test"], "inviteCodeRequired": false}))
         }
-        "getRecord" => {
+        "com.atproto.getRecord" => {
             let did = xrpc_required_param(request, "did")?;
             let collection = xrpc_required_param(request, "collection")?;
             let rkey = xrpc_required_param(request, "rkey")?;
@@ -163,7 +167,7 @@ fn xrpc_get_atproto(
                 Err(e) => Err(e),
             }
         }
-        "syncGetRoot" => {
+        "com.atproto.syncGetRoot" => {
             let did = xrpc_required_param(request, "did")?;
             let mut srv = srv.lock().expect("service mutex");
             srv.repo
@@ -172,20 +176,21 @@ fn xrpc_get_atproto(
                 .ok_or(XrpcError::NotFound(format!("no repository found for DID: {}", did)).into())
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
-            "XRPC endpoint handler not found: com.atproto.{}",
+            "XRPC endpoint handler not found: {}",
             method
         )))),
     }
 }
 
-fn xrpc_post_atproto(
+fn xrpc_post_handler(
     srv: &Mutex<AtpService>,
     method: &str,
     request: &Request,
 ) -> Result<impl serde::Serialize> {
     match method {
-        "createAccount" => {
+        "com.atproto.createAccount" => {
             // TODO: generate did:plc, and insert an empty record/pointer to repo
+            info!("creating new account");
 
             // validate account request
             let req: AccountRequest = rouille::input::json_input(request)
@@ -205,30 +210,41 @@ fn xrpc_post_atproto(
                 req.username.clone(),
                 srv.pds_public_url.clone(),
                 &srv.pds_keypair,
-                req.recoveryKey,
+                req.recoveryKey.clone(),
             );
             create_op.verify_self()?;
             let did = create_op.did_plc();
             let did_doc = create_op.did_doc();
 
             // register in ATP DB and generate DID doc
-            srv.atp_db
-                .create_account(&did, &req.username, &req.password, &req.email)?;
+            let recovery_key = req
+                .recoveryKey
+                .unwrap_or(srv.pds_keypair.pubkey().to_did_key());
+            srv.atp_db.create_account(
+                &did,
+                &req.username,
+                &req.password,
+                &req.email,
+                &recovery_key,
+            )?;
             srv.atp_db.put_did_doc(&did, &did_doc)?;
 
             // insert empty MST repository
             let root_cid = {
                 let empty_map_cid: String = srv.repo.mst_from_map(&Default::default())?;
                 let meta_cid = srv.repo.write_metadata(&did)?;
-                srv.repo.write_root(&did, &meta_cid, None, &empty_map_cid)?
+                srv.repo.write_root(&meta_cid, None, &empty_map_cid)?
             };
             let _commit_cid = srv.repo.write_commit(&did, &root_cid, "XXX-dummy-sig")?;
 
-            let sess = srv.atp_db.create_session(&req.username, &req.password)?;
+            let keypair = srv.pds_keypair.clone();
+            let sess = srv
+                .atp_db
+                .create_session(&req.username, &req.password, &keypair)?;
             Ok(sess)
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
-            "XRPC endpoint handler not found: com.atproto.{}",
+            "XRPC endpoint handler not found: {}",
             method
         )))),
     }

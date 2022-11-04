@@ -146,7 +146,7 @@ impl CreateOp {
             let cpy = (*self).clone();
             cpy.into_unsigned()
         };
-        println!("unsigned: {:?}", unsigned);
+        //println!("unsigned: {:?}", unsigned);
         let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, &unsigned)
             .expect("encode DAG-CBOR");
         key.verify_bytes(block.data(), &self.sig)
@@ -295,9 +295,7 @@ fn test_did_plc_examples() {
                 .to_string(),
     };
     op.verify_self().unwrap();
-
-    // XXX: DID PLC generation is also also not consistent
-    //assert_eq!(&op.did_plc(), "did:plc:7iza6de2dwap2sbkpav7c6c6");
+    assert_eq!(&op.did_plc(), "did:plc:7iza6de2dwap2sbkpav7c6c6");
 
     // interacting with PDS / PLC server
     let op = CreateOp {
@@ -311,7 +309,7 @@ fn test_did_plc_examples() {
             "HNfQUg6SMnYKp1l3LtAIsoAblmi33mYiHE9JH1j7w3B-hd8xWpmCUBUoqKfQXmsAs0K1z8Izt19yYk6PqVFgyg"
                 .to_string(),
     };
-    op.verify_self();
+    op.verify_self().unwrap();
     assert_eq!(&op.did_plc(), "did:plc:bmrcg7zrxoiw2kiml3tkw2xv");
 }
 

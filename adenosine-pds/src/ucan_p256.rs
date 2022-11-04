@@ -66,8 +66,7 @@ mod tests {
 
     #[cfg_attr(not(target_arch = "wasm32"), tokio::test)]
     async fn it_can_sign_and_verify_a_ucan() {
-        let rng = rand::thread_rng();
-        let private_key = P256PrivateKey::new(rng);
+        let private_key = P256PrivateKey::random(&mut p256::elliptic_curve::rand_core::OsRng);
         let public_key = P256PublicKey::from(&private_key);
 
         let key_material = P256KeyMaterial(public_key, Some(private_key));
@@ -85,7 +84,7 @@ mod tests {
 
         let mut did_parser = DidParser::new(&[(P256_MAGIC_BYTES, bytes_to_p256_key)]);
 
-        let ucan = Ucan::try_from(token_string).unwrap();
+        let ucan = Ucan::try_from_token_string(&token_string).unwrap();
         ucan.check_signature(&mut did_parser).await.unwrap();
     }
 }

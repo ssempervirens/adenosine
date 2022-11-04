@@ -1,5 +1,5 @@
-use crate::AtpSession;
 /// ATP database (as distinct from blockstore)
+use crate::{AtpSession, KeyPair};
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use log::debug;
@@ -110,19 +110,30 @@ impl AtpDatabase {
         username: &str,
         password: &str,
         email: &str,
+        recovery_pubkey: &str,
     ) -> Result<()> {
         debug!("bcrypt hashing password (can be slow)...");
         let password_bcrypt = bcrypt::hash(password, bcrypt::DEFAULT_COST)?;
-        let did = "did:TODO";
         let mut stmt = self.conn.prepare_cached(
-            "INSERT INTO account (username, password_bcrypt, email, did) VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO account (username, password_bcrypt, email, did, recovery_pubkey) VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
-        stmt.execute(params!(username, password_bcrypt, email, did))?;
+        stmt.execute(params!(
+            username,
+            password_bcrypt,
+            email,
+            did,
+            recovery_pubkey
+        ))?;
         Ok(())
     }
 
     /// Returns a JWT session token
-    pub fn create_session(&mut self, username: &str, password: &str) -> Result<AtpSession> {
+    pub fn create_session(
+        &mut self,
+        username: &str,
+        password: &str,
+        keypair: &KeyPair,
+    ) -> Result<AtpSession> {
         let mut stmt = self
             .conn
             .prepare_cached("SELECT did, password_bcrypt FROM account WHERE username = ?1")?;
@@ -131,9 +142,11 @@ impl AtpDatabase {
         if !bcrypt::verify(password, &password_bcrypt)? {
             return Err(anyhow!("password did not match"));
         }
-        // TODO: generate JWT
-        // TODO: insert session with JWT
-        let jwt = "jwt:BOGUS";
+        let jwt = keypair.ucan()?;
+        let mut stmt = self
+            .conn
+            .prepare_cached("INSERT INTO session (did, jwt) VALUES (?1, ?2)")?;
+        stmt.execute(params!(did, jwt))?;
         Ok(AtpSession {
             did,
             name: username.to_string(),

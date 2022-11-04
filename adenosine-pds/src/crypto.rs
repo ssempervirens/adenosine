@@ -1,9 +1,12 @@
+use crate::P256KeyMaterial;
 use anyhow::{anyhow, ensure, Result};
 use k256;
-use k256::ecdsa::signature::{Signer, Verifier};
 use multibase;
 use p256;
+use p256::ecdsa::signature::{Signer, Verifier};
 use std::str::FromStr;
+use ucan::builder::UcanBuilder;
+use ucan::crypto::KeyMaterial;
 
 // Need to:
 //
@@ -16,11 +19,13 @@ use std::str::FromStr;
 const MULTICODE_P256_BYTES: [u8; 2] = [0x80, 0x24];
 const MULTICODE_K256_BYTES: [u8; 2] = [0xe7, 0x01];
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct KeyPair {
     public: p256::ecdsa::VerifyingKey,
     secret: p256::ecdsa::SigningKey,
 }
 
+#[derive(Clone, PartialEq, Eq)]
 pub enum PubKey {
     P256(p256::ecdsa::VerifyingKey),
     K256(k256::ecdsa::VerifyingKey),
@@ -52,23 +57,55 @@ impl KeyPair {
     }
 
     pub fn sign_bytes(&self, data: &[u8]) -> String {
-        println!("BYTES: {:?}", data);
         let sig = self.secret.sign(data);
         data_encoding::BASE64URL_NOPAD.encode(&sig.to_vec())
     }
+
+    fn ucan_keymaterial(&self) -> P256KeyMaterial {
+        P256KeyMaterial(self.public, Some(self.secret.clone()))
+    }
+
+    /// This is currently just an un-validated token; we don't actually verify these.
+    pub fn ucan(&self) -> Result<String> {
+        let key_material = self.ucan_keymaterial();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+        rt.block_on(build_ucan(key_material))
+    }
+
+    pub fn to_hex(&self) -> String {
+        data_encoding::HEXUPPER.encode(&self.to_bytes())
+    }
+
+    pub fn from_hex(hex: &str) -> Result<Self> {
+        Ok(Self::from_bytes(
+            &data_encoding::HEXUPPER.decode(&hex.as_bytes())?,
+        )?)
+    }
+}
+
+async fn build_ucan(key_material: P256KeyMaterial) -> Result<String> {
+    let token_string = UcanBuilder::default()
+        .issued_by(&key_material)
+        .for_audience(key_material.get_did().await.unwrap().as_str())
+        .with_nonce()
+        .with_lifetime(60 * 60 * 24 * 90)
+        .build()?
+        .sign()
+        .await?
+        .encode()?;
+    Ok(token_string)
 }
 
 impl PubKey {
     pub fn verify_bytes(&self, data: &[u8], sig: &str) -> Result<()> {
-        println!("BYTES: {:?}", data);
         let sig_bytes = data_encoding::BASE64URL_NOPAD.decode(sig.as_bytes())?;
         // TODO: better way other than this re-encoding?
         let sig_hex = data_encoding::HEXUPPER.encode(&sig_bytes);
         match self {
             PubKey::P256(key) => {
-                println!("pre-parse: {}", sig);
                 let sig = p256::ecdsa::Signature::from_str(&sig_hex)?;
-                println!("parsed: {}", sig);
                 Ok(key.verify(data, &sig)?)
             }
             PubKey::K256(key) => {
@@ -135,6 +172,13 @@ impl PubKey {
         match self {
             PubKey::P256(key) => key.to_encoded_point(true).to_bytes().to_vec(),
             PubKey::K256(key) => key.to_bytes().to_vec(),
+        }
+    }
+
+    pub fn ucan_keymaterial(&self) -> P256KeyMaterial {
+        match self {
+            PubKey::P256(key) => P256KeyMaterial(*key, None),
+            PubKey::K256(_key) => unimplemented!(),
         }
     }
 }
@@ -214,4 +258,11 @@ fn test_signing() {
     let did_key = keypair.pubkey().to_did_key();
     let pubkey = PubKey::from_did_key(&did_key).unwrap();
     pubkey.verify_bytes(msg, &sig_str).unwrap();
+}
+
+#[test]
+fn test_keypair_hex() {
+    let before = KeyPair::new_random();
+    let after = KeyPair::from_hex(&before.to_hex()).unwrap();
+    assert!(before == after);
 }

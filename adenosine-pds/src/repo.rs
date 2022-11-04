@@ -166,7 +166,6 @@ impl RepoStore {
 
     pub fn write_root(
         &mut self,
-        did: &str,
         meta_cid: &str,
         prev: Option<&str>,
         mst_cid: &str,
@@ -228,9 +227,9 @@ impl RepoStore {
     /// The "from" commit CID feature is not implemented.
     pub fn write_car<W: std::io::Write>(
         &mut self,
-        did: &str,
+        _did: &str,
         _from_commit_cid: Option<&str>,
-        out: &mut W,
+        _out: &mut W,
     ) -> Result<()> {
         unimplemented!()
     }
@@ -271,9 +270,7 @@ fn test_repo_mst() {
 
     // create root and commit IPLD nodes
     let meta_cid = repo.write_metadata(did).unwrap();
-    let simple_root_cid = repo
-        .write_root(did, &meta_cid, None, &simple_map_cid)
-        .unwrap();
+    let simple_root_cid = repo.write_root(&meta_cid, None, &simple_map_cid).unwrap();
     let simple_commit_cid = repo
         .write_commit(did, &simple_root_cid, "dummy-sig")
         .unwrap();
@@ -299,7 +296,7 @@ fn test_repo_mst() {
     map.insert("/records/3".to_string(), record_cid.clone());
     let simple3_map_cid: String = repo.mst_from_map(&map).unwrap();
     let simple3_root_cid = repo
-        .write_root(did, &meta_cid, Some(&simple_commit_cid), &simple3_map_cid)
+        .write_root(&meta_cid, Some(&simple_commit_cid), &simple3_map_cid)
         .unwrap();
     let simple3_commit_cid = repo
         .write_commit(did, &simple3_root_cid, "dummy-sig3")
