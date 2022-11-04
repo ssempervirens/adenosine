@@ -40,6 +40,7 @@ ucan = "0.7.0-alpha.1"
 # TODO: replace this with data-encoding or similar; this is only needed for ucan_p256 stuff
 bs58 = "*"
 async-trait = "*"
+dotenv = "*"
 
 [package.metadata.deb]
 maintainer = "Bryan Newbold <bnewbold@robocracy.org>"

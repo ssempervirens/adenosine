@@ -61,6 +61,7 @@ enum Command {
 }
 
 fn main() -> Result<()> {
+    dotenv::dotenv().ok();
     let opt = Opt::from_args();
 
     let log_level = match opt.verbose {

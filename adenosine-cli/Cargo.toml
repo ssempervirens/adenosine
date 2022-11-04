@@ -22,6 +22,7 @@ serde_json = "*"
 base64 = "*"
 regex = "*"
 lazy_static = "*"
+dotenv = "*"
 
 # uncertain about these...
 anyhow = "1.0"
