@@ -23,6 +23,8 @@ base64 = "*"
 regex = "*"
 lazy_static = "*"
 dotenv = "*"
+data-encoding = "*"
+rand = "*"
 
 # uncertain about these...
 anyhow = "1.0"

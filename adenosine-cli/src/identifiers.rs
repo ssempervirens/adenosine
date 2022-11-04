@@ -2,7 +2,9 @@ use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::fmt;
+use std::ops::Deref;
 use std::str::FromStr;
+use std::time::SystemTime;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DidOrHost {
@@ -141,4 +143,236 @@ fn test_aturi() {
     assert_eq!(uri.collection, Some("io.example.song".to_string()));
     assert_eq!(uri.record, Some("3yI5-c1z-cc2p-1a".to_string()));
     assert_eq!(uri.fragment, Some("/title".to_string()));
+}
+
+/// A String (newtype) representing an NSID
+pub struct Nsid(String);
+
+impl FromStr for Nsid {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        lazy_static! {
+            static ref NSID_RE: Regex = Regex::new(r"^([a-z][a-z0-9-]+\.)+[a-zA-Z0-9-]+$").unwrap();
+        }
+        if NSID_RE.is_match(s) {
+            Ok(Self(s.to_string()))
+        } else {
+            Err(anyhow!("does not match as an NSID: {}", s))
+        }
+    }
+}
+
+impl Deref for Nsid {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Nsid {
+    pub fn domain(&self) -> String {
+        self.rsplit(".")
+            .skip(1)
+            .collect::<Vec<&str>>()
+            .join(".")
+            .to_string()
+    }
+
+    pub fn name(&self) -> String {
+        self.split(".")
+            .last()
+            .expect("multiple segments in NSID")
+            .to_string()
+    }
+}
+
+impl fmt::Display for Nsid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[test]
+fn test_nsid() {
+    assert!(Nsid::from_str("com.atproto.recordType").is_ok());
+
+    let nsid = Nsid::from_str("com.atproto.recordType").unwrap();
+    assert_eq!(nsid.domain(), "atproto.com".to_string());
+}
+
+pub struct Did(String);
+
+impl FromStr for Did {
+    type Err = anyhow::Error;
+
+    /// DID syntax is specified in: <https://w3c.github.io/did-core/#did-syntax>
+    ///
+    /// This regex does not follow that definition exactly.
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        lazy_static! {
+            static ref DID_RE: Regex =
+                Regex::new(r"^did:([a-z]{1,32}):([a-zA-Z0-9\-.]{1,256})$").unwrap();
+        }
+        if DID_RE.is_match(s) {
+            Ok(Self(s.to_string()))
+        } else {
+            Err(anyhow!("does not match as a DID: {}", s))
+        }
+    }
+}
+
+impl Deref for Did {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Did {
+    pub fn did_type(&self) -> String {
+        self.split(":").nth(1).unwrap().to_string()
+    }
+}
+
+impl fmt::Display for Did {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[test]
+fn test_did() {
+    assert!(Did::from_str("did:web:asdf.org").is_ok());
+    assert!(Did::from_str("did:plc:asdf").is_ok());
+
+    assert!(Did::from_str("bob.com").is_err());
+    assert!(Did::from_str("").is_err());
+    assert!(Did::from_str("did:").is_err());
+    assert!(Did::from_str("did:plc:").is_err());
+    assert!(Did::from_str("plc:asdf").is_err());
+    assert!(Did::from_str("DID:thing:thang").is_err());
+
+    assert_eq!(
+        Did::from_str("did:web:asdf.org").unwrap().did_type(),
+        "web".to_string()
+    );
+}
+
+lazy_static! {
+    /// Sortable base32 encoding, as bluesky implements/defines
+    static ref BASE32SORT: data_encoding::Encoding = {
+        let mut spec = data_encoding::Specification::new();
+        spec.symbols.push_str("234567abcdefghijklmnopqrstuvwxyz");
+        spec.padding = None;
+        spec.encoding().unwrap()
+    };
+}
+
+/// A string identifier representing a UNIX time in miliseconds, plus a small counter
+///
+/// Pretty permissive about what can be parsed/accepted, because there were some old TIDs floating
+/// around with weird format.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Tid(String);
+
+impl FromStr for Tid {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        lazy_static! {
+            static ref TID_RE: Regex = Regex::new(r"^[0-9a-zA-Z-]{13,20}$").unwrap();
+        }
+        if TID_RE.is_match(s) {
+            Ok(Self(s.to_string()))
+        } else {
+            Err(anyhow!("does not match as a TID: {}", s))
+        }
+    }
+}
+
+impl Deref for Tid {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl fmt::Display for Tid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Tid {
+    /// Bluesky does not specify, but assuming u64 math here
+    pub fn new(millis: u64, count: u64, clock_id: u8) -> Self {
+        let val = millis * 1000 + count;
+        Tid(format!(
+            "{}{}",
+            BASE32SORT.encode(&val.to_le_bytes()),
+            BASE32SORT.encode(&[clock_id]),
+        ))
+    }
+}
+
+#[test]
+fn test_tid() {
+    Tid::from_str("3yI5-c1z-cc2p-1a").unwrap();
+    assert!(Tid::from_str("3jg6anbimrc2a").is_ok());
+    assert!(Tid::from_str("3yI5-c1z-cc2p-1a").is_ok());
+
+    Tid::from_str("asdf234as4asdf234").unwrap();
+    assert!(Tid::from_str("asdf234as4asdf234").is_ok());
+
+    assert!(Tid::from_str("").is_err());
+    assert!(Tid::from_str("com").is_err());
+    assert!(Tid::from_str("com.blah.Thing").is_err());
+    assert!(Tid::from_str("did:stuff:blah").is_err());
+}
+
+pub struct TidLord {
+    last_timestamp: u64,
+    last_counter: u64,
+    clock_id: u8,
+}
+
+impl TidLord {
+    pub fn new() -> Self {
+        Self {
+            last_timestamp: 0,
+            last_counter: 0,
+            // just 5 bits (?)
+            clock_id: rand::random::<u8>() & 0x1F,
+        }
+    }
+
+    pub fn next(&mut self) -> Tid {
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+        if now > self.last_timestamp {
+            self.last_timestamp = now;
+            self.last_counter = 0;
+        } else {
+            self.last_counter += 1;
+        }
+        Tid::new(self.last_timestamp, self.last_counter, self.clock_id)
+    }
+}
+
+#[test]
+fn test_tid_lord() {
+    let mut time_lord = TidLord::new();
+    let mut prev = time_lord.next();
+    for _ in [0..100] {
+        assert!(time_lord.next() > prev);
+        prev = time_lord.next();
+    }
+    assert_eq!(prev, Tid::from_str(&prev.to_string()).unwrap());
+    println!("{}", prev);
 }

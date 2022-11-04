@@ -9,7 +9,7 @@ use std::str::FromStr;
 use std::time::Duration;
 
 mod identifiers;
-pub use identifiers::{AtUri, DidOrHost};
+pub use identifiers::{AtUri, Did, DidOrHost, Nsid, Tid, TidLord};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
