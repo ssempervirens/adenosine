@@ -364,6 +364,7 @@ fn run(opt: Opt) -> Result<()> {
         }
         Command::Update { uri, fields } => {
             params.insert("did".to_string(), uri.repository.to_string());
+            params.insert("user".to_string(), uri.repository.to_string());
             params.insert(
                 "collection".to_string(),
                 uri.collection.ok_or(anyhow!("collection required"))?,

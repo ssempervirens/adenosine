@@ -27,6 +27,7 @@ jsonschema = "*"
 schemafy = "*"
 rouille = "*"
 iroh-car = { version = "0.1.0-vendored.0", path = "../iroh-car" }
+adenosine-cli = { version = "0.1.0-dev.0", path = "../adenosine-cli" }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 sha256 = "*"

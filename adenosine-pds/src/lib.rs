@@ -438,6 +438,34 @@ fn xrpc_post_handler(
             // TODO: next handle updates to database
             Ok(json!({}))
         }
+        "com.atproto.repoPutRecord" => {
+            // TODO: validate edits against schemas
+            let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
+            let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;
+            let tid = Tid::from_str(&xrpc_required_param(request, "rkey")?)?;
+            let record: Value = rouille::input::json_input(request)?;
+            let mut srv = srv.lock().unwrap();
+            let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
+            let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
+            let last_commit = srv.repo.get_commit(&commit_cid)?;
+            let mutations: Vec<Mutation> = vec![Mutation::Update(
+                collection,
+                tid,
+                json_value_into_ipld(record),
+            )];
+            let new_mst_cid = srv
+                .repo
+                .update_mst(&last_commit.mst_cid, &mutations)
+                .context("updating MST in repo")?;
+            let new_root_cid = srv.repo.write_root(
+                &last_commit.meta_cid,
+                Some(&last_commit.commit_cid),
+                &new_mst_cid,
+            )?;
+            srv.repo.write_commit(&did, &new_root_cid, "dummy-sig")?;
+            // TODO: next handle updates to database
+            Ok(json!({}))
+        }
         "com.atproto.repoDeleteRecord" => {
             let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
             let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;

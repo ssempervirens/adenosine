@@ -20,10 +20,12 @@ dependencies = [
  "atty",
  "base64",
  "colored_json",
+ "data-encoding",
  "dotenv",
  "env_logger 0.9.1",
  "lazy_static",
  "log",
+ "rand 0.7.3",
  "regex",
  "reqwest",
  "serde_json",
@@ -35,6 +37,7 @@ dependencies = [
 name = "adenosine-pds"
 version = "0.1.0-dev.0"
 dependencies = [
+ "adenosine-cli",
  "anyhow",
  "async-trait",
  "bcrypt",
