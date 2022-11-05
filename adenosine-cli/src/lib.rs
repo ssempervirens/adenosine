@@ -67,10 +67,17 @@ impl XrpcClient {
             .get(format!("{}/xrpc/{}", self.host, nsid))
             .query(&params)
             .send()?;
+        // TODO: refactor this error handling stuff into single method
         if res.status() == 400 {
             let val: Value = res.json()?;
             return Err(anyhow!(
-                "XRPC Bad Request: {}",
+                "XRPC Bad Request (400): {}",
+                val["message"].as_str().unwrap_or("unknown")
+            ));
+        } else if res.status() == 500 {
+            let val: Value = res.json()?;
+            return Err(anyhow!(
+                "XRPC Internal Error (500): {}",
                 val["message"].as_str().unwrap_or("unknown")
             ));
         }
@@ -93,7 +100,13 @@ impl XrpcClient {
         if res.status() == 400 {
             let val: Value = res.json()?;
             return Err(anyhow!(
-                "XRPC Bad Request: {}",
+                "XRPC Bad Request (400): {}",
+                val["message"].as_str().unwrap_or("unknown")
+            ));
+        } else if res.status() == 500 {
+            let val: Value = res.json()?;
+            return Err(anyhow!(
+                "XRPC Internal Error (500): {}",
                 val["message"].as_str().unwrap_or("unknown")
             ));
         }
@@ -121,7 +134,13 @@ impl XrpcClient {
         if res.status() == 400 {
             let val: Value = res.json()?;
             return Err(anyhow!(
-                "XRPC Bad Request: {}",
+                "XRPC Bad Request (400): {}",
+                val["message"].as_str().unwrap_or("unknown")
+            ));
+        } else if res.status() == 500 {
+            let val: Value = res.json()?;
+            return Err(anyhow!(
+                "XRPC Internal Error (500): {}",
                 val["message"].as_str().unwrap_or("unknown")
             ));
         }
