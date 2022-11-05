@@ -287,7 +287,10 @@ fn test_argfield() {
 pub fn update_params_from_fields(fields: &[ArgField], params: &mut HashMap<String, String>) {
     for f in fields.iter() {
         if let ArgField::Query(ref k, ref v) = f {
-            params.insert(k.to_string(), v.to_string());
+            match v {
+                Value::String(s) => params.insert(k.to_string(), s.to_string()),
+                _ => params.insert(k.to_string(), v.to_string()),
+            };
         }
     }
 }

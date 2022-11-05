@@ -329,7 +329,8 @@ fn run(opt: Opt) -> Result<()> {
                     .ok_or(anyhow!("expected collection list"))?
                 {
                     println!(
-                        "{}",
+                        "at://{}/{}",
+                        uri.repository.to_string(),
                         c.as_str()
                             .ok_or(anyhow!("expected collection as a JSON string"))?
                     );
@@ -343,8 +344,8 @@ fn run(opt: Opt) -> Result<()> {
                 let records = xrpc_client
                     .get("com.atproto.repoListRecords", Some(params))?
                     .ok_or(anyhow!("expected a repoListRecords response"))?;
-                for r in records.as_array().unwrap_or(&vec![]).iter() {
-                    println!("{}", r);
+                for r in records["records"].as_array().unwrap_or(&vec![]).iter() {
+                    println!("{}", r["uri"].as_str().unwrap());
                 }
             } else {
                 return Err(anyhow!("got too much of a URI to 'ls'"));
