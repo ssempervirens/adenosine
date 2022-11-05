@@ -6,7 +6,6 @@ use p256;
 use p256::ecdsa::signature::{Signer, Verifier};
 use std::str::FromStr;
 use ucan::builder::UcanBuilder;
-use ucan::crypto::KeyMaterial;
 
 // Need to:
 //
@@ -66,12 +65,12 @@ impl KeyPair {
     }
 
     /// This is currently just an un-validated token; we don't actually verify these.
-    pub fn ucan(&self) -> Result<String> {
+    pub fn ucan(&self, did: &str) -> Result<String> {
         let key_material = self.ucan_keymaterial();
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
-        rt.block_on(build_ucan(key_material))
+        rt.block_on(build_ucan(key_material, did))
     }
 
     pub fn to_hex(&self) -> String {
@@ -85,10 +84,10 @@ impl KeyPair {
     }
 }
 
-async fn build_ucan(key_material: P256KeyMaterial) -> Result<String> {
+async fn build_ucan(key_material: P256KeyMaterial, did: &str) -> Result<String> {
     let token_string = UcanBuilder::default()
         .issued_by(&key_material)
-        .for_audience(key_material.get_did().await.unwrap().as_str())
+        .for_audience(did)
         .with_nonce()
         .with_lifetime(60 * 60 * 24 * 90)
         .build()?

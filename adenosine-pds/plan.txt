@@ -18,66 +18,91 @@ x basic crypto and did:plc stuff
   x did:key read/write helpers
   x test that did:plc generated as expected
   x signature read/write helpers
-- TODO: why are the multiformat keys so long in did doc?
+x single shared signing key for all users (not what I expected)
+x sqlite schema (for application)
 - MST code to read and mutate tree state
+    x  check that empty tree works (eg, for account creation, and after deletes)
+    x  with in-memory tests
     => mutation batches
-    => just read the whole tree and then write the whole tree
-    => check that empty tree works (eg, for account creation, and after deletes)
-    => with in-memory tests
 - service-level config
     domain suffixes (eg, just ".test" for now)
     account registration allowed or not
     CLI account creation (?)
     PDS signing key
-- 
+- figure out auth JWT 'sub' situation (not a UCAN? CLI should ignore?)
+- switch to Argon2 for passwords? meh
+x IPLD objects to JSON value
 - implement basic non-authenticated CRUD on repository, test with CLI
     com.atproto
-        createAccount
-        repoDescribe
-        repoGetRecord
-        repoListRecords
-        repoBatchWrite
-            repoCreateRecord
-            repoPutRecord
-            repoDeleteRecord
-        syncGetRoot
+      x getAccountsConfig
+      x createAccount
+      x repoGetRecord
+      x repoListRecords
+      x syncGetRoot
+      x repoDescribe
+      x createSession
+      x repoBatchWrite
+      x     repoCreateRecord
+      x     repoPutRecord
+      x     repoDeleteRecord
         syncGetRepo
         syncUpdateRepo
-- single shared signing key for all users (not what I expected)
-- helper web methods
-
-    xrpc_wrap<S: Serialize>(resp: Result<S>) -> Response
-
-    xrpc_get_atproto(endpoint: &str, req) -> Result<Value>
-    xrpc_post_atproto(endpoint: &str, req) -> Result<Value>
-
-    xrpc_wrap(xrpc_get_atproto(srv, "asdf", req))
-
-? python test script
-- sqlite schema (for application)
-- write wrapper which updates MST *and* updates other tables in a transaction
+x Did, Tid, Nsid types, with TID generator object?
+    => xrpc_parse wrappers
+- push types back "down" (less String typing in function signatures)
+    => eg Cid in repo
+- aturi canonicalization helper (re-writes usernames to DID?)
+x helper web methods
+- python XRPC API test script
+- PDS CLI helpers
+    create-account <username> <password> <email>
+    reset-password <username> <password>
+    list-repos
+    list-accounts 
+    import-car <car-file> [<did|alias>}
+- mutate wrapper which updates MST *and* updates other tables in transactions
 - JSON schema type generation (separate crate?)
 - HTTP API handler implementing many endpoints
     com.atproto
-        createSession
-        getAccountsConfig
         getSession
         resolveName
     app.bsky
+        updateProfile
+        getProfile
+
         getHomeFeed
         getAuthorFeed
-        getLikedBy
-        getNotificationCount
-        getNotifications
         getPostThread
-        getProfile
-        getRepostedBy
+
         getUserFollowers
         getUserFollows
-        getUsersSearch
+
+        getLikedBy
+        getRepostedBy
+
+        getNotifications
+        getNotificationCount
         postNotificationsSeen
-        updateProfile
+
+        getUsersSearch
+
+later:
+- TODO: why are the multiformat keys so long in did doc?
+- correct JWT helper stuff (?)
 - did:web handler?
+
+more PDS CLI helpers
+    reindex <did>
+        => locally re-generate cache tables
+    update-repo <did> [<pds-server>] [<plc-server>]
+        => or some full URI or something?
+    update <did> [<plc-server>]
+        => does this work yet?
+    update-all-dids
+        => would re-fetch did cods for all non-local users (?)
+    spider
+        => collect a big list of DIDs
+        => fetch all the remote repos for those DIDs
 
 other utils/helpers:
 - pack/unpack a repo CAR into JSON files in a directory tree (plus a commit.json with sig?)
@@ -206,3 +231,21 @@ bsky_notification
 TODO:
 - bsky_badge (etc)
 - bsky_media_embed
+
+
+----
+
+what is needed to be useful?
+- workflow to self-hosting a single user with did:web
+- host multiple users with did:plc and wildcard domain
+- allow users to bring their own did:web identifier, which is not controlled directly by the PDS
+    => some method to register with existing DID
+    => export did doc
+- some mechanism of automatically pulling from other PDS
+
+what might be interesting?
+- basic read-only web interface
+    => tech "explorer" for MST etc
+- RSS feeds
+- activitypub export
+- PDS CLI that can inspect tree structure

@@ -9,6 +9,9 @@ use serde_json::Value;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+/// Default is 12, but that is quite slow (on my laptop at least)
+const BCRYPT_COST: u32 = 8;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,7 +81,7 @@ impl AtpDatabase {
         recovery_pubkey: &str,
     ) -> Result<()> {
         debug!("bcrypt hashing password (can be slow)...");
-        let password_bcrypt = bcrypt::hash(password, bcrypt::DEFAULT_COST)?;
+        let password_bcrypt = bcrypt::hash(password, BCRYPT_COST)?;
         let mut stmt = self.conn.prepare_cached(
             "INSERT INTO account (username, password_bcrypt, email, did, recovery_pubkey) VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
@@ -107,7 +110,7 @@ impl AtpDatabase {
         if !bcrypt::verify(password, &password_bcrypt)? {
             return Err(anyhow!("password did not match"));
         }
-        let jwt = keypair.ucan()?;
+        let jwt = keypair.ucan(&did)?;
         let mut stmt = self
             .conn
             .prepare_cached("INSERT INTO session (did, jwt) VALUES (?1, ?2)")?;

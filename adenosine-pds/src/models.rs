@@ -35,3 +35,19 @@ pub struct RepoDescribe {
     pub collections: Vec<String>,
     pub nameIsCorrect: bool,
 }
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct RepoBatchWriteBody {
+    pub writes: Vec<RepoBatchWrite>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct RepoBatchWrite {
+    #[serde(rename = "type")]
+    pub op_type: String,
+    pub collection: String,
+    pub rkey: Option<String>,
+    pub value: serde_json::Value,
+}

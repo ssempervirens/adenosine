@@ -1,5 +1,6 @@
 use crate::load_car_to_blockstore;
 use crate::mst::{collect_mst_keys, generate_mst, CommitNode, MetadataNode, RootNode};
+use adenosine_cli::{Did, Nsid, Tid};
 use anyhow::{anyhow, ensure, Context, Result};
 use ipfs_sqlite_block_store::BlockStore;
 use libipld::cbor::DagCborCodec;
@@ -7,6 +8,7 @@ use libipld::multihash::Code;
 use libipld::prelude::Codec;
 use libipld::store::DefaultParams;
 use libipld::{Block, Cid, Ipld};
+use log::debug;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
@@ -15,13 +17,21 @@ use std::str::FromStr;
 
 pub struct RepoCommit {
     pub sig: Box<[u8]>,
+    pub commit_cid: String,
     pub did: String,
     pub prev: Option<String>,
+    pub meta_cid: String,
     pub mst_cid: String,
 }
 
 pub struct RepoStore {
     db: BlockStore<libipld::DefaultParams>,
+}
+
+pub enum Mutation {
+    Create(Nsid, Tid, Ipld),
+    Update(Nsid, Tid, Ipld),
+    Delete(Nsid, Tid),
 }
 
 impl RepoStore {
@@ -127,6 +137,8 @@ impl RepoStore {
         );
         Ok(RepoCommit {
             sig: commit_node.sig,
+            commit_cid: commit_cid.to_string(),
+            meta_cid: root_node.meta.to_string(),
             did: metadata_node.did,
             prev: root_node.prev.map(|cid| cid.to_string()),
             mst_cid: root_node.data.to_string(),
@@ -150,8 +162,9 @@ impl RepoStore {
         };
         let map = self.mst_to_map(&commit.mst_cid)?;
         let mut collections: HashSet<String> = Default::default();
+        // XXX: confirm that keys actually start with leading slash
         for k in map.keys() {
-            let coll = k.split("/").nth(0).unwrap();
+            let coll = k.split("/").nth(1).unwrap();
             collections.insert(coll.to_string());
         }
         Ok(collections.into_iter().collect())
@@ -222,6 +235,27 @@ impl RepoStore {
         collect_mst_keys(&mut self.db, &mst_cid, &mut cid_map)
             .context("reading repo MST from blockstore")?;
         Ok(cid_map)
+    }
+
+    pub fn update_mst(&mut self, mst_cid: &str, mutations: &Vec<Mutation>) -> Result<String> {
+        let mut cid_map = self.mst_to_cid_map(mst_cid)?;
+        for m in mutations.iter() {
+            match m {
+                Mutation::Create(collection, tid, val) => {
+                    let cid = self.put_ipld(val)?;
+                    cid_map.insert(format!("/{}/{}", collection, tid), Cid::from_str(&cid)?);
+                }
+                Mutation::Update(collection, tid, val) => {
+                    let cid = self.put_ipld(val)?;
+                    cid_map.insert(format!("/{}/{}", collection, tid), Cid::from_str(&cid)?);
+                }
+                Mutation::Delete(collection, tid) => {
+                    cid_map.remove(&format!("/{}/{}", collection, tid));
+                }
+            }
+        }
+        let mst_cid = generate_mst(&mut self.db, &mut cid_map)?;
+        Ok(mst_cid.to_string())
     }
 
     /// Returns all the keys for a directory, as a sorted vec of strings
