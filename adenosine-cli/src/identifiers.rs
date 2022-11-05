@@ -146,6 +146,7 @@ fn test_aturi() {
 }
 
 /// A String (newtype) representing an NSID
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Nsid(String);
 
 impl FromStr for Nsid {
@@ -202,6 +203,7 @@ fn test_nsid() {
     assert_eq!(nsid.domain(), "atproto.com".to_string());
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Did(String);
 
 impl FromStr for Did {
