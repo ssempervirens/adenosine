@@ -2,7 +2,7 @@
 #[derive(Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
 pub struct AccountRequest {
     pub email: String,
-    pub username: String,
+    pub handle: String,
     pub password: String,
     pub inviteCode: Option<String>,
     pub recoveryKey: Option<String>,
@@ -11,7 +11,7 @@ pub struct AccountRequest {
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
 pub struct SessionRequest {
-    pub username: String,
+    pub handle: String,
     pub password: String,
 }
 

@@ -63,19 +63,19 @@ impl AtpDatabase {
         Ok(AtpDatabase { conn })
     }
 
-    /// Quick check if an account already exists for given username or email
-    pub fn account_exists(&mut self, username: &str, email: &str) -> Result<bool> {
+    /// Quick check if an account already exists for given handle or email
+    pub fn account_exists(&mut self, handle: &str, email: &str) -> Result<bool> {
         let mut stmt = self
             .conn
-            .prepare_cached("SELECT COUNT(*) FROM account WHERE username = $1 OR email = $2")?;
-        let count: i32 = stmt.query_row(params!(username, email), |row| row.get(0))?;
+            .prepare_cached("SELECT COUNT(*) FROM account WHERE handle = $1 OR email = $2")?;
+        let count: i32 = stmt.query_row(params!(handle, email), |row| row.get(0))?;
         Ok(count > 0)
     }
 
     pub fn create_account(
         &mut self,
         did: &Did,
-        username: &str,
+        handle: &str,
         password: &str,
         email: &str,
         recovery_pubkey: &str,
@@ -83,10 +83,10 @@ impl AtpDatabase {
         debug!("bcrypt hashing password (can be slow)...");
         let password_bcrypt = bcrypt::hash(password, BCRYPT_COST)?;
         let mut stmt = self.conn.prepare_cached(
-            "INSERT INTO account (username, password_bcrypt, email, did, recovery_pubkey) VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO account (handle, password_bcrypt, email, did, recovery_pubkey) VALUES (?1, ?2, ?3, ?4, ?5)",
         )?;
         stmt.execute(params!(
-            username,
+            handle,
             password_bcrypt,
             email,
             did.to_string(),
@@ -98,15 +98,15 @@ impl AtpDatabase {
     /// Returns a JWT session token
     pub fn create_session(
         &mut self,
-        username: &str,
+        handle: &str,
         password: &str,
         keypair: &KeyPair,
     ) -> Result<AtpSession> {
         let mut stmt = self
             .conn
-            .prepare_cached("SELECT did, password_bcrypt FROM account WHERE username = ?1")?;
+            .prepare_cached("SELECT did, password_bcrypt FROM account WHERE handle = ?1")?;
         let (did_col, password_bcrypt): (String, String) =
-            stmt.query_row(params!(username), |row| Ok((row.get(0)?, row.get(1)?)))?;
+            stmt.query_row(params!(handle), |row| Ok((row.get(0)?, row.get(1)?)))?;
         if !bcrypt::verify(password, &password_bcrypt)? {
             return Err(anyhow!("password did not match"));
         }
@@ -118,7 +118,7 @@ impl AtpDatabase {
         stmt.execute(params!(did.to_string(), jwt))?;
         Ok(AtpSession {
             did: did.to_string(),
-            name: username.to_string(),
+            name: handle.to_string(),
             accessJwt: jwt.to_string(),
             refreshJwt: jwt,
         })

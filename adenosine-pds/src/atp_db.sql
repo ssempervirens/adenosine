@@ -3,18 +3,18 @@
 
 CREATE TABLE account(
     did                 TEXT PRIMARY KEY NOT NULL,
-    username            TEXT NOT NULL,
+    handle              TEXT NOT NULL,
     email               TEXT NOT NULL,
     password_bcrypt     TEXT NOT NULL,
     recovery_pubkey     TEXT NOT NULL,
     created_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT ( DATETIME('now') )
 );
-CREATE UNIQUE INDEX account_username_uniq_idx on account(lower(username));
+CREATE UNIQUE INDEX account_handle_uniq_idx on account(lower(handle));
 CREATE UNIQUE INDEX account_email_uniq_idx on account(lower(email));
 
 CREATE TABLE did_doc(
     did                 TEXT PRIMARY KEY NOT NULL,
-    -- TODO: username            TEXT NOT NULL,
+    -- TODO: handle              TEXT NOT NULL,
     doc_json            TEXT NOT NULL,
     indexed_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT ( DATETIME('now') )
 );

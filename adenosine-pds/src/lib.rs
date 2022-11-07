@@ -20,6 +20,7 @@ pub mod mst;
 mod repo;
 mod ucan_p256;
 mod vendored;
+mod web;
 
 pub use car::{load_car_to_blockstore, load_car_to_sqlite};
 pub use crypto::{KeyPair, PubKey};
@@ -201,7 +202,7 @@ fn xrpc_get_handler(
     request: &Request,
 ) -> Result<serde_json::Value> {
     match method {
-        "com.atproto.getAccountsConfig" => {
+        "com.atproto.server.getAccountsConfig" => {
             Ok(json!({"availableUserDomains": ["test"], "inviteCodeRequired": false}))
         }
         "com.atproto.repoGetRecord" => {
@@ -220,7 +221,7 @@ fn xrpc_get_handler(
                 Err(e) => Err(e),
             }
         }
-        "com.atproto.syncGetRoot" => {
+        "com.atproto.sync.getRoot" => {
             let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
             let mut srv = srv.lock().expect("service mutex");
             srv.repo
@@ -228,7 +229,7 @@ fn xrpc_get_handler(
                 .map(|v| json!({ "root": v }))
                 .ok_or(XrpcError::NotFound(format!("no repository found for DID: {}", did)).into())
         }
-        "com.atproto.repoListRecords" => {
+        "com.atproto.repo.listRecords" => {
             // TODO: limit, before, after, tid, reverse
             // TODO: handle non-DID 'user'
             // TODO: limit result set size
@@ -253,15 +254,15 @@ fn xrpc_get_handler(
             }
             Ok(json!({ "records": record_list }))
         }
-        "com.atproto.repoDescribe" => {
+        "com.atproto.repo.describe" => {
             let did = Did::from_str(&xrpc_required_param(request, "user")?)?;
-            // TODO: resolve username?
-            let username = did.to_string();
+            // TODO: resolve handle?
+            let handle = did.to_string();
             let mut srv = srv.lock().expect("service mutex");
             let did_doc = srv.atp_db.get_did_doc(&did)?;
             let collections: Vec<String> = srv.repo.collections(&did)?;
             let desc = RepoDescribe {
-                name: username,
+                name: handle,
                 did: did.to_string(),
                 didDoc: did_doc,
                 collections: collections,
@@ -282,25 +283,25 @@ fn xrpc_post_handler(
     request: &Request,
 ) -> Result<serde_json::Value> {
     match method {
-        "com.atproto.createAccount" => {
+        "com.atproto.account.create" => {
             // validate account request
             let req: AccountRequest = rouille::input::json_input(request)
                 .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
-            // TODO: validate username, email, recoverykey
+            // TODO: validate handle, email, recoverykey
 
             // check if account already exists (fast path, also confirmed by database schema)
             let mut srv = srv.lock().unwrap();
-            if srv.atp_db.account_exists(&req.username, &req.email)? {
+            if srv.atp_db.account_exists(&req.handle, &req.email)? {
                 Err(XrpcError::BadRequest(
-                    "username or email already exists".to_string(),
+                    "handle or email already exists".to_string(),
                 ))?;
             };
 
-            debug!("trying to create new account: {}", &req.username);
+            debug!("trying to create new account: {}", &req.handle);
 
             // generate DID
             let create_op = did::CreateOp::new(
-                req.username.clone(),
+                req.handle.clone(),
                 srv.pds_public_url.clone(),
                 &srv.pds_keypair,
                 req.recoveryKey.clone(),
@@ -315,7 +316,7 @@ fn xrpc_post_handler(
                 .unwrap_or(srv.pds_keypair.pubkey().to_did_key());
             srv.atp_db.create_account(
                 &did,
-                &req.username,
+                &req.handle,
                 &req.password,
                 &req.email,
                 &recovery_key,
@@ -333,21 +334,21 @@ fn xrpc_post_handler(
             let keypair = srv.pds_keypair.clone();
             let sess = srv
                 .atp_db
-                .create_session(&req.username, &req.password, &keypair)?;
+                .create_session(&req.handle, &req.password, &keypair)?;
             Ok(json!(sess))
         }
-        "com.atproto.createSession" => {
+        "com.atproto.session.create" => {
             let req: SessionRequest = rouille::input::json_input(request)
                 .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
             let mut srv = srv.lock().unwrap();
             let keypair = srv.pds_keypair.clone();
             Ok(json!(srv.atp_db.create_session(
-                &req.username,
+                &req.handle,
                 &req.password,
                 &keypair
             )?))
         }
-        "com.atproto.deleteSession" => {
+        "com.atproto.session.delete" => {
             let mut srv = srv.lock().unwrap();
             let _did = xrpc_check_auth_header(&mut srv, request, None)?;
             let header = request
@@ -364,7 +365,7 @@ fn xrpc_post_handler(
             };
             Ok(json!({}))
         }
-        "com.atproto.repoBatchWrite" => {
+        "com.atproto.repo.batchWrite" => {
             let batch: RepoBatchWriteBody = rouille::input::json_input(request)?;
             // TODO: validate edits against schemas
             let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
@@ -400,7 +401,7 @@ fn xrpc_post_handler(
             // TODO: next handle updates to database
             Ok(json!({}))
         }
-        "com.atproto.repoCreateRecord" => {
+        "com.atproto.repo.createRecord" => {
             // TODO: validate edits against schemas
             let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
             let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;
@@ -417,7 +418,7 @@ fn xrpc_post_handler(
             // TODO: next handle updates to database
             Ok(json!({}))
         }
-        "com.atproto.repoPutRecord" => {
+        "com.atproto.repo.putRecord" => {
             // TODO: validate edits against schemas
             let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
             let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;
@@ -436,7 +437,7 @@ fn xrpc_post_handler(
             // TODO: next handle updates to database
             Ok(json!({}))
         }
-        "com.atproto.repoDeleteRecord" => {
+        "com.atproto.repo.deleteRecord" => {
             let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
             let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;
             let tid = Tid::from_str(&xrpc_required_param(request, "rkey")?)?;
