@@ -58,7 +58,7 @@ impl XrpcClient {
         nsid: &str,
         params: Option<HashMap<String, String>>,
     ) -> Result<Option<Value>> {
-        let params: HashMap<String, String> = params.unwrap_or(HashMap::new());
+        let params: HashMap<String, String> = params.unwrap_or_default();
         let res = self
             .http_client
             .get(format!("{}/xrpc/{}", self.host, nsid))
@@ -88,7 +88,7 @@ impl XrpcClient {
         params: Option<HashMap<String, String>>,
         output: &mut W,
     ) -> Result<u64> {
-        let params: HashMap<String, String> = params.unwrap_or(HashMap::new());
+        let params: HashMap<String, String> = params.unwrap_or_default();
         let res = self
             .http_client
             .get(format!("{}/xrpc/{}", self.host, nsid))
@@ -117,7 +117,7 @@ impl XrpcClient {
         params: Option<HashMap<String, String>>,
         body: Option<Value>,
     ) -> Result<Option<Value>> {
-        let params: HashMap<String, String> = params.unwrap_or(HashMap::new());
+        let params: HashMap<String, String> = params.unwrap_or_default();
         let mut req = self
             .http_client
             .post(format!("{}/xrpc/{}", self.host, nsid))
@@ -155,7 +155,7 @@ impl XrpcClient {
         params: Option<HashMap<String, String>>,
         input: &mut R,
     ) -> Result<Option<Value>> {
-        let params: HashMap<String, String> = params.unwrap_or(HashMap::new());
+        let params: HashMap<String, String> = params.unwrap_or_default();
         let mut buf: Vec<u8> = Vec::new();
         input.read_to_end(&mut buf)?;
         let res = self
@@ -181,7 +181,7 @@ impl XrpcClient {
 
 /// Tries to parse a DID internal identifier from a JWT (as base64-encoded token)
 pub fn parse_did_from_jwt(jwt: &str) -> Result<String> {
-    let second_b64 = jwt.split(".").nth(1).ok_or(anyhow!("couldn't parse JWT"))?;
+    let second_b64 = jwt.split('.').nth(1).ok_or(anyhow!("couldn't parse JWT"))?;
     let second_json: Vec<u8> = base64::decode_config(second_b64, base64::URL_SAFE)?;
     let obj: Value = serde_json::from_slice(&second_json)?;
     // trying to also support pulling "aud" as DID; not sure this is actually correct use of

@@ -294,7 +294,7 @@ fn run(opt: Opt) -> Result<()> {
                 .map(|v| v.to_string())
                 .or(jwt_did)
                 .ok_or(anyhow!("expected a name, or self via auth token"))?;
-            params.insert("user".to_string(), name.to_string());
+            params.insert("user".to_string(), name);
             xrpc_client.get("com.atproto.repoDescribe", Some(params))?
         }
         Command::Resolve { name } => {
@@ -320,7 +320,7 @@ fn run(opt: Opt) -> Result<()> {
         Command::Ls { uri } => {
             // TODO: option to print fully-qualified path?
             params.insert("user".to_string(), uri.repository.to_string());
-            if !uri.collection.is_some() {
+            if uri.collection.is_none() {
                 // if a repository, but no collection, list the collections
                 let describe = xrpc_client
                     .get("com.atproto.repoDescribe", Some(params))?
@@ -331,17 +331,14 @@ fn run(opt: Opt) -> Result<()> {
                 {
                     println!(
                         "at://{}/{}",
-                        uri.repository.to_string(),
+                        uri.repository,
                         c.as_str()
                             .ok_or(anyhow!("expected collection as a JSON string"))?
                     );
                 }
-            } else if uri.collection.is_some() && !uri.record.is_some() {
+            } else if uri.collection.is_some() && uri.record.is_none() {
                 // if a collection, but no record, list the records (with extracted timestamps)
-                params.insert(
-                    "collection".to_string(),
-                    uri.collection.unwrap().to_string(),
-                );
+                params.insert("collection".to_string(), uri.collection.unwrap());
                 let records = xrpc_client
                     .get("com.atproto.repoListRecords", Some(params))?
                     .ok_or(anyhow!("expected a repoListRecords response"))?;
@@ -573,7 +570,7 @@ fn run(opt: Opt) -> Result<()> {
                 .map(|v| v.to_string())
                 .or(jwt_did)
                 .ok_or(anyhow!("expected a name, or self via auth token"))?;
-            params.insert("user".to_string(), name.to_string());
+            params.insert("user".to_string(), name);
             xrpc_client.get("app.bsky.getProfile", Some(params))?
         }
         Command::Bsky {
