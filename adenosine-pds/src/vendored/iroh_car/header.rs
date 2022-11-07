@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use libipld::cbor::DagCborCodec;
 use libipld::codec::Codec;
 use libipld::ipld;

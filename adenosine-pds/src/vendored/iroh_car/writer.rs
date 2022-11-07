@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use integer_encoding::VarIntAsyncWriter;
 use libipld::Cid;
 use tokio::io::{AsyncWrite, AsyncWriteExt};

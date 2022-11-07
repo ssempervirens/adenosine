@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use futures::Stream;
 use libipld::Cid;
 use tokio::io::AsyncRead;
