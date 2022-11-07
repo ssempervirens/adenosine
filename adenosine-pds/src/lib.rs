@@ -1,4 +1,4 @@
-use adenosine_common::identifiers::{Did, Nsid, Tid, TidLord};
+use adenosine_cli::identifiers::{Did, Nsid, Tid, TidLord};
 use anyhow::Context;
 use anyhow::{anyhow, Result};
 use libipld::Cid;

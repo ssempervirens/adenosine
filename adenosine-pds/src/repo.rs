@@ -1,6 +1,6 @@
 use crate::load_car_to_blockstore;
 use crate::mst::{collect_mst_keys, generate_mst, CommitNode, MetadataNode, RootNode};
-use adenosine_common::identifiers::{Nsid, Tid};
+use adenosine_cli::identifiers::{Nsid, Tid};
 use anyhow::{anyhow, ensure, Context, Result};
 use ipfs_sqlite_block_store::BlockStore;
 use libipld::cbor::DagCborCodec;

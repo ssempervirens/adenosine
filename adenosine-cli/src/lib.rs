@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::Duration;
 
+pub mod identifiers;
+
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 #[derive(Debug, PartialEq, Eq, Clone)]
