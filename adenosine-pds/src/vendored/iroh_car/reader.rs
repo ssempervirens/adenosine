@@ -1,8 +1,8 @@
-use cid::Cid;
 use futures::Stream;
+use libipld::Cid;
 use tokio::io::AsyncRead;
 
-use crate::{
+use super::{
     error::Error,
     header::CarHeader,
     util::{ld_read, read_node},
@@ -61,12 +61,12 @@ where
 mod tests {
     use std::io::Cursor;
 
-    use cid::Cid;
     use futures::TryStreamExt;
-    use ipld_cbor::DagCborCodec;
+    use libipld::cbor::DagCborCodec;
+    use libipld::Cid;
     use multihash::MultihashDigest;
 
-    use crate::{header::CarHeaderV1, writer::CarWriter};
+    use super::super::{header::CarHeaderV1, writer::CarWriter};
 
     use super::*;
 

@@ -20,6 +20,7 @@ mod models;
 pub mod mst;
 mod repo;
 mod ucan_p256;
+mod vendored;
 
 pub use car::{load_car_to_blockstore, load_car_to_sqlite};
 pub use crypto::{KeyPair, PubKey};

@@ -1,8 +1,8 @@
 use anyhow::Result;
 
+use crate::vendored::iroh_car::CarReader;
 use futures::TryStreamExt;
 use ipfs_sqlite_block_store::BlockStore;
-use iroh_car::CarReader;
 use libipld::{Block, Cid};
 use std::path::PathBuf;
 use tokio::fs::File;

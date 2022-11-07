@@ -1,5 +1,5 @@
-use cid::Cid;
 use integer_encoding::VarIntAsyncReader;
+use libipld::Cid;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 use super::error::Error;

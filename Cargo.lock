@@ -45,14 +45,15 @@ dependencies = [
  "data-encoding",
  "dotenv",
  "futures",
+ "integer-encoding",
  "ipfs-sqlite-block-store",
- "iroh-car",
  "jsonschema",
  "k256",
  "lazy_static",
  "libipld",
  "log",
  "multibase",
+ "multihash",
  "p256",
  "pretty_env_logger",
  "rouille",
@@ -63,6 +64,7 @@ dependencies = [
  "serde_json",
  "sha256",
  "structopt",
+ "thiserror",
  "tokio",
  "ucan",
 ]
@@ -1518,20 +1520,6 @@ name = "ipnet"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "879d54834c8c76457ef4293a689b2a8c59b076067ad77b15efafbb05f92a592b"
-
-[[package]]
-name = "iroh-car"
-version = "0.1.0-vendored.0"
-dependencies = [
- "cid",
- "futures",
- "integer-encoding",
- "libipld",
- "libipld-cbor",
- "multihash",
- "thiserror",
- "tokio",
-]
 
 [[package]]
 name = "iso8601"

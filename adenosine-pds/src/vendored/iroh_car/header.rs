@@ -1,8 +1,9 @@
-use cid::Cid;
-use ipld::codec::Codec;
-use ipld_cbor::DagCborCodec;
+use libipld::cbor::DagCborCodec;
+use libipld::codec::Codec;
+use libipld::ipld;
+use libipld::Cid;
 
-use crate::error::Error;
+use super::error::Error;
 
 /// A car header.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,7 +58,7 @@ impl CarHeader {
 }
 
 /// CAR file header version 1.
-#[derive(Debug, Clone, Default, ipld::DagCbor, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, libipld::DagCbor, PartialEq, Eq)]
 pub struct CarHeaderV1 {
     #[ipld]
     pub roots: Vec<Cid>,
@@ -80,8 +81,8 @@ impl From<Vec<Cid>> for CarHeaderV1 {
 
 #[cfg(test)]
 mod tests {
-    use ipld::codec::{Decode, Encode};
-    use ipld_cbor::DagCborCodec;
+    use libipld::cbor::DagCborCodec;
+    use libipld::codec::{Decode, Encode};
     use multihash::MultihashDigest;
 
     use super::*;

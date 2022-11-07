@@ -1,8 +1,8 @@
-use cid::Cid;
 use integer_encoding::VarIntAsyncWriter;
+use libipld::Cid;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-use crate::{error::Error, header::CarHeader};
+use super::{error::Error, header::CarHeader};
 
 #[derive(Debug)]
 pub struct CarWriter<W> {

@@ -26,7 +26,8 @@ rusqlite_migration = "*"
 jsonschema = "*"
 schemafy = "*"
 rouille = "*"
-iroh-car = { version = "0.1.0-vendored.0", path = "../iroh-car" }
+# NOTE: vendored for now
+#iroh-car = "*"
 adenosine-cli = { version = "0.1.0-dev.0", path = "../adenosine-cli" }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
@@ -42,6 +43,11 @@ ucan = "0.7.0-alpha.1"
 bs58 = "*"
 async-trait = "*"
 dotenv = "*"
+
+# for vendored iroh-car
+thiserror = "1.0"
+integer-encoding = { version = "3", features = ["tokio_async"] }
+multihash = "0.16"
 
 [package.metadata.deb]
 maintainer = "Bryan Newbold <bnewbold@robocracy.org>"
