@@ -16,6 +16,9 @@ later:
 - mention IPFS exploration of export CAR files
 - invite codes in account registration
 - try musl/rustls builds, especially for CLI
+    https://burgers.io/cross-compile-rust-from-arm-to-x86-64
+    rustup target add x86_64-unknown-linux-musl
+    cargo build --release --target=x86_64-unknown-linux-musl
 - debian repo
     https://www.aptly.info/doc/aptly/publish/
     or 'reprepro'
