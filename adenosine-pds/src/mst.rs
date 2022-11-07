@@ -98,7 +98,7 @@ pub fn dump_mst_keys(db_path: &PathBuf) -> Result<()> {
 
     // print all the aliases
     for (alias, commit_cid) in all_aliases.iter() {
-        let did = String::from_utf8_lossy(&alias);
+        let did = String::from_utf8_lossy(alias);
         println!("{} -> {}", did, commit_cid);
     }
 
@@ -164,7 +164,7 @@ fn leading_zeros(key: &str) -> u8 {
     let digest = sha256::digest(key);
     let digest = digest.as_bytes();
     for i in 0..digest.len() {
-        if digest[i] != '0' as u8 {
+        if digest[i] != b'0' {
             return i as u8;
         }
     }
@@ -182,7 +182,7 @@ pub fn generate_mst(
         let entry = WipEntry {
             height,
             key: key.clone(),
-            val: val.clone(),
+            val: *val,
             right: None,
         };
         if let Some(node) = root {
@@ -293,7 +293,7 @@ fn serialize_wip_tree(
         e: entries,
     };
     let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, &mst_node)?;
-    let cid = block.cid().clone();
+    let cid = *block.cid();
     db.put_block(block, None)?;
     Ok(cid)
 }
@@ -331,7 +331,7 @@ pub fn repro_mst(car_path: &PathBuf) -> Result<()> {
     collect_mst_keys(&mut db, &root_node.data, &mut repo_map)?;
 
     // now re-generate nodes
-    let updated = generate_mst(&mut db, &mut repo_map)?;
+    let updated = generate_mst(&mut db, &repo_map)?;
 
     info!("original root: {}", root_node.data);
     info!("regenerated  : {}", updated);

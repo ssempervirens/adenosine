@@ -11,11 +11,6 @@ use ucan::crypto::KeyMaterial;
 
 pub use ucan::crypto::{did::P256_MAGIC_BYTES, JwtSignatureAlgorithm};
 
-pub fn bytes_to_p256_key(bytes: Vec<u8>) -> Result<Box<dyn KeyMaterial>> {
-    let public_key = P256PublicKey::try_from(bytes.as_slice())?;
-    Ok(Box::new(P256KeyMaterial(public_key, None)))
-}
-
 #[derive(Clone)]
 pub struct P256KeyMaterial(pub P256PublicKey, pub Option<P256PrivateKey>);
 
@@ -27,11 +22,7 @@ impl KeyMaterial for P256KeyMaterial {
     }
 
     async fn get_did(&self) -> Result<String> {
-        let bytes = [
-            P256_MAGIC_BYTES,
-            &self.0.to_encoded_point(true).to_bytes().to_vec(),
-        ]
-        .concat();
+        let bytes = [P256_MAGIC_BYTES, &self.0.to_encoded_point(true).to_bytes()].concat();
         Ok(format!("did:key:z{}", bs58::encode(bytes).into_string()))
     }
 
@@ -55,14 +46,18 @@ impl KeyMaterial for P256KeyMaterial {
 
 #[cfg(test)]
 mod tests {
-    use super::{bytes_to_p256_key, P256KeyMaterial, P256_MAGIC_BYTES};
-    use p256::ecdsa::signature::{Signer, Verifier};
+    use super::{P256KeyMaterial, Result, P256_MAGIC_BYTES};
     use p256::ecdsa::{SigningKey as P256PrivateKey, VerifyingKey as P256PublicKey};
     use ucan::{
         builder::UcanBuilder,
         crypto::{did::DidParser, KeyMaterial},
         ucan::Ucan,
     };
+
+    pub fn bytes_to_p256_key(bytes: Vec<u8>) -> Result<Box<dyn KeyMaterial>> {
+        let public_key = P256PublicKey::try_from(bytes.as_slice())?;
+        Ok(Box::new(P256KeyMaterial(public_key, None)))
+    }
 
     #[cfg_attr(not(target_arch = "wasm32"), tokio::test)]
     async fn it_can_sign_and_verify_a_ucan() {

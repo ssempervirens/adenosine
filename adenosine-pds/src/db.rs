@@ -119,7 +119,7 @@ impl AtpDatabase {
             did,
             name: username.to_string(),
             accessJwt: jwt.to_string(),
-            refreshJwt: jwt.to_string(),
+            refreshJwt: jwt,
         })
     }
 

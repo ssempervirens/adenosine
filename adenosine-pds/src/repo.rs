@@ -8,7 +8,6 @@ use libipld::multihash::Code;
 use libipld::prelude::Codec;
 use libipld::store::DefaultParams;
 use libipld::{Block, Cid, Ipld};
-use log::debug;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
@@ -74,7 +73,7 @@ impl RepoStore {
         record: &S,
     ) -> Result<String> {
         let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, record)?;
-        let cid = block.cid().clone();
+        let cid = *block.cid();
         self.db
             .put_block(block, None)
             .context("writing IPLD DAG-CBOR record to blockstore")?;
@@ -84,7 +83,7 @@ impl RepoStore {
     /// Returns CID that was inserted
     pub fn put_blob(&mut self, data: &[u8]) -> Result<String> {
         let block = Block::<DefaultParams>::encode(libipld::raw::RawCodec, Code::Sha2_256, data)?;
-        let cid = block.cid().clone();
+        let cid = *block.cid();
         self.db
             .put_block(block, None)
             .context("writing non-record blob to blockstore")?;
@@ -164,7 +163,7 @@ impl RepoStore {
         let mut collections: HashSet<String> = Default::default();
         // XXX: confirm that keys actually start with leading slash
         for k in map.keys() {
-            let coll = k.split("/").nth(1).unwrap();
+            let coll = k.split('/').nth(1).unwrap();
             collections.insert(coll.to_string());
         }
         Ok(collections.into_iter().collect())
@@ -216,16 +215,16 @@ impl RepoStore {
         })?;
         self.db
             .alias(did.as_bytes().to_vec(), Some(&Cid::from_str(&commit_cid)?))?;
-        Ok(commit_cid.to_string())
+        Ok(commit_cid)
     }
 
     pub fn mst_from_map(&mut self, map: &BTreeMap<String, String>) -> Result<String> {
         // TODO: not unwrap in iter
-        let mut cid_map: BTreeMap<String, Cid> = BTreeMap::from_iter(
+        let cid_map: BTreeMap<String, Cid> = BTreeMap::from_iter(
             map.iter()
-                .map(|(k, v)| (k.to_string(), Cid::from_str(&v).unwrap())),
+                .map(|(k, v)| (k.to_string(), Cid::from_str(v).unwrap())),
         );
-        let mst_cid = generate_mst(&mut self.db, &mut cid_map)?;
+        let mst_cid = generate_mst(&mut self.db, &cid_map)?;
         Ok(mst_cid.to_string())
     }
 
@@ -237,7 +236,7 @@ impl RepoStore {
         Ok(cid_map)
     }
 
-    pub fn update_mst(&mut self, mst_cid: &str, mutations: &Vec<Mutation>) -> Result<String> {
+    pub fn update_mst(&mut self, mst_cid: &str, mutations: &[Mutation]) -> Result<String> {
         let mut cid_map = self.mst_to_cid_map(mst_cid)?;
         for m in mutations.iter() {
             match m {
@@ -254,7 +253,7 @@ impl RepoStore {
                 }
             }
         }
-        let mst_cid = generate_mst(&mut self.db, &mut cid_map)?;
+        let mst_cid = generate_mst(&mut self.db, &cid_map)?;
         Ok(mst_cid.to_string())
     }
 

@@ -56,7 +56,7 @@ async fn inner_car_loader(
         .await?;
 
     // pin the header (?)
-    if car_header.roots().len() >= 1 {
+    if !car_header.roots().is_empty() {
         db.alias(alias.as_bytes(), Some(&car_header.roots()[0]))?;
     }
 

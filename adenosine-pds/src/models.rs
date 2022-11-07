@@ -1,5 +1,3 @@
-use serde;
-
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Deserialize, serde::Serialize, PartialEq, Eq)]
 pub struct AccountRequest {

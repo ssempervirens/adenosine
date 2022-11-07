@@ -83,7 +83,7 @@ pub fn run_server(
         repo: RepoStore::open(blockstore_db_path)?,
         atp_db: AtpDatabase::open(atp_db_path)?,
         pds_keypair: keypair,
-        pds_public_url: format!("http://localhost:{}", port).to_string(),
+        pds_public_url: format!("http://localhost:{}", port),
         tid_gen: TidLord::new(),
     });
 
@@ -129,7 +129,7 @@ fn ipld_into_json_value(val: Ipld) -> Value {
         Ipld::Float(v) => json!(v),
         Ipld::String(s) => Value::String(s),
         Ipld::Bytes(b) => Value::String(data_encoding::BASE64_NOPAD.encode(&b)),
-        Ipld::List(l) => Value::Array(l.into_iter().map(|v| ipld_into_json_value(v)).collect()),
+        Ipld::List(l) => Value::Array(l.into_iter().map(ipld_into_json_value).collect()),
         Ipld::Map(m) => Value::Object(serde_json::Map::from_iter(
             m.into_iter().map(|(k, v)| (k, ipld_into_json_value(v))),
         )),
@@ -148,7 +148,7 @@ fn json_value_into_ipld(val: Value) -> Ipld {
         Value::String(s) => Ipld::String(s),
         // TODO: handle numbers better?
         Value::Number(v) => Ipld::Float(v.as_f64().unwrap()),
-        Value::Array(l) => Ipld::List(l.into_iter().map(|v| json_value_into_ipld(v)).collect()),
+        Value::Array(l) => Ipld::List(l.into_iter().map(json_value_into_ipld).collect()),
         Value::Object(m) => {
             let map: BTreeMap<String, Ipld> = BTreeMap::from_iter(m.into_iter().map(|(k, v)| {
                 if k == "car" && v.is_string() {
@@ -177,20 +177,20 @@ fn xrpc_check_auth_header(
 ) -> Result<Did> {
     let header = request
         .header("Authorization")
-        .ok_or(XrpcError::Forbidden(format!("require auth header")))?;
+        .ok_or(XrpcError::Forbidden("require auth header".to_string()))?;
     if !header.starts_with("Bearer ") {
-        Err(XrpcError::Forbidden(format!("require bearer token")))?;
+        Err(XrpcError::Forbidden("require bearer token".to_string()))?;
     }
-    let jwt = header.split(" ").nth(1).unwrap();
-    let did = match srv.atp_db.check_auth_token(&jwt)? {
+    let jwt = header.split(' ').nth(1).unwrap();
+    let did = match srv.atp_db.check_auth_token(jwt)? {
         Some(did) => did,
-        None => Err(XrpcError::Forbidden(format!("session token not found")))?,
+        None => Err(XrpcError::Forbidden("session token not found".to_string()))?,
     };
     let did = Did::from_str(&did)?;
     if req_did.is_some() && Some(&did) != req_did {
-        Err(XrpcError::Forbidden(format!(
-            "can only modify your own repo"
-        )))?;
+        Err(XrpcError::Forbidden(
+            "can only modify your own repo".to_string(),
+        ))?;
     }
     Ok(did)
 }
@@ -237,7 +237,7 @@ fn xrpc_get_handler(
             let mut record_list: Vec<Value> = vec![];
             let mut srv = srv.lock().expect("service mutex");
             let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
-            let last_commit = srv.repo.get_commit(&commit_cid)?;
+            let last_commit = srv.repo.get_commit(commit_cid)?;
             let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
             let prefix = format!("/{}/", collection);
             for (mst_key, cid) in full_map.iter() {
@@ -291,9 +291,9 @@ fn xrpc_post_handler(
             // check if account already exists (fast path, also confirmed by database schema)
             let mut srv = srv.lock().unwrap();
             if srv.atp_db.account_exists(&req.username, &req.email)? {
-                Err(XrpcError::BadRequest(format!(
-                    "username or email already exists"
-                )))?;
+                Err(XrpcError::BadRequest(
+                    "username or email already exists".to_string(),
+                ))?;
             };
 
             debug!("trying to create new account: {}", &req.username);
@@ -352,12 +352,12 @@ fn xrpc_post_handler(
             let _did = xrpc_check_auth_header(&mut srv, request, None)?;
             let header = request
                 .header("Authorization")
-                .ok_or(XrpcError::Forbidden(format!("require auth header")))?;
+                .ok_or(XrpcError::Forbidden("require auth header".to_string()))?;
             if !header.starts_with("Bearer ") {
-                Err(XrpcError::Forbidden(format!("require bearer token")))?;
+                Err(XrpcError::Forbidden("require bearer token".to_string()))?;
             }
-            let jwt = header.split(" ").nth(1).expect("JWT in header");
-            if !srv.atp_db.delete_session(&jwt)? {
+            let jwt = header.split(' ').nth(1).expect("JWT in header");
+            if !srv.atp_db.delete_session(jwt)? {
                 Err(anyhow!(
                     "session token not found, even after using for auth"
                 ))?
@@ -371,7 +371,7 @@ fn xrpc_post_handler(
             let mut srv = srv.lock().unwrap();
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
             let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
-            let last_commit = srv.repo.get_commit(&commit_cid)?;
+            let last_commit = srv.repo.get_commit(commit_cid)?;
             let mut mutations: Vec<Mutation> = Default::default();
             for w in batch.writes.iter() {
                 let m = match w.op_type.as_str() {
@@ -380,7 +380,7 @@ fn xrpc_post_handler(
                         // TODO: user input unwrap here
                         w.rkey
                             .as_ref()
-                            .map(|t| Tid::from_str(&t).unwrap())
+                            .map(|t| Tid::from_str(t).unwrap())
                             .unwrap_or_else(|| srv.tid_gen.next_tid()),
                         json_value_into_ipld(w.value.clone()),
                     ),
@@ -416,7 +416,7 @@ fn xrpc_post_handler(
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
             debug!("reading commit");
             let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
-            let last_commit = srv.repo.get_commit(&commit_cid)?;
+            let last_commit = srv.repo.get_commit(commit_cid)?;
             let mutations: Vec<Mutation> = vec![Mutation::Create(
                 collection,
                 srv.tid_gen.next_tid(),
@@ -447,7 +447,7 @@ fn xrpc_post_handler(
             let mut srv = srv.lock().unwrap();
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
             let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
-            let last_commit = srv.repo.get_commit(&commit_cid)?;
+            let last_commit = srv.repo.get_commit(commit_cid)?;
             let mutations: Vec<Mutation> = vec![Mutation::Update(
                 collection,
                 tid,
@@ -473,7 +473,7 @@ fn xrpc_post_handler(
             let mut srv = srv.lock().unwrap();
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
             let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
-            let last_commit = srv.repo.get_commit(&commit_cid)?;
+            let last_commit = srv.repo.get_commit(commit_cid)?;
             let mutations: Vec<Mutation> = vec![Mutation::Delete(collection, tid)];
             let new_mst_cid = srv.repo.update_mst(&last_commit.mst_cid, &mutations)?;
             let new_root_cid = srv.repo.write_root(

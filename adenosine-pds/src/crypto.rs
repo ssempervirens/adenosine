@@ -1,8 +1,5 @@
 use crate::P256KeyMaterial;
 use anyhow::{anyhow, ensure, Result};
-use k256;
-use multibase;
-use p256;
 use p256::ecdsa::signature::{Signer, Verifier};
 use std::str::FromStr;
 use ucan::builder::UcanBuilder;
@@ -52,7 +49,7 @@ impl KeyPair {
     }
 
     pub fn pubkey(&self) -> PubKey {
-        PubKey::P256(self.public.clone())
+        PubKey::P256(self.public)
     }
 
     pub fn sign_bytes(&self, data: &[u8]) -> String {
@@ -79,7 +76,7 @@ impl KeyPair {
 
     pub fn from_hex(hex: &str) -> Result<Self> {
         Ok(Self::from_bytes(
-            &data_encoding::HEXUPPER.decode(&hex.as_bytes())?,
+            &data_encoding::HEXUPPER.decode(hex.as_bytes())?,
         )?)
     }
 }
@@ -218,7 +215,7 @@ fn test_did_secp256k1_p256() {
     ];
 
     // test decode/encode did:key
-    for (hex, did) in pairs.iter() {
+    for (_hex, did) in pairs.iter() {
         assert_eq!(did, &PubKey::from_did_key(did).unwrap().to_did_key());
     }
 

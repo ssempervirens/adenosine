@@ -62,9 +62,9 @@ impl CreateOp {
             op_type: "create".to_string(),
             prev: None,
             signingKey: signing_key,
-            recoveryKey: recovery_key.to_string(),
-            username: username.to_string(),
-            service: atp_pds.to_string(),
+            recoveryKey: recovery_key,
+            username: username,
+            service: atp_pds,
         };
         let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, &unsigned)
             .expect("encode DAG-CBOR");
@@ -79,7 +79,7 @@ impl CreateOp {
         let bin = block.data();
         // hash SHA-256
         let digest_bytes: Vec<u8> = data_encoding::HEXLOWER
-            .decode(&sha256::digest(bin).as_bytes())
+            .decode(sha256::digest(bin).as_bytes())
             .expect("SHA-256 digest is always hex string");
         // encode base32
         let digest_b32 = data_encoding::BASE32_NOPAD
@@ -167,7 +167,7 @@ fn test_debug_did_signing() {
         Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, &op).expect("encode DAG-CBOR");
     let op_bytes = block.data();
 
-    let key_bytes = vec![
+    let _key_bytes = vec![
         4, 30, 224, 8, 198, 84, 108, 1, 58, 193, 91, 176, 212, 45, 4, 36, 28, 252, 242, 95, 20, 85,
         87, 246, 79, 134, 42, 113, 5, 216, 238, 235, 21, 146, 16, 88, 239, 217, 36, 252, 148, 197,
         203, 22, 29, 2, 52, 152, 77, 208, 21, 88, 2, 85, 219, 212, 148, 139, 104, 200, 15, 119, 46,
@@ -194,7 +194,7 @@ fn test_debug_did_signing() {
     ];
     assert_eq!(encoded_bytes, op_bytes);
 
-    let sig_bytes = vec![
+    let _sig_bytes = vec![
         131, 115, 47, 143, 89, 68, 79, 73, 121, 198, 70, 76, 91, 64, 171, 25, 18, 139, 244, 94,
         123, 224, 205, 32, 241, 174, 36, 120, 199, 206, 199, 202, 216, 154, 2, 10, 247, 101, 138,
         170, 85, 95, 142, 164, 50, 203, 92, 23, 247, 218, 231, 224, 78, 68, 55, 104, 243, 145, 243,
@@ -269,7 +269,7 @@ fn test_debug_did_plc() {
     assert_eq!(op_bytes, encoded_bytes);
 
     let sha256_str = "cg2dfxdh5voabmdjzw2abw3sgvtjymknh2bmpvtwot7t2ih4v7za";
-    let did_plc = "did:plc:cg2dfxdh5voabmdjzw2abw3s";
+    let _did_plc = "did:plc:cg2dfxdh5voabmdjzw2abw3s";
 
     let digest_bytes: Vec<u8> = data_encoding::HEXLOWER
         .decode(&sha256::digest(op_bytes).as_bytes())
