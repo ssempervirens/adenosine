@@ -15,6 +15,7 @@ readme = "../README.md"
 repository = "https://gitlab.com/bnewbold/adenosine"
 
 [dependencies]
+adenosine-common = { version = "0.1.0-dev.0", path = "../adenosine-common" }
 structopt = "*"
 # NOTE: could try 'rustls-tls' feature instead of default native TLS?
 reqwest = { version = "0.11", features = ["blocking", "json"] }
@@ -39,7 +40,7 @@ maintainer = "Bryan Newbold <bnewbold@robocracy.org>"
 depends = "$auto"
 section = "utility"
 priority = "optional"
-extended-description = """"TODO"""
+extended-description = """"This is a simple, enthusiast-grade CLI client for the work-in-progress AT Protocol (atproto.com). It is an entirely \"delegated\" client, which means that it does not store or cache any user content locally; everything works by making HTTP/XRPC requests to a Personal Data Server (PDS), which is usually a remote service."""
 assets = [
     ["target/release/adenosine", "usr/bin/", "755"],
     ["../extra/adenosine.1", "usr/share/man/man1/", "644"],
