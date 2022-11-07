@@ -119,8 +119,27 @@ impl PubKey {
         .to_string()
     }
 
-    /// This public verification key encoded as base58btc multibase string
+    /// This public verification key encoded as base58btc multibase string, not 'compressed', as
+    /// included in DID documents ('publicKeyMultibase').
+    ///
+    /// Note that the did:key serialization does 'compress' the key into a smaller size.
     pub fn to_multibase(&self) -> String {
+        let mut bytes: Vec<u8> = vec![];
+        match self {
+            PubKey::P256(key) => {
+                bytes.extend_from_slice(&MULTICODE_P256_BYTES);
+                bytes.extend_from_slice(&key.to_encoded_point(false).to_bytes());
+            }
+            PubKey::K256(key) => {
+                bytes.extend_from_slice(&MULTICODE_K256_BYTES);
+                bytes.extend_from_slice(&key.to_bytes());
+            }
+        }
+        format!("{}", multibase::encode(multibase::Base::Base58Btc, &bytes))
+    }
+
+    /// Serializes as a 'did:key' string.
+    pub fn to_did_key(&self) -> String {
         let mut bytes: Vec<u8> = vec![];
         match self {
             PubKey::P256(key) => {
@@ -132,11 +151,10 @@ impl PubKey {
                 bytes.extend_from_slice(&key.to_bytes());
             }
         }
-        format!("{}", multibase::encode(multibase::Base::Base58Btc, &bytes))
-    }
-
-    pub fn to_did_key(&self) -> String {
-        format!("did:key:{}", self.to_multibase())
+        format!(
+            "did:key:{}",
+            multibase::encode(multibase::Base::Base58Btc, &bytes)
+        )
     }
 
     pub fn from_did_key(did_key: &str) -> Result<Self> {
@@ -180,9 +198,8 @@ impl PubKey {
 }
 
 impl std::fmt::Display for PubKey {
-    // TODO: what should this actually be, instead of multibase? the did:key representation?
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_multibase())
+        write!(f, "{}", self.to_did_key())
     }
 }
 
