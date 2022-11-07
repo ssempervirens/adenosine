@@ -104,7 +104,7 @@ _adenosine() {
 
     case "${cmd}" in
         adenosine)
-            opts=" -v -h -V  --verbose --help --version --host --auth-token --shell-completions   get ls create update delete describe resolve xrpc account repo bsky status help"
+            opts=" -v -h -V  --verbose --help --version --host --auth-token --shell-completions   status ls get create update delete describe resolve xrpc account repo bsky help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -224,18 +224,18 @@ _adenosine() {
             return 0
             ;;
         adenosine__account__login)
-            opts=" -h -V -v -u -p  --help --version --verbose --username --password --host --auth-token  "
+            opts=" -V -v -h -p  --help --version --verbose --handle --password --host --auth-token  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --username)
+                --handle)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -u)
+                    -h)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -286,7 +286,7 @@ _adenosine() {
             return 0
             ;;
         adenosine__account__register)
-            opts=" -h -V -v -e -u -p  --help --version --verbose --email --username --password --host --auth-token  "
+            opts=" -V -v -e -h -p -r  --help --version --verbose --email --handle --password --recovery-key --host --auth-token  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -301,11 +301,11 @@ _adenosine() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --username)
+                --handle)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -u)
+                    -h)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -314,6 +314,14 @@ _adenosine() {
                     return 0
                     ;;
                     -p)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --recovery-key)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                    -r)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

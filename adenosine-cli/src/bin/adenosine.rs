@@ -62,10 +62,13 @@ enum AccountCommand {
         email: String,
 
         #[structopt(long, short)]
-        username: String,
+        handle: String,
 
         #[structopt(long, short)]
         password: String,
+
+        #[structopt(long, short)]
+        recovery_key: Option<String>,
     },
     /// Delete the currently logged-in account (danger!)
     Delete,
@@ -75,7 +78,7 @@ enum AccountCommand {
     /// variable
     Login {
         #[structopt(long, short)]
-        username: String,
+        handle: String,
 
         #[structopt(long, short)]
         password: String,
@@ -138,7 +141,7 @@ enum BskyCommand {
     */
     /// Display a profile record (or self if not provided)
     Profile { name: Option<DidOrHost> },
-    /// Query by partial username
+    /// Query by partial handle
     SearchUsers { query: String },
 }
 
@@ -177,7 +180,7 @@ enum Command {
     /// Print user/repository-level description (including DID document)
     Describe { name: Option<DidOrHost> },
 
-    /// Have PDS resolve the DID for a username
+    /// Have PDS resolve the DID for a handle
     Resolve { name: DidOrHost },
 
     /// Generic HTTP XRPC helper, printing any result
@@ -296,12 +299,12 @@ fn run(opt: Opt) -> Result<()> {
                 .or(jwt_did)
                 .ok_or(anyhow!("expected a name, or self via auth token"))?;
             params.insert("user".to_string(), name);
-            xrpc_client.get(&Nsid::from_str("com.atproto.repoDescribe")?, Some(params))?
+            xrpc_client.get(&Nsid::from_str("com.atproto.repo.describe")?, Some(params))?
         }
         Command::Resolve { name } => {
             let mut params: HashMap<String, String> = HashMap::new();
             params.insert("name".to_string(), name.to_string());
-            xrpc_client.get(&Nsid::from_str("com.atproto.resolveName")?, Some(params))?
+            xrpc_client.get(&Nsid::from_str("com.atproto.handle.resolve")?, Some(params))?
         }
         Command::Get { uri, cid } => {
             params.insert("user".to_string(), uri.repository.to_string());
@@ -324,8 +327,8 @@ fn run(opt: Opt) -> Result<()> {
             if uri.collection.is_none() {
                 // if a repository, but no collection, list the collections
                 let describe = xrpc_client
-                    .get(&Nsid::from_str("com.atproto.repoDescribe")?, Some(params))?
-                    .ok_or(anyhow!("expected a repoDescribe response"))?;
+                    .get(&Nsid::from_str("com.atproto.repo.describe")?, Some(params))?
+                    .ok_or(anyhow!("expected a repo.describe response"))?;
                 for c in describe["collections"]
                     .as_array()
                     .ok_or(anyhow!("expected collection list"))?
@@ -363,7 +366,7 @@ fn run(opt: Opt) -> Result<()> {
             update_params_from_fields(&fields, &mut params);
             let val = value_from_fields(fields);
             xrpc_client.post(
-                &Nsid::from_str("com.atproto.repoCreateRecord")?,
+                &Nsid::from_str("com.atproto.repo.createRecord")?,
                 Some(params),
                 Some(val),
             )?
@@ -382,14 +385,14 @@ fn run(opt: Opt) -> Result<()> {
             // fetch existing, extend map with fields, put the updated value
             let mut record = xrpc_client
                 .get(
-                    &Nsid::from_str("com.atproto.repoGetRecord")?,
+                    &Nsid::from_str("com.atproto.repo.getRecord")?,
                     Some(params.clone()),
                 )?
                 .unwrap_or(json!({}));
             update_params_from_fields(&fields, &mut params);
             update_value_from_fields(fields, &mut record);
             xrpc_client.post(
-                &Nsid::from_str("com.atproto.repoPutRecord")?,
+                &Nsid::from_str("com.atproto.repo.putRecord")?,
                 Some(params),
                 Some(record),
             )?
@@ -405,7 +408,7 @@ fn run(opt: Opt) -> Result<()> {
                 uri.record.ok_or(anyhow!("record key required"))?,
             );
             xrpc_client.post(
-                &Nsid::from_str("com.atproto.repoDeleteRecord")?,
+                &Nsid::from_str("com.atproto.repo.deleteRecord")?,
                 Some(params),
                 None,
             )?
@@ -426,37 +429,44 @@ fn run(opt: Opt) -> Result<()> {
             cmd:
                 AccountCommand::Register {
                     email,
-                    username,
+                    handle,
                     password,
+                    recovery_key,
                 },
-        } => xrpc_client.post(
-            &Nsid::from_str("com.atproto.createAccount")?,
-            None,
-            Some(json!({
+        } => {
+            let mut body = json!({
                 "email": email,
-                "username": username,
+                "handle": handle,
                 "password": password,
-            })),
-        )?,
+            });
+            if let Some(key) = recovery_key {
+                body["recoveryKey"] = json!(key);
+            }
+            xrpc_client.post(
+                &Nsid::from_str("com.atproto.account.create")?,
+                None,
+                Some(body),
+            )?
+        }
         Command::Account {
-            cmd: AccountCommand::Login { username, password },
+            cmd: AccountCommand::Login { handle, password },
         } => xrpc_client.post(
-            &Nsid::from_str("com.atproto.createSession")?,
+            &Nsid::from_str("com.atproto.session.create")?,
             None,
             Some(json!({
-                "username": username,
+                "handle": handle,
                 "password": password,
             })),
         )?,
         Command::Account {
             cmd: AccountCommand::Logout,
-        } => xrpc_client.post(&Nsid::from_str("com.atproto.deleteSession")?, None, None)?,
+        } => xrpc_client.post(&Nsid::from_str("com.atproto.session.delete")?, None, None)?,
         Command::Account {
             cmd: AccountCommand::Delete,
-        } => xrpc_client.post(&Nsid::from_str("com.atproto.deleteAccount")?, None, None)?,
+        } => xrpc_client.post(&Nsid::from_str("com.atproto.account.delete")?, None, None)?,
         Command::Account {
             cmd: AccountCommand::Info,
-        } => xrpc_client.get(&Nsid::from_str("com.atproto.getAccount")?, None)?,
+        } => xrpc_client.get(&Nsid::from_str("com.atproto.account.get")?, None)?,
         Command::Repo {
             cmd: RepoCommand::Root { did },
         } => {
@@ -466,7 +476,7 @@ fn run(opt: Opt) -> Result<()> {
                 None => jwt_did.ok_or(anyhow!("expected a DID"))?,
             };
             params.insert("did".to_string(), did);
-            xrpc_client.get(&Nsid::from_str("com.atproto.syncGetRoot")?, Some(params))?
+            xrpc_client.get(&Nsid::from_str("com.atproto.sync.getRoot")?, Some(params))?
         }
         Command::Repo {
             cmd: RepoCommand::Export { did, from },
@@ -481,7 +491,7 @@ fn run(opt: Opt) -> Result<()> {
                 params.insert("from".to_string(), from);
             };
             xrpc_client.get_to_writer(
-                &Nsid::from_str("com.atproto.syncGetRepo")?,
+                &Nsid::from_str("com.atproto.sync.getRepo")?,
                 Some(params),
                 &mut std::io::stdout(),
             )?;
@@ -497,7 +507,7 @@ fn run(opt: Opt) -> Result<()> {
             };
             params.insert("did".to_string(), did);
             xrpc_client.post_cbor_from_reader(
-                &Nsid::from_str("com.atproto.syncUpdateRepo")?,
+                &Nsid::from_str("com.atproto.sync.updateRepo")?,
                 Some(params),
                 &mut std::io::stdin(),
             )?
@@ -507,9 +517,12 @@ fn run(opt: Opt) -> Result<()> {
         } => {
             if let Some(name) = name {
                 params.insert("author".to_string(), name.to_string());
-                xrpc_client.get(&Nsid::from_str("app.bsky.getAuthorFeed")?, Some(params))?
+                xrpc_client.get(
+                    &Nsid::from_str("app.bsky.feed.getAuthorFeed")?,
+                    Some(params),
+                )?
             } else {
-                xrpc_client.get(&Nsid::from_str("app.bsky.getHomeFeed")?, None)?
+                xrpc_client.get(&Nsid::from_str("app.bsky.feed.getTimeline")?, None)?
             }
         }
         Command::Bsky {
@@ -522,9 +535,9 @@ fn run(opt: Opt) -> Result<()> {
                 "did".to_string(),
                 jwt_did.ok_or(anyhow!("need auth token"))?,
             );
-            params.insert("collection".to_string(), "app.bsky.post".to_string());
+            params.insert("collection".to_string(), "app.bsky.feed.post".to_string());
             xrpc_client.post(
-                &Nsid::from_str("com.atproto.repoCreateRecord")?,
+                &Nsid::from_str("com.atproto.repo.createRecord")?,
                 Some(params),
                 Some(json!({
                     "text": text,
@@ -538,9 +551,9 @@ fn run(opt: Opt) -> Result<()> {
                 "did".to_string(),
                 jwt_did.ok_or(anyhow!("need auth token"))?,
             );
-            params.insert("collection".to_string(), "app.bsky.repost".to_string());
+            params.insert("collection".to_string(), "app.bsky.feed.repost".to_string());
             xrpc_client.post(
-                &Nsid::from_str("com.atproto.repoCreateRecord")?,
+                &Nsid::from_str("com.atproto.repo.createRecord")?,
                 Some(params),
                 Some(json!({
                     "subject": uri.to_string(),
@@ -555,9 +568,9 @@ fn run(opt: Opt) -> Result<()> {
                 "did".to_string(),
                 jwt_did.ok_or(anyhow!("need auth token"))?,
             );
-            params.insert("collection".to_string(), "app.bsky.like".to_string());
+            params.insert("collection".to_string(), "app.bsky.feed.like".to_string());
             xrpc_client.post(
-                &Nsid::from_str("com.atproto.repoCreateRecord")?,
+                &Nsid::from_str("com.atproto.repo.createRecord")?,
                 Some(params),
                 Some(json!({
                     "subject": uri.to_string(),
@@ -572,9 +585,12 @@ fn run(opt: Opt) -> Result<()> {
                 "did".to_string(),
                 jwt_did.ok_or(anyhow!("need auth token"))?,
             );
-            params.insert("collection".to_string(), "app.bsky.follow".to_string());
+            params.insert(
+                "collection".to_string(),
+                "app.bsky.graph.follow".to_string(),
+            );
             xrpc_client.post(
-                &Nsid::from_str("com.atproto.repoCreateRecord")?,
+                &Nsid::from_str("com.atproto.repo.createRecord")?,
                 Some(params),
                 Some(json!({
                     "subject": uri.to_string(),
@@ -590,13 +606,13 @@ fn run(opt: Opt) -> Result<()> {
                 .or(jwt_did)
                 .ok_or(anyhow!("expected a name, or self via auth token"))?;
             params.insert("user".to_string(), name);
-            xrpc_client.get(&Nsid::from_str("app.bsky.getProfile")?, Some(params))?
+            xrpc_client.get(&Nsid::from_str("app.bsky.actor.getProfile")?, Some(params))?
         }
         Command::Bsky {
             cmd: BskyCommand::SearchUsers { query },
         } => {
             params.insert("term".to_string(), query);
-            xrpc_client.get(&Nsid::from_str("app.bsky.getUsersSearch")?, Some(params))?
+            xrpc_client.get(&Nsid::from_str("app.bsky.actor.search")?, Some(params))?
         }
     };
     print_result_json(result)?;

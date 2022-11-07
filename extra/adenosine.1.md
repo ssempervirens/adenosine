@@ -61,7 +61,7 @@ COMMANDS
 
 **resolve** \<name\>
 
-> Has PDS resolve username to a DID
+> Has PDS resolve handle to a DID
 
 Generic XRPC Requests
 ---------------------
@@ -130,19 +130,19 @@ Bluesky (bsky.app)
 
 **bsky search-users**
 
-> Query by partial username
+> Query by partial handle
 
 Account Management
 ------------------
 
-**account register \--email \<email\> \--password \<password\>
-\--username \<username\>**
+**account register \--email \<email\> \--password \<password\> \--handle
+\<handle\>**
 
 **account info**
 
 > Fetches account metadata for the current session
 
-**account login \--password \<password\> \--username \<username\>**
+**account login \--password \<password\> \--handle \<handle\>**
 
 > Create a new authenticated session
 
@@ -202,7 +202,7 @@ for an existing account, and save the JWT token to the
     {
     	"did": "did:plc:yqtuksvatmmgngd5nkkw75hn",
     	"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjMwNn0.MMQa4JIQdwvhy-rjJ0kO-z8-KdoOL0Lto9JtOkK-lwE",
-    	"username": "voltaire.test"
+    	"handle": "voltaire.test"
     }
 
     export ATP_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjMwNn0.MMQa4JIQdwvhy-rjJ0kO-z8-KdoOL0Lto9JtOkK-lwE

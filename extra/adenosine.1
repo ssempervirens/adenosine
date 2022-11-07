@@ -5,7 +5,7 @@
 .nh
 .ad l
 .\" Begin generated content:
-.TH "adenosine" "1" "2022-10-28" "adenosine CLI Client Manual Page"
+.TH "adenosine" "1" "2022-11-07" "adenosine CLI Client Manual Page"
 .P
 .SH NAME
 .P
@@ -65,7 +65,7 @@ Prints repository description fetched from PDS
 .RE
 \fBresolve\fR <name>
 .RS 4
-Has PDS resolve username to a DID
+Has PDS resolve handle to a DID
 .P
 .RE
 .SS Generic XRPC Requests
@@ -142,20 +142,20 @@ Create a 'repost' record for the target by AT URI
 .RE
 \fBbsky search-users\fR
 .RS 4
-Query by partial username
+Query by partial handle
 .P
 .P
 .RE
 .SS Account Management
 .P
-\fBaccount register --email <email> --password <password> --username <username>\fR
+\fBaccount register --email <email> --password <password> --handle <handle>\fR
 .P
 \fBaccount info\fR
 .RS 4
 Fetches account metadata for the current session
 .P
 .RE
-\fBaccount login --password <password> --username <username>\fR
+\fBaccount login --password <password> --handle <handle>\fR
 .RS 4
 Create a new authenticated session
 .P
@@ -220,7 +220,7 @@ adenosine account register -u voltaire\&.test -p bogus -e voltaire@example\&.com
 {
 	"did": "did:plc:yqtuksvatmmgngd5nkkw75hn",
 	"jwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\&.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjMwNn0\&.MMQa4JIQdwvhy-rjJ0kO-z8-KdoOL0Lto9JtOkK-lwE",
-	"username": "voltaire\&.test"
+	"handle": "voltaire\&.test"
 }
 
 export ATP_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\&.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjMwNn0\&.MMQa4JIQdwvhy-rjJ0kO-z8-KdoOL0Lto9JtOkK-lwE
