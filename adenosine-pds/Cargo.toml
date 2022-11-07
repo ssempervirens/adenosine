@@ -27,7 +27,7 @@ jsonschema = "*"
 schemafy = "*"
 rouille = "*"
 iroh-car = { version = "0.1.0-vendored.0", path = "../iroh-car" }
-adenosine-cli = { version = "0.1.0-dev.0", path = "../adenosine-cli" }
+adenosine-common = { version = "0.1.0-dev.0", path = "../adenosine-common" }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 sha256 = "*"
@@ -48,7 +48,7 @@ maintainer = "Bryan Newbold <bnewbold@robocracy.org>"
 depends = "$auto"
 section = "utility"
 priority = "optional"
-extended-description = """"TODO"""
+extended-description = """Simple informal personal data server (PDS) for AT protocol and bsky.app"""
 assets = [
     ["target/release/adenosine-pds", "usr/bin/", "755"],
     #["../extra/adenosine-pds.1", "usr/share/man/man1/", "644"],

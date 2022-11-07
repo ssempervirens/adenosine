@@ -1,4 +1,4 @@
-use adenosine_cli::{AtUri, Did, Nsid, Tid, TidLord};
+use adenosine_common::identifiers::{Did, Nsid, Tid, TidLord};
 use anyhow::Context;
 use anyhow::{anyhow, Result};
 use libipld::Cid;
@@ -381,7 +381,7 @@ fn xrpc_post_handler(
                         w.rkey
                             .as_ref()
                             .map(|t| Tid::from_str(&t).unwrap())
-                            .unwrap_or_else(|| srv.tid_gen.next()),
+                            .unwrap_or_else(|| srv.tid_gen.next_tid()),
                         json_value_into_ipld(w.value.clone()),
                     ),
                     "update" => Mutation::Update(
@@ -419,7 +419,7 @@ fn xrpc_post_handler(
             let last_commit = srv.repo.get_commit(&commit_cid)?;
             let mutations: Vec<Mutation> = vec![Mutation::Create(
                 collection,
-                srv.tid_gen.next(),
+                srv.tid_gen.next_tid(),
                 json_value_into_ipld(record),
             )];
             debug!("mutating tree");
