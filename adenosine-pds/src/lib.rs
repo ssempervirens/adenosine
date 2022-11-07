@@ -1,5 +1,4 @@
 use adenosine_cli::identifiers::{Did, Nsid, Tid, TidLord};
-use anyhow::Context;
 use anyhow::{anyhow, Result};
 use libipld::Cid;
 use libipld::Ipld;
@@ -371,8 +370,6 @@ fn xrpc_post_handler(
             let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
             let mut srv = srv.lock().unwrap();
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
-            let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
-            let last_commit = srv.repo.get_commit(commit_cid)?;
             let mut mutations: Vec<Mutation> = Default::default();
             for w in batch.writes.iter() {
                 let m = match w.op_type.as_str() {
@@ -398,13 +395,8 @@ fn xrpc_post_handler(
                 };
                 mutations.push(m);
             }
-            let new_mst_cid = srv.repo.update_mst(&last_commit.mst_cid, &mutations)?;
-            let new_root_cid = srv.repo.write_root(
-                last_commit.meta_cid,
-                Some(last_commit.commit_cid),
-                new_mst_cid,
-            )?;
-            srv.repo.write_commit(&did, new_root_cid, "dummy-sig")?;
+            let keypair = srv.pds_keypair.clone();
+            srv.repo.mutate_repo(&did, &mutations, &keypair)?;
             // TODO: next handle updates to database
             Ok(json!({}))
         }
@@ -415,27 +407,13 @@ fn xrpc_post_handler(
             let record: Value = rouille::input::json_input(request)?;
             let mut srv = srv.lock().unwrap();
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
-            debug!("reading commit");
-            let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
-            let last_commit = srv.repo.get_commit(commit_cid)?;
             let mutations: Vec<Mutation> = vec![Mutation::Create(
                 collection,
                 srv.tid_gen.next_tid(),
                 json_value_into_ipld(record),
             )];
-            debug!("mutating tree");
-            let new_mst_cid = srv
-                .repo
-                .update_mst(&last_commit.mst_cid, &mutations)
-                .context("updating MST in repo")?;
-            debug!("writing new root");
-            let new_root_cid = srv.repo.write_root(
-                last_commit.meta_cid,
-                Some(last_commit.commit_cid),
-                new_mst_cid,
-            )?;
-            debug!("writing new commit");
-            srv.repo.write_commit(&did, new_root_cid, "dummy-sig")?;
+            let keypair = srv.pds_keypair.clone();
+            srv.repo.mutate_repo(&did, &mutations, &keypair)?;
             // TODO: next handle updates to database
             Ok(json!({}))
         }
@@ -447,23 +425,14 @@ fn xrpc_post_handler(
             let record: Value = rouille::input::json_input(request)?;
             let mut srv = srv.lock().unwrap();
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
-            let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
-            let last_commit = srv.repo.get_commit(commit_cid)?;
+
             let mutations: Vec<Mutation> = vec![Mutation::Update(
                 collection,
                 tid,
                 json_value_into_ipld(record),
             )];
-            let new_mst_cid = srv
-                .repo
-                .update_mst(&last_commit.mst_cid, &mutations)
-                .context("updating MST in repo")?;
-            let new_root_cid = srv.repo.write_root(
-                last_commit.meta_cid,
-                Some(last_commit.commit_cid),
-                new_mst_cid,
-            )?;
-            srv.repo.write_commit(&did, new_root_cid, "dummy-sig")?;
+            let keypair = srv.pds_keypair.clone();
+            srv.repo.mutate_repo(&did, &mutations, &keypair)?;
             // TODO: next handle updates to database
             Ok(json!({}))
         }
@@ -473,16 +442,10 @@ fn xrpc_post_handler(
             let tid = Tid::from_str(&xrpc_required_param(request, "rkey")?)?;
             let mut srv = srv.lock().unwrap();
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
-            let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
-            let last_commit = srv.repo.get_commit(commit_cid)?;
+
             let mutations: Vec<Mutation> = vec![Mutation::Delete(collection, tid)];
-            let new_mst_cid = srv.repo.update_mst(&last_commit.mst_cid, &mutations)?;
-            let new_root_cid = srv.repo.write_root(
-                last_commit.meta_cid,
-                Some(last_commit.commit_cid),
-                new_mst_cid,
-            )?;
-            srv.repo.write_commit(&did, new_root_cid, "dummy-sig")?;
+            let keypair = srv.pds_keypair.clone();
+            srv.repo.mutate_repo(&did, &mutations, &keypair)?;
             // TODO: next handle updates to database
             Ok(json!({}))
         }

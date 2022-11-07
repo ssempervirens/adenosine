@@ -1,5 +1,5 @@
-use crate::load_car_to_blockstore;
 use crate::mst::{collect_mst_keys, generate_mst, CommitNode, MetadataNode, RootNode};
+use crate::{load_car_to_blockstore, KeyPair};
 use adenosine_cli::identifiers::{Did, Nsid, Tid};
 use anyhow::{anyhow, ensure, Context, Result};
 use ipfs_sqlite_block_store::BlockStore;
@@ -233,6 +233,29 @@ impl RepoStore {
         }
         let mst_cid = generate_mst(&mut self.db, &cid_map)?;
         Ok(mst_cid)
+    }
+
+    /// High-level helper to write a batch of mutations to the repo corresponding to the DID, and
+    /// signing the resulting new root CID with the given keypair.
+    pub fn mutate_repo(
+        &mut self,
+        did: &Did,
+        mutations: &[Mutation],
+        signing_key: &KeyPair,
+    ) -> Result<Cid> {
+        let commit_cid = self.lookup_commit(did)?.unwrap();
+        let last_commit = self.get_commit(&commit_cid)?;
+        let new_mst_cid = self
+            .update_mst(&last_commit.mst_cid, &mutations)
+            .context("updating MST in repo")?;
+        let new_root_cid = self.write_root(
+            last_commit.meta_cid,
+            Some(last_commit.commit_cid),
+            new_mst_cid,
+        )?;
+        // TODO: is this how signatures are supposed to work?
+        let sig = signing_key.sign_bytes(new_root_cid.to_string().as_bytes());
+        self.write_commit(&did, new_root_cid, &sig)
     }
 
     /// returns the root commit from CAR file
