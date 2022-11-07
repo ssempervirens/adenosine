@@ -1,4 +1,5 @@
 use crate::P256KeyMaterial;
+use adenosine_cli::identifiers::Did;
 use anyhow::{anyhow, ensure, Result};
 use p256::ecdsa::signature::{Signer, Verifier};
 use std::str::FromStr;
@@ -62,7 +63,7 @@ impl KeyPair {
     }
 
     /// This is currently just an un-validated token; we don't actually verify these.
-    pub fn ucan(&self, did: &str) -> Result<String> {
+    pub fn ucan(&self, did: &Did) -> Result<String> {
         let key_material = self.ucan_keymaterial();
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -81,10 +82,10 @@ impl KeyPair {
     }
 }
 
-async fn build_ucan(key_material: P256KeyMaterial, did: &str) -> Result<String> {
+async fn build_ucan(key_material: P256KeyMaterial, did: &Did) -> Result<String> {
     let token_string = UcanBuilder::default()
         .issued_by(&key_material)
-        .for_audience(did)
+        .for_audience(&did.to_string())
         .with_nonce()
         .with_lifetime(60 * 60 * 24 * 90)
         .build()?

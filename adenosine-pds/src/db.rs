@@ -1,5 +1,5 @@
 /// ATP database (as distinct from blockstore)
-use crate::{AtpSession, KeyPair};
+use crate::{AtpSession, Did, KeyPair};
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use log::debug;
@@ -74,7 +74,7 @@ impl AtpDatabase {
 
     pub fn create_account(
         &mut self,
-        did: &str,
+        did: &Did,
         username: &str,
         password: &str,
         email: &str,
@@ -89,8 +89,8 @@ impl AtpDatabase {
             username,
             password_bcrypt,
             email,
-            did,
-            recovery_pubkey
+            did.to_string(),
+            recovery_pubkey,
         ))?;
         Ok(())
     }
@@ -105,18 +105,19 @@ impl AtpDatabase {
         let mut stmt = self
             .conn
             .prepare_cached("SELECT did, password_bcrypt FROM account WHERE username = ?1")?;
-        let (did, password_bcrypt): (String, String) =
+        let (did_col, password_bcrypt): (String, String) =
             stmt.query_row(params!(username), |row| Ok((row.get(0)?, row.get(1)?)))?;
         if !bcrypt::verify(password, &password_bcrypt)? {
             return Err(anyhow!("password did not match"));
         }
+        let did = Did::from_str(&did_col)?;
         let jwt = keypair.ucan(&did)?;
         let mut stmt = self
             .conn
             .prepare_cached("INSERT INTO session (did, jwt) VALUES (?1, ?2)")?;
-        stmt.execute(params!(did, jwt))?;
+        stmt.execute(params!(did.to_string(), jwt))?;
         Ok(AtpSession {
-            did,
+            did: did.to_string(),
             name: username.to_string(),
             accessJwt: jwt.to_string(),
             refreshJwt: jwt,
@@ -124,12 +125,13 @@ impl AtpDatabase {
     }
 
     /// Returns the DID that a token is valid for, or None if session not found
-    pub fn check_auth_token(&mut self, jwt: &str) -> Result<Option<String>> {
+    pub fn check_auth_token(&mut self, jwt: &str) -> Result<Option<Did>> {
         let mut stmt = self
             .conn
             .prepare_cached("SELECT did FROM session WHERE jwt = $1")?;
-        let did_maybe = stmt.query_row(params!(jwt), |row| row.get(0)).optional()?;
-        Ok(did_maybe)
+        let did_maybe: Option<String> =
+            stmt.query_row(params!(jwt), |row| row.get(0)).optional()?;
+        Ok(did_maybe.map(|v| Did::from_str(&v).expect("valid DID in database")))
     }
 
     pub fn delete_session(&mut self, jwt: &str) -> Result<bool> {
@@ -140,18 +142,18 @@ impl AtpDatabase {
         Ok(count >= 1)
     }
 
-    pub fn put_did_doc(&mut self, did: &str, did_doc: &Value) -> Result<()> {
+    pub fn put_did_doc(&mut self, did: &Did, did_doc: &Value) -> Result<()> {
         let mut stmt = self
             .conn
             .prepare_cached("INSERT INTO did_doc (did, doc_json) VALUES (?1, ?2)")?;
-        stmt.execute(params!(did, did_doc.to_string()))?;
+        stmt.execute(params!(did.to_string(), did_doc.to_string()))?;
         Ok(())
     }
-    pub fn get_did_doc(&mut self, did: &str) -> Result<Value> {
+    pub fn get_did_doc(&mut self, did: &Did) -> Result<Value> {
         let mut stmt = self
             .conn
             .prepare_cached("SELECT doc_json FROM did_doc WHERE did = $1")?;
-        let doc_json: String = stmt.query_row(params!(did), |row| row.get(0))?;
+        let doc_json: String = stmt.query_row(params!(did.to_string()), |row| row.get(0))?;
         Ok(Value::from_str(&doc_json)?)
     }
 }

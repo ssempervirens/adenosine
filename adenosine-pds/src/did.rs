@@ -1,14 +1,15 @@
-use crate::{KeyPair, PubKey};
 /// DID and 'did:plc' stuff
 ///
 /// This is currently a partial/skeleton implementation, which only generates local/testing did:plc
 /// DIDs (and DID documents) using a single 'create' genesis block. Key rotation, etc, is not
 /// supported.
+use crate::{Did, KeyPair, PubKey};
 use anyhow::Result;
 use libipld::cbor::DagCborCodec;
 use libipld::multihash::Code;
 use libipld::{Block, Cid, DagCbor, DefaultParams};
 use serde_json::json;
+use std::str::FromStr;
 
 #[allow(non_snake_case)]
 #[derive(Debug, DagCbor, PartialEq, Eq, Clone)]
@@ -72,7 +73,7 @@ impl CreateOp {
         unsigned.into_signed(sig)
     }
 
-    pub fn did_plc(&self) -> String {
+    pub fn did_plc(&self) -> Did {
         // dump DAG-CBOR
         let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, self)
             .expect("encode DAG-CBOR");
@@ -86,7 +87,7 @@ impl CreateOp {
             .encode(&digest_bytes)
             .to_ascii_lowercase();
         // truncate
-        format!("did:plc:{}", &digest_b32[0..24])
+        Did::from_str(&format!("did:plc:{}", &digest_b32[0..24])).unwrap()
     }
 
     pub fn did_doc(&self) -> serde_json::Value {
@@ -99,19 +100,19 @@ impl CreateOp {
                 "https://www.w3.org/ns/did/v1",
                 "https://w3id.org/security/suites/ecdsa-2019/v1"
             ],
-            "id": did,
+            "id": did.to_string(),
             "alsoKnownAs": [ user_url ],
             "verificationMethod": [
                 {
                 "id": format!("{}#signingKey)", did),
                 "type": key_type,
-                "controller": did,
+                "controller": did.to_string(),
                 "publicKeyMultibase": self.signingKey
                 },
                 {
                 "id": format!("{}#recoveryKey)", did),
                 "type": key_type,
-                "controller": did,
+                "controller": did.to_string(),
                 "publicKeyMultibase": self.recoveryKey
                 }
             ],
@@ -295,7 +296,10 @@ fn test_did_plc_examples() {
                 .to_string(),
     };
     op.verify_self().unwrap();
-    assert_eq!(&op.did_plc(), "did:plc:7iza6de2dwap2sbkpav7c6c6");
+    assert_eq!(
+        &op.did_plc().to_string(),
+        "did:plc:7iza6de2dwap2sbkpav7c6c6"
+    );
 
     // interacting with PDS / PLC server
     let op = CreateOp {
@@ -310,7 +314,10 @@ fn test_did_plc_examples() {
                 .to_string(),
     };
     op.verify_self().unwrap();
-    assert_eq!(&op.did_plc(), "did:plc:bmrcg7zrxoiw2kiml3tkw2xv");
+    assert_eq!(
+        &op.did_plc().to_string(),
+        "did:plc:bmrcg7zrxoiw2kiml3tkw2xv"
+    );
 }
 
 #[test]

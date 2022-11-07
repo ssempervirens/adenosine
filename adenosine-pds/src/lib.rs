@@ -207,8 +207,8 @@ fn xrpc_get_handler(
         }
         "com.atproto.repoGetRecord" => {
             let did = Did::from_str(&xrpc_required_param(request, "user")?)?;
-            let collection = xrpc_required_param(request, "collection")?;
-            let rkey = xrpc_required_param(request, "rkey")?;
+            let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;
+            let rkey = Tid::from_str(&xrpc_required_param(request, "rkey")?)?;
             let mut srv = srv.lock().expect("service mutex");
             let key = format!("/{}/{}", collection, rkey);
             match srv.repo.get_atp_record(&did, &collection, &rkey) {
@@ -325,11 +325,11 @@ fn xrpc_post_handler(
 
             // insert empty MST repository
             let root_cid = {
-                let empty_map_cid: String = srv.repo.mst_from_map(&Default::default())?;
+                let empty_map_cid = srv.repo.mst_from_map(&Default::default())?;
                 let meta_cid = srv.repo.write_metadata(&did)?;
-                srv.repo.write_root(&meta_cid, None, &empty_map_cid)?
+                srv.repo.write_root(meta_cid, None, empty_map_cid)?
             };
-            let _commit_cid = srv.repo.write_commit(&did, &root_cid, "XXX-dummy-sig")?;
+            let _commit_cid = srv.repo.write_commit(&did, root_cid, "XXX-dummy-sig")?;
 
             let keypair = srv.pds_keypair.clone();
             let sess = srv
@@ -400,11 +400,11 @@ fn xrpc_post_handler(
             }
             let new_mst_cid = srv.repo.update_mst(&last_commit.mst_cid, &mutations)?;
             let new_root_cid = srv.repo.write_root(
-                &last_commit.meta_cid,
-                Some(&last_commit.commit_cid),
-                &new_mst_cid,
+                last_commit.meta_cid,
+                Some(last_commit.commit_cid),
+                new_mst_cid,
             )?;
-            srv.repo.write_commit(&did, &new_root_cid, "dummy-sig")?;
+            srv.repo.write_commit(&did, new_root_cid, "dummy-sig")?;
             // TODO: next handle updates to database
             Ok(json!({}))
         }
@@ -430,12 +430,12 @@ fn xrpc_post_handler(
                 .context("updating MST in repo")?;
             debug!("writing new root");
             let new_root_cid = srv.repo.write_root(
-                &last_commit.meta_cid,
-                Some(&last_commit.commit_cid),
-                &new_mst_cid,
+                last_commit.meta_cid,
+                Some(last_commit.commit_cid),
+                new_mst_cid,
             )?;
             debug!("writing new commit");
-            srv.repo.write_commit(&did, &new_root_cid, "dummy-sig")?;
+            srv.repo.write_commit(&did, new_root_cid, "dummy-sig")?;
             // TODO: next handle updates to database
             Ok(json!({}))
         }
@@ -459,11 +459,11 @@ fn xrpc_post_handler(
                 .update_mst(&last_commit.mst_cid, &mutations)
                 .context("updating MST in repo")?;
             let new_root_cid = srv.repo.write_root(
-                &last_commit.meta_cid,
-                Some(&last_commit.commit_cid),
-                &new_mst_cid,
+                last_commit.meta_cid,
+                Some(last_commit.commit_cid),
+                new_mst_cid,
             )?;
-            srv.repo.write_commit(&did, &new_root_cid, "dummy-sig")?;
+            srv.repo.write_commit(&did, new_root_cid, "dummy-sig")?;
             // TODO: next handle updates to database
             Ok(json!({}))
         }
@@ -478,11 +478,11 @@ fn xrpc_post_handler(
             let mutations: Vec<Mutation> = vec![Mutation::Delete(collection, tid)];
             let new_mst_cid = srv.repo.update_mst(&last_commit.mst_cid, &mutations)?;
             let new_root_cid = srv.repo.write_root(
-                &last_commit.meta_cid,
-                Some(&last_commit.commit_cid),
-                &new_mst_cid,
+                last_commit.meta_cid,
+                Some(last_commit.commit_cid),
+                new_mst_cid,
             )?;
-            srv.repo.write_commit(&did, &new_root_cid, "dummy-sig")?;
+            srv.repo.write_commit(&did, new_root_cid, "dummy-sig")?;
             // TODO: next handle updates to database
             Ok(json!({}))
         }
