@@ -81,14 +81,14 @@ impl FromStr for AtUri {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
-            static ref ATURI_RE: Regex = Regex::new(r"^at://([a-zA-Z0-9:_\.-]+)(/([a-zA-Z0-9\.]+))?(/([a-zA-Z0-9\.-]+))?(#([a-zA-Z0-9/-]+))?$").unwrap();
+            static ref ATURI_RE: Regex = Regex::new(r"^at://([a-zA-Z0-9:_\.-]+)(/(([a-zA-Z0-9\.]+))?)?(/(([a-zA-Z0-9\.-]+))?)?(#([a-zA-Z0-9/-]+))?$").unwrap();
         }
         if let Some(caps) = ATURI_RE.captures(s) {
             let uri = AtUri {
                 repository: DidOrHost::from_str(&caps[1])?,
-                collection: caps.get(3).map(|v| v.as_str().to_string()),
-                record: caps.get(5).map(|v| v.as_str().to_string()),
-                fragment: caps.get(7).map(|v| v.as_str().to_string()),
+                collection: caps.get(4).map(|v| v.as_str().to_string()),
+                record: caps.get(7).map(|v| v.as_str().to_string()),
+                fragment: caps.get(9).map(|v| v.as_str().to_string()),
             };
             Ok(uri)
         } else {
@@ -116,8 +116,10 @@ impl fmt::Display for AtUri {
 #[test]
 fn test_aturi() {
     assert!(AtUri::from_str("at://bob.com").is_ok());
+    assert!(AtUri::from_str("at://bob.com/").is_ok());
     assert!(AtUri::from_str("at://did:plc:bv6ggog3tya2z3vxsub7hnal").is_ok());
     assert!(AtUri::from_str("at://bob.com/io.example.song").is_ok());
+    assert!(AtUri::from_str("at://bob.com/io.example.song/").is_ok());
     assert!(AtUri::from_str("at://bob.com/io.example.song/3yI5-c1z-cc2p-1a").is_ok());
     assert!(AtUri::from_str("at://bob.com/io.example.song/3yI5-c1z-cc2p-1a#/title").is_ok());
     assert!(
@@ -143,6 +145,10 @@ fn test_aturi() {
     assert_eq!(uri.collection, Some("io.example.song".to_string()));
     assert_eq!(uri.record, Some("3yI5-c1z-cc2p-1a".to_string()));
     assert_eq!(uri.fragment, Some("/title".to_string()));
+
+    let uri = AtUri::from_str("at://bob.com/io.example.song/").unwrap();
+    assert_eq!(uri.repository, DidOrHost::Host("bob.com".to_string()));
+    assert_eq!(uri.collection, Some("io.example.song".to_string()));
 }
 
 /// A String (newtype) representing an NSID
