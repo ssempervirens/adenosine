@@ -14,6 +14,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+#[derive(Debug)]
 pub struct RepoCommit {
     pub sig: Box<[u8]>,
     pub commit_cid: Cid,

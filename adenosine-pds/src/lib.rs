@@ -10,6 +10,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Mutex;
+use askama::Template;
 
 mod car;
 mod crypto;
@@ -28,6 +29,7 @@ pub use db::AtpDatabase;
 pub use models::*;
 pub use repo::{Mutation, RepoCommit, RepoStore};
 pub use ucan_p256::P256KeyMaterial;
+use web::*;
 
 struct AtpService {
     pub repo: RepoStore,
@@ -74,6 +76,25 @@ fn xrpc_wrap<S: serde::Serialize>(resp: Result<S>) -> Response {
     }
 }
 
+/// Helper to take a Askama render Result and transform it to a rouille response, including more
+/// friendly HTML 404s, etc.
+fn web_wrap(resp: Result<String>) -> Response {
+    match resp {
+        Ok(val) => Response::html(val),
+        Err(e) => {
+            let msg = e.to_string();
+            let code = match e.downcast_ref::<XrpcError>() {
+                Some(XrpcError::BadRequest(_)) => 400,
+                Some(XrpcError::NotFound(_)) => 404,
+                Some(XrpcError::Forbidden(_)) => 403,
+                None => 500,
+            };
+            warn!("HTTP {}: {}", code, msg);
+            Response::html(format!("<html><body><h1>{}</h1><p>{}</body></html>", code, msg))
+        }
+    }
+}
+
 pub fn run_server(
     port: u16,
     blockstore_db_path: &PathBuf,
@@ -100,13 +121,44 @@ pub fn run_server(
         );
     };
 
-    // TODO: robots.txt
     // TODO: some static files? https://github.com/tomaka/rouille/blob/master/examples/static-files.rs
     rouille::start_server(format!("localhost:{}", port), move |request| {
         rouille::log_custom(request, log_ok, log_err, || {
             router!(request,
                 (GET) ["/"] => {
-                    Response::text("Not much to see here yet!")
+                    let view = GenericHomeView { domain: "domain.todo".to_string() };
+                    Response::html(view.render().unwrap())
+                },
+                (GET) ["/about"] => {
+                    let view = AboutView { domain: "domain.todo".to_string() };
+                    Response::html(view.render().unwrap())
+                },
+                (GET) ["/robots.txt"] => {
+                    Response::text(include_str!("../templates/robots.txt"))
+                },
+                (GET) ["/u/{did}", did: Did] => {
+                    web_wrap(profile_handler(&srv, &did, request))
+                },
+                (GET) ["/u/{did}/{collection}/{tid}", did: Did, collection: Nsid, tid: Tid] => {
+                    web_wrap(post_handler(&srv, &did, &collection, &tid, request))
+                },
+                (GET) ["/at/{did}", did: Did] => {
+                    web_wrap(repo_handler(&srv, &did, request))
+                },
+                (GET) ["/at/{did}/{collection}", did: Did, collection: Nsid] => {
+                    web_wrap(collection_handler(&srv, &did, &collection, request))
+                },
+                (GET) ["/at/{did}/{collection}/{tid}", did: Did, collection: Nsid, tid: Tid] => {
+                    web_wrap(record_handler(&srv, &did, &collection, &tid, request))
+                },
+                (GET) ["/static/adenosine.css"] => {
+                    Response::from_data("text/css", include_str!("../templates/adenosine.css"))
+                },
+                (GET) ["/static/favicon.png"] => {
+                    Response::from_data("image/png", include_bytes!("../templates/favicon.png").to_vec())
+                },
+                (GET) ["/static/logo_128.png"] => {
+                    Response::from_data("image/png", include_bytes!("../templates/logo_128.png").to_vec())
                 },
                 (POST) ["/xrpc/{endpoint}", endpoint: String] => {
                     xrpc_wrap(xrpc_post_handler(&srv, &endpoint, request))
@@ -114,7 +166,7 @@ pub fn run_server(
                 (GET) ["/xrpc/{endpoint}", endpoint: String] => {
                     xrpc_wrap(xrpc_get_handler(&srv, &endpoint, request))
                 },
-                _ => rouille::Response::empty_404()
+                _ => Response::text("404: Not Found")
             )
         })
     });
@@ -205,7 +257,7 @@ fn xrpc_get_handler(
         "com.atproto.server.getAccountsConfig" => {
             Ok(json!({"availableUserDomains": ["test"], "inviteCodeRequired": false}))
         }
-        "com.atproto.repoGetRecord" => {
+        "com.atproto.repo.getRecord" => {
             let did = Did::from_str(&xrpc_required_param(request, "user")?)?;
             let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;
             let rkey = Tid::from_str(&xrpc_required_param(request, "rkey")?)?;
@@ -455,4 +507,124 @@ fn xrpc_post_handler(
             method
         )))),
     }
+}
+
+fn profile_handler(srv: &Mutex<AtpService>, did: &str, _request: &Request) -> Result<String> {
+    let did = Did::from_str(did)?;
+    let mut _srv = srv.lock().expect("service mutex");
+
+    // TODO: get profile (bsky helper)
+    // TODO: get feed (bsky helper)
+
+    Ok(ProfileView {
+        domain: "domain.todo".to_string(),
+        did: did,
+        profile: json!({}),
+        feed: vec![],
+    }.render()?)
+}
+
+fn post_handler(srv: &Mutex<AtpService>, did: &str, collection: &str, tid: &str, _request: &Request) -> Result<String> {
+    let did = Did::from_str(did)?;
+    let collection = Nsid::from_str(collection)?;
+    let rkey = Tid::from_str(tid)?;
+    let mut srv = srv.lock().expect("service mutex");
+
+    let post = match srv.repo.get_atp_record(&did, &collection, &rkey) {
+        // TODO: format as JSON, not text debug
+        Ok(Some(ipld)) => ipld_into_json_value(ipld),
+        Ok(None) => Err(anyhow!(XrpcError::NotFound(format!(
+            "could not find record: /{}/{}", collection, rkey
+        ))))?,
+        Err(e) => Err(e)?,
+    };
+
+    Ok(PostView {
+        domain: "domain.todo".to_string(),
+        did: did,
+        collection: collection,
+        tid: rkey,
+        post_text: post["text"].as_str().unwrap().to_string(), // TODO: unwrap
+        post_created_at: "some-time".to_string(),
+    }.render()?)
+}
+
+fn repo_handler(srv: &Mutex<AtpService>, did: &str, _request: &Request) -> Result<String> {
+    let did = Did::from_str(did)?;
+
+    let mut srv = srv.lock().expect("service mutex");
+    let did_doc = srv.atp_db.get_did_doc(&did)?;
+    let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
+    let commit = srv.repo.get_commit(commit_cid)?;
+    let collections: Vec<String> = srv.repo.collections(&did)?;
+    let desc = RepoDescribe {
+        name: did.to_string(), // TODO
+        did: did.to_string(),
+        didDoc: did_doc,
+        collections: collections,
+        nameIsCorrect: true,
+    };
+
+    Ok(RepoView {
+        domain: "domain.todo".to_string(),
+        did: did,
+        commit: commit,
+        describe: desc,
+    }.render()?)
+}
+
+fn collection_handler(srv: &Mutex<AtpService>, did: &str, collection: &str, _request: &Request) -> Result<String> {
+    let did = Did::from_str(did)?;
+    let collection = Nsid::from_str(collection)?;
+
+    let mut record_list: Vec<Value> = vec![];
+    let mut srv = srv.lock().expect("service mutex");
+    let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
+    let last_commit = srv.repo.get_commit(commit_cid)?;
+    let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
+    let prefix = format!("/{}/", collection);
+    for (mst_key, cid) in full_map.iter() {
+        debug!("{}", mst_key);
+        if mst_key.starts_with(&prefix) {
+            let record = srv.repo.get_ipld(cid)?;
+            record_list.push(json!({
+                "uri": format!("at://{}{}", did, mst_key),
+                "tid": mst_key.split('/').nth(2).unwrap(),
+                "cid": cid,
+                "value": ipld_into_json_value(record),
+            }));
+        }
+    }
+
+    Ok(CollectionView {
+        domain: "domain.todo".to_string(),
+        did: did,
+        collection: collection,
+        records: record_list,
+    }.render()?)
+}
+
+fn record_handler(srv: &Mutex<AtpService>, did: &str, collection: &str, tid: &str, _request: &Request) -> Result<String> {
+
+    let did = Did::from_str(did)?;
+    let collection = Nsid::from_str(collection)?;
+    let rkey = Tid::from_str(tid)?;
+
+    let mut srv = srv.lock().expect("service mutex");
+    let key = format!("/{}/{}", collection, rkey);
+    let record = match srv.repo.get_atp_record(&did, &collection, &rkey) {
+        Ok(Some(ipld)) => ipld_into_json_value(ipld),
+        Ok(None) => Err(anyhow!(XrpcError::NotFound(format!(
+            "could not find record: {}",
+            key
+        ))))?,
+        Err(e) => Err(e)?,
+    };
+    Ok(RecordView {
+        domain: "domain.todo".to_string(),
+        did,
+        collection,
+        tid: rkey,
+        record,
+    }.render()?)
 }

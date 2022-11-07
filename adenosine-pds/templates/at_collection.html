@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block main %}
+<p><b>at://{{ did }}/{{ collection }}/</b>
+
+<p><b>records:</b>
+<ul>
+{% for record in records %}
+  <li><a href="/at/{{did}}/{{collection}}/{{record["tid"].as_str().unwrap() }}">{{ record["tid"].as_str().unwrap() }}</a>
+{% endfor %}
+</ul>
+{% endblock %}

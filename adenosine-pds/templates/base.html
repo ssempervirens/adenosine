@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/adenosine.css" type="text/css">
+    <link rel="icon" href="/static/favicon.png" />
+    <title>{% block title -%}adenosine{%- endblock %}</title>
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <nav>
+      <a href="/">
+        <h3>
+          <img src="/static/logo_128.png" width="64" height="64">{{ domain }}
+        </h3>
+      </a>
+    </nav>
+    <hr>
+    <main>
+      {% block main %}{% endblock %}
+    </main>
+    <hr>
+    <footer>
+      <nav>
+        <a href="/">home</a> -
+        <a href="/about">about</a> -
+        <a href="https://gitlab.com/bnewbold/adenosine">source code</a>
+      </nav>
+    </footer>
+  </body>
+</html>

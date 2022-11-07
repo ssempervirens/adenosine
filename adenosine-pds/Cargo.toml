@@ -43,6 +43,7 @@ ucan = "0.7.0-alpha.1"
 bs58 = "*"
 async-trait = "*"
 dotenv = "*"
+askama = "0.11"
 
 # for vendored iroh-car
 thiserror = "1.0"

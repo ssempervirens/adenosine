@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block main %}
+<p><b>at://{{ did }}/</b>
+
+<p><b>collections:</b>
+<ul>
+{% for collection in describe.collections %}
+  <li><a href="/at/{{ did }}/{{ collection }}">{{collection}}/</a>
+{% endfor %}
+</ul>
+
+<p>repo commit:
+<pre><code>{{ "{:?}"|format(commit) }}</code></pre>
+
+<p>repo describe
+<pre><code>{{ "{:?}"|format(describe) }}</code></pre>
+{% endblock %}
