@@ -9,6 +9,7 @@ use std::str::FromStr;
 use std::time::Duration;
 
 pub mod identifiers;
+use identifiers::Nsid;
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -57,7 +58,7 @@ impl XrpcClient {
 
     pub fn get(
         &self,
-        nsid: &str,
+        nsid: &Nsid,
         params: Option<HashMap<String, String>>,
     ) -> Result<Option<Value>> {
         let params: HashMap<String, String> = params.unwrap_or_default();
@@ -86,7 +87,7 @@ impl XrpcClient {
 
     pub fn get_to_writer<W: std::io::Write>(
         &self,
-        nsid: &str,
+        nsid: &Nsid,
         params: Option<HashMap<String, String>>,
         output: &mut W,
     ) -> Result<u64> {
@@ -115,7 +116,7 @@ impl XrpcClient {
 
     pub fn post(
         &self,
-        nsid: &str,
+        nsid: &Nsid,
         params: Option<HashMap<String, String>>,
         body: Option<Value>,
     ) -> Result<Option<Value>> {
@@ -153,7 +154,7 @@ impl XrpcClient {
 
     pub fn post_cbor_from_reader<R: std::io::Read>(
         &self,
-        nsid: &str,
+        nsid: &Nsid,
         params: Option<HashMap<String, String>>,
         input: &mut R,
     ) -> Result<Option<Value>> {
