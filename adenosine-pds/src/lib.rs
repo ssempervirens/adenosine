@@ -17,7 +17,7 @@ mod car;
 mod crypto;
 mod db;
 mod did;
-mod models;
+pub mod models;
 pub mod mst;
 mod repo;
 mod ucan_p256;
@@ -26,6 +26,7 @@ mod web;
 
 pub use crypto::{KeyPair, PubKey};
 pub use db::AtpDatabase;
+pub use did::DidDocMeta;
 pub use models::*;
 pub use repo::{Mutation, RepoCommit, RepoStore};
 pub use ucan_p256::P256KeyMaterial;
@@ -44,6 +45,20 @@ pub struct AtpServiceConfig {
     pub listen_host_port: String,
     pub public_url: String,
     pub registration_domain: Option<String>,
+    pub invite_code: Option<String>,
+    pub homepage_did: Option<Did>,
+}
+
+impl Default for AtpServiceConfig {
+    fn default() -> Self {
+        AtpServiceConfig {
+            listen_host_port: "localhost:3030".to_string(),
+            public_url: "http://localhost".to_string(),
+            registration_domain: None,
+            invite_code: None,
+            homepage_did: None,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -141,19 +156,23 @@ impl AtpService {
         rouille::start_server(config.listen_host_port, move |request| {
             rouille::log_custom(request, log_ok, log_err, || {
                 router!(request,
+                    // ============= Web Interface
                     (GET) ["/"] => {
-                        let view = GenericHomeView { domain: "domain.todo".to_string() };
-                        Response::html(view.render().unwrap())
+                        let host = request.header("Host").unwrap_or("localhost");
+                        if Some(host.to_string()) == config.registration_domain {
+                            let view = GenericHomeView { domain: host.to_string() };
+                            Response::html(view.render().unwrap())
+                        } else {
+                            web_wrap(home_profile_handler(&srv, request))
+                        }
                     },
                     (GET) ["/about"] => {
-                        let view = AboutView { domain: "domain.todo".to_string() };
+                        let host = request.header("Host").unwrap_or("localhost");
+                        let view = AboutView { domain: host.to_string() };
                         Response::html(view.render().unwrap())
                     },
-                    (GET) ["/robots.txt"] => {
-                        Response::text(include_str!("../templates/robots.txt"))
-                    },
-                    (GET) ["/u/{did}", did: Did] => {
-                        web_wrap(profile_handler(&srv, &did, request))
+                    (GET) ["/u/{handle}", handle: String] => {
+                        web_wrap(profile_handler(&srv, &handle, request))
                     },
                     (GET) ["/u/{did}/{collection}/{tid}", did: Did, collection: Nsid, tid: Tid] => {
                         web_wrap(post_handler(&srv, &did, &collection, &tid, request))
@@ -167,6 +186,7 @@ impl AtpService {
                     (GET) ["/at/{did}/{collection}/{tid}", did: Did, collection: Nsid, tid: Tid] => {
                         web_wrap(record_handler(&srv, &did, &collection, &tid, request))
                     },
+                    // ============ Static Files (compiled in to executable)
                     (GET) ["/static/adenosine.css"] => {
                         Response::from_data("text/css", include_str!("../templates/adenosine.css"))
                     },
@@ -176,6 +196,10 @@ impl AtpService {
                     (GET) ["/static/logo_128.png"] => {
                         Response::from_data("image/png", include_bytes!("../templates/logo_128.png").to_vec())
                     },
+                    (GET) ["/robots.txt"] => {
+                        Response::text(include_str!("../templates/robots.txt"))
+                    },
+                    // ============ XRPC AT Protocol
                     (POST) ["/xrpc/{endpoint}", endpoint: String] => {
                         xrpc_wrap(xrpc_post_handler(&srv, &endpoint, request))
                     },
@@ -289,7 +313,14 @@ fn xrpc_get_handler(
 ) -> Result<serde_json::Value> {
     match method {
         "com.atproto.server.getAccountsConfig" => {
-            Ok(json!({"availableUserDomains": ["test"], "inviteCodeRequired": false}))
+            let srv = srv.lock().expect("service mutex");
+            let mut avail_domains = vec![];
+            if let Some(domain) = &srv.config.registration_domain {
+                avail_domains.push(domain)
+            }
+            Ok(
+                json!({"availableUserDomains": avail_domains, "inviteCodeRequired": srv.config.invite_code.is_some()}),
+            )
         }
         "com.atproto.repo.getRecord" => {
             let did = Did::from_str(&xrpc_required_param(request, "user")?)?;
@@ -370,6 +401,70 @@ fn xrpc_get_repo_handler(srv: &Mutex<AtpService>, request: &Request) -> Result<V
     Ok(srv.repo.export_car(&commit_cid, None)?)
 }
 
+pub fn create_account(
+    srv: &mut AtpService,
+    req: &AccountRequest,
+    create_did_plc: bool,
+) -> Result<AtpSession> {
+    // check if account already exists (fast path, also confirmed by database schema)
+    if srv.atp_db.account_exists(&req.handle, &req.email)? {
+        Err(XrpcError::BadRequest(
+            "handle or email already exists".to_string(),
+        ))?;
+    };
+
+    debug!("trying to create new account: {}", &req.handle);
+
+    let (did, did_doc) = if create_did_plc {
+        // generate DID
+        let create_op = did::CreateOp::new(
+            req.handle.clone(),
+            srv.config.public_url.clone(),
+            &srv.pds_keypair,
+            req.recoveryKey.clone(),
+        );
+        create_op.verify_self()?;
+        let did = create_op.did_plc();
+        let did_doc = create_op.did_doc();
+        (did, did_doc)
+    } else {
+        let did = Did::from_str(&format!("did:web:{}", req.handle))?;
+        let signing_key = srv.pds_keypair.pubkey().to_did_key();
+        let recovery_key = req.recoveryKey.clone().unwrap_or(signing_key.clone());
+        let meta = DidDocMeta {
+            did: did.clone(),
+            user_url: format!("https://{}", req.handle),
+            service_url: srv.config.public_url.clone(),
+            recovery_didkey: recovery_key,
+            signing_didkey: signing_key,
+        };
+        (did, meta.did_doc())
+    };
+
+    // register in ATP DB and generate DID doc
+    let recovery_key = req
+        .recoveryKey
+        .clone()
+        .unwrap_or(srv.pds_keypair.pubkey().to_did_key());
+    srv.atp_db
+        .create_account(&did, &req.handle, &req.password, &req.email, &recovery_key)?;
+    srv.atp_db.put_did_doc(&did, &did_doc)?;
+
+    // insert empty MST repository
+    let root_cid = {
+        let empty_map_cid = srv.repo.mst_from_map(&Default::default())?;
+        let meta_cid = srv.repo.write_metadata(&did)?;
+        srv.repo.write_root(meta_cid, None, empty_map_cid)?
+    };
+    let _commit_cid = srv.repo.write_commit(&did, root_cid, "XXX-dummy-sig")?;
+
+    let keypair = srv.pds_keypair.clone();
+    let sess = srv
+        .atp_db
+        .create_session(&req.handle, &req.password, &keypair)?;
+    Ok(sess)
+}
+
 fn xrpc_post_handler(
     srv: &Mutex<AtpService>,
     method: &str,
@@ -381,53 +476,8 @@ fn xrpc_post_handler(
             let req: AccountRequest = rouille::input::json_input(request)
                 .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
             // TODO: validate handle, email, recoverykey
-
-            // check if account already exists (fast path, also confirmed by database schema)
             let mut srv = srv.lock().unwrap();
-            if srv.atp_db.account_exists(&req.handle, &req.email)? {
-                Err(XrpcError::BadRequest(
-                    "handle or email already exists".to_string(),
-                ))?;
-            };
-
-            debug!("trying to create new account: {}", &req.handle);
-
-            // generate DID
-            let create_op = did::CreateOp::new(
-                req.handle.clone(),
-                srv.config.public_url.clone(),
-                &srv.pds_keypair,
-                req.recoveryKey.clone(),
-            );
-            create_op.verify_self()?;
-            let did = create_op.did_plc();
-            let did_doc = create_op.did_doc();
-
-            // register in ATP DB and generate DID doc
-            let recovery_key = req
-                .recoveryKey
-                .unwrap_or(srv.pds_keypair.pubkey().to_did_key());
-            srv.atp_db.create_account(
-                &did,
-                &req.handle,
-                &req.password,
-                &req.email,
-                &recovery_key,
-            )?;
-            srv.atp_db.put_did_doc(&did, &did_doc)?;
-
-            // insert empty MST repository
-            let root_cid = {
-                let empty_map_cid = srv.repo.mst_from_map(&Default::default())?;
-                let meta_cid = srv.repo.write_metadata(&did)?;
-                srv.repo.write_root(meta_cid, None, empty_map_cid)?
-            };
-            let _commit_cid = srv.repo.write_commit(&did, root_cid, "XXX-dummy-sig")?;
-
-            let keypair = srv.pds_keypair.clone();
-            let sess = srv
-                .atp_db
-                .create_session(&req.handle, &req.password, &keypair)?;
+            let sess = create_account(&mut srv, &req, true)?;
             Ok(json!(sess))
         }
         "com.atproto.session.create" => {
@@ -562,7 +612,27 @@ fn xrpc_post_handler(
     }
 }
 
-fn profile_handler(srv: &Mutex<AtpService>, did: &str, _request: &Request) -> Result<String> {
+fn home_profile_handler(srv: &Mutex<AtpService>, request: &Request) -> Result<String> {
+    let host = request.header("Host").unwrap_or("localhost");
+    // XXX
+    let did = Did::from_str(host)?;
+    let mut _srv = srv.lock().expect("service mutex");
+
+    // TODO: get profile (bsky helper)
+    // TODO: get feed (bsky helper)
+
+    Ok(ProfileView {
+        domain: host.to_string(),
+        did: did,
+        profile: json!({}),
+        feed: vec![],
+    }
+    .render()?)
+}
+
+// TODO: did, collection, tid have already been parsed by this point
+fn profile_handler(srv: &Mutex<AtpService>, did: &str, request: &Request) -> Result<String> {
+    let host = request.header("Host").unwrap_or("localhost");
     let did = Did::from_str(did)?;
     let mut _srv = srv.lock().expect("service mutex");
 
@@ -570,7 +640,7 @@ fn profile_handler(srv: &Mutex<AtpService>, did: &str, _request: &Request) -> Re
     // TODO: get feed (bsky helper)
 
     Ok(ProfileView {
-        domain: "domain.todo".to_string(),
+        domain: host.to_string(),
         did: did,
         profile: json!({}),
         feed: vec![],
@@ -583,8 +653,9 @@ fn post_handler(
     did: &str,
     collection: &str,
     tid: &str,
-    _request: &Request,
+    request: &Request,
 ) -> Result<String> {
+    let host = request.header("Host").unwrap_or("localhost");
     let did = Did::from_str(did)?;
     let collection = Nsid::from_str(collection)?;
     let rkey = Tid::from_str(tid)?;
@@ -601,7 +672,7 @@ fn post_handler(
     };
 
     Ok(PostView {
-        domain: "domain.todo".to_string(),
+        domain: host.to_string(),
         did: did,
         collection: collection,
         tid: rkey,
@@ -611,7 +682,8 @@ fn post_handler(
     .render()?)
 }
 
-fn repo_handler(srv: &Mutex<AtpService>, did: &str, _request: &Request) -> Result<String> {
+fn repo_handler(srv: &Mutex<AtpService>, did: &str, request: &Request) -> Result<String> {
+    let host = request.header("Host").unwrap_or("localhost");
     let did = Did::from_str(did)?;
 
     let mut srv = srv.lock().expect("service mutex");
@@ -628,7 +700,7 @@ fn repo_handler(srv: &Mutex<AtpService>, did: &str, _request: &Request) -> Resul
     };
 
     Ok(RepoView {
-        domain: "domain.todo".to_string(),
+        domain: host.to_string(),
         did: did,
         commit: commit,
         describe: desc,
@@ -640,8 +712,9 @@ fn collection_handler(
     srv: &Mutex<AtpService>,
     did: &str,
     collection: &str,
-    _request: &Request,
+    request: &Request,
 ) -> Result<String> {
+    let host = request.header("Host").unwrap_or("localhost");
     let did = Did::from_str(did)?;
     let collection = Nsid::from_str(collection)?;
 
@@ -665,7 +738,7 @@ fn collection_handler(
     }
 
     Ok(CollectionView {
-        domain: "domain.todo".to_string(),
+        domain: host.to_string(),
         did: did,
         collection: collection,
         records: record_list,
@@ -678,8 +751,9 @@ fn record_handler(
     did: &str,
     collection: &str,
     tid: &str,
-    _request: &Request,
+    request: &Request,
 ) -> Result<String> {
+    let host = request.header("Host").unwrap_or("localhost");
     let did = Did::from_str(did)?;
     let collection = Nsid::from_str(collection)?;
     let rkey = Tid::from_str(tid)?;
@@ -695,7 +769,7 @@ fn record_handler(
         Err(e) => Err(e)?,
     };
     Ok(RecordView {
-        domain: "domain.todo".to_string(),
+        domain: host.to_string(),
         did,
         collection,
         tid: rkey,

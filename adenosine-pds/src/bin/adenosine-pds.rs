@@ -1,5 +1,8 @@
+use adenosine_cli::identifiers::Did;
+use adenosine_pds::models::AccountRequest;
 use adenosine_pds::*;
 use anyhow::Result;
+use serde_json::json;
 
 use log::{self, debug};
 use structopt::StructOpt;
@@ -43,10 +46,6 @@ struct Opt {
 enum Command {
     /// Start ATP server as a foreground process
     Serve {
-        /// Localhost port to listen on
-        #[structopt(long, default_value = "3030", env = "ATP_PDS_PORT")]
-        port: u16,
-
         /// Secret key, encoded in hex. Use 'generate-secret' to create a new one
         #[structopt(
             long = "--pds-secret-key",
@@ -55,11 +54,27 @@ enum Command {
         )]
         pds_secret_key: String,
 
+        /// Localhost port to listen on
+        #[structopt(long, default_value = "3030", env = "ATP_PDS_PORT")]
+        port: u16,
+
+        /// A "public URL" for the PDS gets embedded in DID documents. If one is not provided, a
+        /// localhost value will be used, which will not actually work for inter-PDS communication.
+        #[structopt(long = "--public-url", env = "ATP_PDS_PUBLIC_URL")]
+        public_url: Option<String>,
+
+        /// If provided, allow registration for the given base domain name.
         #[structopt(long = "--registration-domain", env = "ATP_PDS_REGISTRATION_DOMAIN")]
         registration_domain: Option<String>,
 
-        #[structopt(long = "--public-url", env = "ATP_PDS_PUBLIC_URL")]
-        public_url: Option<String>,
+        /// Optionally, require an invite code to sign up. This is just a single secret value.
+        #[structopt(long = "--invite-code", env = "ATP_PDS_INVITE_CODE")]
+        invite_code: Option<String>,
+
+        /// Optionally, override domain name check and force the homepage to display this user page
+        /// for this DID
+        #[structopt(long = "--homepage-did", env = "ATP_PDS_HOMEPAGE_DID")]
+        homepage_did: Option<Did>,
     },
 
     /// Helper to import an IPLD CARv1 file in to sqlite data store
@@ -77,6 +92,37 @@ enum Command {
 
     /// Generate a PDS secret key and print to stdout (as hex)
     GenerateSecret,
+
+    /// Create a new account with a did:plc. Bypasses most checks that the API would require for
+    /// account registration.
+    Register {
+        /// Secret key, encoded in hex. Use 'generate-secret' to create a new one
+        #[structopt(
+            long = "--pds-secret-key",
+            env = "ATP_PDS_SECRET_KEY",
+            hide_env_values = true
+        )]
+        pds_secret_key: String,
+
+        #[structopt(long = "--public-url", env = "ATP_PDS_PUBLIC_URL")]
+        public_url: Option<String>,
+
+        #[structopt(long, short)]
+        handle: String,
+
+        #[structopt(long, short)]
+        password: String,
+
+        #[structopt(long, short)]
+        email: String,
+
+        #[structopt(long, short)]
+        recovery_key: Option<String>,
+
+        /// Should we generate a did:plc, instead of using the handle as a did:web?
+        #[structopt(long, short)]
+        did_plc: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -106,6 +152,8 @@ fn main() -> Result<()> {
             pds_secret_key,
             registration_domain,
             public_url,
+            invite_code,
+            homepage_did,
         } => {
             let keypair = KeyPair::from_hex(&pds_secret_key)?;
             // clean up config a bit
@@ -123,6 +171,8 @@ fn main() -> Result<()> {
                 listen_host_port: format!("localhost:{}", port),
                 public_url: public_url,
                 registration_domain: registration_domain,
+                invite_code: invite_code,
+                homepage_did: homepage_did,
             };
             log::info!("PDS config: {:?}", config);
             let srv = AtpService::new(&opt.blockstore_db_path, &opt.atp_db_path, keypair, config)?;
@@ -138,6 +188,31 @@ fn main() -> Result<()> {
         Command::GenerateSecret {} => {
             let keypair = KeyPair::new_random();
             println!("{}", keypair.to_hex());
+            Ok(())
+        }
+        Command::Register {
+            handle,
+            password,
+            email,
+            recovery_key,
+            pds_secret_key,
+            public_url,
+            did_plc,
+        } => {
+            let req = AccountRequest {
+                email: email,
+                handle: handle.clone(),
+                password: password,
+                inviteCode: None,
+                recoveryKey: recovery_key,
+            };
+            let mut config = AtpServiceConfig::default();
+            config.public_url = public_url.unwrap_or(format!("https://{}", handle));
+            let keypair = KeyPair::from_hex(&pds_secret_key)?;
+            let mut srv =
+                AtpService::new(&opt.blockstore_db_path, &opt.atp_db_path, keypair, config)?;
+            let sess = create_account(&mut srv, &req, did_plc)?;
+            println!("{}", json!(sess));
             Ok(())
         }
     }

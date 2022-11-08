@@ -90,45 +90,6 @@ impl CreateOp {
         Did::from_str(&format!("did:plc:{}", &digest_b32[0..24])).unwrap()
     }
 
-    pub fn did_doc(&self) -> serde_json::Value {
-        let did = self.did_plc();
-        // TODO:
-        let user_url = format!("https://{}.test", self.username);
-        let key_type = "EcdsaSecp256r1VerificationKey2019";
-        json!({
-            "@context": [
-                "https://www.w3.org/ns/did/v1",
-                "https://w3id.org/security/suites/ecdsa-2019/v1"
-            ],
-            "id": did.to_string(),
-            "alsoKnownAs": [ user_url ],
-            "verificationMethod": [
-                {
-                "id": format!("{}#signingKey)", did),
-                "type": key_type,
-                "controller": did.to_string(),
-                "publicKeyMultibase": self.signingKey
-                },
-                {
-                "id": format!("{}#recoveryKey)", did),
-                "type": key_type,
-                "controller": did.to_string(),
-                "publicKeyMultibase": self.recoveryKey
-                }
-            ],
-            "assertionMethod": [ format!("{}#signingKey)", did)],
-            "capabilityInvocation": [ format!("{}#signingKey)", did) ],
-            "capabilityDelegation": [ format!("{}#signingKey)", did) ],
-            "service": [
-                {
-                "id": format!("{}#atpPds)", did),
-                "type": "AtpPersonalDataServer",
-                "serviceEndpoint": self.service
-                }
-            ]
-        })
-    }
-
     fn into_unsigned(self) -> UnsignedCreateOp {
         UnsignedCreateOp {
             op_type: self.op_type,
@@ -138,6 +99,18 @@ impl CreateOp {
             username: self.username,
             service: self.service,
         }
+    }
+
+    pub fn did_doc(&self) -> serde_json::Value {
+        let meta = DidDocMeta {
+            did: self.did_plc(),
+            // TODO
+            user_url: format!("https://{}", self.username),
+            service_url: self.service.clone(),
+            recovery_didkey: self.recoveryKey.clone(),
+            signing_didkey: self.signingKey.clone(),
+        };
+        meta.did_doc()
     }
 
     /// This method only makes sense on the "genesis" create object
@@ -151,6 +124,53 @@ impl CreateOp {
         let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, &unsigned)
             .expect("encode DAG-CBOR");
         key.verify_bytes(block.data(), &self.sig)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct DidDocMeta {
+    pub did: Did,
+    pub user_url: String,
+    pub service_url: String,
+    pub recovery_didkey: String,
+    pub signing_didkey: String,
+}
+
+impl DidDocMeta {
+    pub fn did_doc(&self) -> serde_json::Value {
+        let key_type = "EcdsaSecp256r1VerificationKey2019";
+        json!({
+            "@context": [
+                "https://www.w3.org/ns/did/v1",
+                "https://w3id.org/security/suites/ecdsa-2019/v1"
+            ],
+            "id": self.did.to_string(),
+            "alsoKnownAs": [ self.user_url ],
+            "verificationMethod": [
+                {
+                "id": format!("{}#signingKey)", self.did),
+                "type": key_type,
+                "controller": self.did.to_string(),
+                "publicKeyMultibase": self.signing_didkey
+                },
+                {
+                "id": format!("{}#recoveryKey)", self.did),
+                "type": key_type,
+                "controller": self.did.to_string(),
+                "publicKeyMultibase": self.recovery_didkey
+                }
+            ],
+            "assertionMethod": [ format!("{}#signingKey)", self.did)],
+            "capabilityInvocation": [ format!("{}#signingKey)", self.did) ],
+            "capabilityDelegation": [ format!("{}#signingKey)", self.did) ],
+            "service": [
+                {
+                "id": format!("{}#atpPds)", self.did),
+                "type": "AtpPersonalDataServer",
+                "serviceEndpoint": self.service_url
+                }
+            ]
+        })
     }
 }
 
