@@ -105,7 +105,9 @@ fn main() -> Result<()> {
         }
         // TODO: handle alias
         Command::Import { car_path, alias } => {
-            load_car_to_sqlite(&opt.blockstore_db_path, &car_path, &alias)
+            let mut repo = RepoStore::open(&opt.blockstore_db_path)?;
+            repo.import_car_path(&car_path, Some(alias))?;
+            Ok(())
         }
         Command::Inspect {} => mst::dump_mst_keys(&opt.blockstore_db_path),
         Command::GenerateSecret {} => {

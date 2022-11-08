@@ -1,5 +1,6 @@
 use adenosine_cli::identifiers::{Did, Nsid, Tid, TidLord};
 use anyhow::{anyhow, Result};
+use askama::Template;
 use libipld::Cid;
 use libipld::Ipld;
 use log::{debug, error, info, warn};
@@ -10,7 +11,6 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Mutex;
-use askama::Template;
 
 mod car;
 mod crypto;
@@ -23,7 +23,6 @@ mod ucan_p256;
 mod vendored;
 mod web;
 
-pub use car::{load_car_to_blockstore, load_car_to_sqlite};
 pub use crypto::{KeyPair, PubKey};
 pub use db::AtpDatabase;
 pub use models::*;
@@ -90,7 +89,10 @@ fn web_wrap(resp: Result<String>) -> Response {
                 None => 500,
             };
             warn!("HTTP {}: {}", code, msg);
-            Response::html(format!("<html><body><h1>{}</h1><p>{}</body></html>", code, msg))
+            Response::html(format!(
+                "<html><body><h1>{}</h1><p>{}</body></html>",
+                code, msg
+            ))
         }
     }
 }
@@ -521,10 +523,17 @@ fn profile_handler(srv: &Mutex<AtpService>, did: &str, _request: &Request) -> Re
         did: did,
         profile: json!({}),
         feed: vec![],
-    }.render()?)
+    }
+    .render()?)
 }
 
-fn post_handler(srv: &Mutex<AtpService>, did: &str, collection: &str, tid: &str, _request: &Request) -> Result<String> {
+fn post_handler(
+    srv: &Mutex<AtpService>,
+    did: &str,
+    collection: &str,
+    tid: &str,
+    _request: &Request,
+) -> Result<String> {
     let did = Did::from_str(did)?;
     let collection = Nsid::from_str(collection)?;
     let rkey = Tid::from_str(tid)?;
@@ -534,7 +543,8 @@ fn post_handler(srv: &Mutex<AtpService>, did: &str, collection: &str, tid: &str,
         // TODO: format as JSON, not text debug
         Ok(Some(ipld)) => ipld_into_json_value(ipld),
         Ok(None) => Err(anyhow!(XrpcError::NotFound(format!(
-            "could not find record: /{}/{}", collection, rkey
+            "could not find record: /{}/{}",
+            collection, rkey
         ))))?,
         Err(e) => Err(e)?,
     };
@@ -546,7 +556,8 @@ fn post_handler(srv: &Mutex<AtpService>, did: &str, collection: &str, tid: &str,
         tid: rkey,
         post_text: post["text"].as_str().unwrap().to_string(), // TODO: unwrap
         post_created_at: "some-time".to_string(),
-    }.render()?)
+    }
+    .render()?)
 }
 
 fn repo_handler(srv: &Mutex<AtpService>, did: &str, _request: &Request) -> Result<String> {
@@ -570,10 +581,16 @@ fn repo_handler(srv: &Mutex<AtpService>, did: &str, _request: &Request) -> Resul
         did: did,
         commit: commit,
         describe: desc,
-    }.render()?)
+    }
+    .render()?)
 }
 
-fn collection_handler(srv: &Mutex<AtpService>, did: &str, collection: &str, _request: &Request) -> Result<String> {
+fn collection_handler(
+    srv: &Mutex<AtpService>,
+    did: &str,
+    collection: &str,
+    _request: &Request,
+) -> Result<String> {
     let did = Did::from_str(did)?;
     let collection = Nsid::from_str(collection)?;
 
@@ -601,11 +618,17 @@ fn collection_handler(srv: &Mutex<AtpService>, did: &str, collection: &str, _req
         did: did,
         collection: collection,
         records: record_list,
-    }.render()?)
+    }
+    .render()?)
 }
 
-fn record_handler(srv: &Mutex<AtpService>, did: &str, collection: &str, tid: &str, _request: &Request) -> Result<String> {
-
+fn record_handler(
+    srv: &Mutex<AtpService>,
+    did: &str,
+    collection: &str,
+    tid: &str,
+    _request: &Request,
+) -> Result<String> {
     let did = Did::from_str(did)?;
     let collection = Nsid::from_str(collection)?;
     let rkey = Tid::from_str(tid)?;
@@ -626,5 +649,6 @@ fn record_handler(srv: &Mutex<AtpService>, did: &str, collection: &str, tid: &st
         collection,
         tid: rkey,
         record,
-    }.render()?)
+    }
+    .render()?)
 }

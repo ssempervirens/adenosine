@@ -1,5 +1,8 @@
+use crate::car::{
+    load_car_bytes_to_blockstore, load_car_path_to_blockstore, read_car_bytes_from_blockstore,
+};
 use crate::mst::{collect_mst_keys, generate_mst, CommitNode, MetadataNode, RootNode};
-use crate::{load_car_to_blockstore, KeyPair};
+use crate::KeyPair;
 use adenosine_cli::identifiers::{Did, Nsid, Tid};
 use anyhow::{anyhow, ensure, Context, Result};
 use ipfs_sqlite_block_store::BlockStore;
@@ -18,6 +21,7 @@ use std::str::FromStr;
 pub struct RepoCommit {
     pub sig: Box<[u8]>,
     pub commit_cid: Cid,
+    pub root_cid: Cid,
     pub did: Did,
     pub prev: Option<Cid>,
     pub meta_cid: Cid,
@@ -130,6 +134,7 @@ impl RepoStore {
         Ok(RepoCommit {
             sig: commit_node.sig,
             commit_cid: commit_cid.clone(),
+            root_cid: commit_node.root.clone(),
             meta_cid: root_node.meta,
             did: Did::from_str(&metadata_node.did)?,
             prev: root_node.prev,
@@ -259,22 +264,73 @@ impl RepoStore {
         self.write_commit(&did, new_root_cid, &sig)
     }
 
-    /// returns the root commit from CAR file
-    pub fn load_car(&mut self, car_path: &PathBuf, alias: &str) -> Result<Cid> {
-        let cid = load_car_to_blockstore(&mut self.db, car_path, alias)?;
+    /// Reads in a full MST tree starting at a repo commit, then re-builds and re-writes the tree
+    /// in to the repo, and verifies that both the MST root CIDs and the repo root CIDs are identical.
+    pub fn verify_repo_mst(&mut self, commit_cid: &Cid) -> Result<()> {
+        // load existing commit and MST tree
+        let existing_commit = self.get_commit(commit_cid)?;
+        let repo_map = self.mst_to_map(&existing_commit.mst_cid)?;
+
+        // write MST tree, and verify root CID
+        let new_mst_cid = self.mst_from_map(&repo_map)?;
+        if new_mst_cid != existing_commit.mst_cid {
+            Err(anyhow!(
+                "MST root CID did not verify: {} != {}",
+                existing_commit.mst_cid,
+                new_mst_cid
+            ))?;
+        }
+
+        let new_root_cid =
+            self.write_root(existing_commit.meta_cid, existing_commit.prev, new_mst_cid)?;
+        if new_root_cid != existing_commit.root_cid {
+            Err(anyhow!(
+                "repo root CID did not verify: {} != {}",
+                existing_commit.root_cid,
+                new_root_cid
+            ))?;
+        }
+
+        Ok(())
+    }
+
+    /// Import blocks from a CAR file in memory, optionally setting an alias pointing to the input
+    /// (eg, a DID identifier).
+    ///
+    /// Does not currently do any validation of, eg, signatures. It is naive and incomplete to use
+    /// this to simply import CAR content from users, remote servers, etc.
+    ///
+    /// Returns the root commit from the CAR file, which may or may not actually be a "commit"
+    /// block.
+    pub fn import_car_bytes(&mut self, car_bytes: &[u8], alias: Option<String>) -> Result<Cid> {
+        let cid = load_car_bytes_to_blockstore(&mut self.db, car_bytes)?;
+        self.verify_repo_mst(&cid)?;
+        if let Some(alias) = alias {
+            self.db.alias(alias.as_bytes().to_vec(), Some(&cid))?;
+        }
+        Ok(cid)
+    }
+
+    /// Similar to import_car_bytes(), but reads from a local file on disk instead of from memory.
+    pub fn import_car_path(&mut self, car_path: &PathBuf, alias: Option<String>) -> Result<Cid> {
+        let cid = load_car_path_to_blockstore(&mut self.db, car_path)?;
+        self.verify_repo_mst(&cid)?;
+        if let Some(alias) = alias {
+            self.db.alias(alias.as_bytes().to_vec(), Some(&cid))?;
+        }
         Ok(cid)
     }
 
     /// Exports in CAR format to a Writer
     ///
     /// The "from" commit CID feature is not implemented.
-    pub fn write_car<W: std::io::Write>(
+    pub fn export_car(
         &mut self,
-        _did: &Did,
+        commit_cid: &Cid,
         _from_commit_cid: Option<&Cid>,
-        _out: &mut W,
-    ) -> Result<()> {
-        unimplemented!()
+    ) -> Result<Vec<u8>> {
+        // TODO: from_commit_cid
+        read_car_bytes_from_blockstore(&mut self.db, &commit_cid)
     }
 }
 

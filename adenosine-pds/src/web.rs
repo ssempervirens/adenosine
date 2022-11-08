@@ -1,9 +1,8 @@
-
-use adenosine_cli::identifiers::{Did, Nsid, Tid};
-use serde_json;
-use askama::Template;
-use crate::repo::RepoCommit;
 use crate::models::*;
+use crate::repo::RepoCommit;
+use adenosine_cli::identifiers::{Did, Nsid, Tid};
+use askama::Template;
+use serde_json;
 
 #[derive(Template)]
 #[template(path = "home.html")]

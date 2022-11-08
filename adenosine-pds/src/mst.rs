@@ -1,4 +1,3 @@
-use crate::load_car_to_blockstore;
 use anyhow::{anyhow, Context, Result};
 use ipfs_sqlite_block_store::BlockStore;
 use libipld::cbor::DagCborCodec;
@@ -296,51 +295,4 @@ fn serialize_wip_tree(
     let cid = *block.cid();
     db.put_block(block, None)?;
     Ok(cid)
-}
-
-pub fn repro_mst(car_path: &PathBuf) -> Result<()> {
-    // open a temp block store
-    let mut db: BlockStore<libipld::DefaultParams> =
-        { BlockStore::open_path(ipfs_sqlite_block_store::DbPath::Memory, Default::default())? };
-
-    // load CAR contents from file
-    load_car_to_blockstore(&mut db, car_path, "repro-import")?;
-
-    let all_aliases: Vec<(Vec<u8>, Cid)> = db.aliases()?;
-    if all_aliases.is_empty() {
-        error!("expected at least one alias in block store");
-        std::process::exit(-1);
-    }
-    let (_alias, commit_cid) = all_aliases[0].clone();
-
-    let commit_node: CommitNode = DagCborCodec.decode(
-        &db.get_block(&commit_cid)?
-            .ok_or(anyhow!("expected commit block in store"))?,
-    )?;
-    let root_node: RootNode = DagCborCodec.decode(
-        &db.get_block(&commit_node.root)?
-            .ok_or(anyhow!("expected root block in store"))?,
-    )?;
-    let _metadata_node: MetadataNode = DagCborCodec.decode(
-        &db.get_block(&root_node.meta)?
-            .ok_or(anyhow!("expected metadata block in store"))?,
-    )?;
-
-    // collect key/value sorted map of string/cid, as BTree
-    let mut repo_map: BTreeMap<String, Cid> = BTreeMap::new();
-    collect_mst_keys(&mut db, &root_node.data, &mut repo_map)?;
-
-    // now re-generate nodes
-    let updated = generate_mst(&mut db, &repo_map)?;
-
-    info!("original root: {}", root_node.data);
-    info!("regenerated  : {}", updated);
-    if root_node.data == updated {
-        Ok(())
-    } else {
-        println!("FAILED");
-        let a = get_mst_node(&mut db, &root_node.data)?;
-        let b = get_mst_node(&mut db, &updated)?;
-        Err(anyhow!("FAILED to reproduce MST: {:?} != {:?}", a, b))
-    }
 }
