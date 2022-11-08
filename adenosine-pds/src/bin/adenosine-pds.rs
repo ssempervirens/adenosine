@@ -54,6 +54,12 @@ enum Command {
             hide_env_values = true
         )]
         pds_secret_key: String,
+
+        #[structopt(long = "--registration-domain", env = "ATP_PDS_REGISTRATION_DOMAIN")]
+        registration_domain: Option<String>,
+
+        #[structopt(long = "--public-url", env = "ATP_PDS_PUBLIC_URL")]
+        public_url: Option<String>,
     },
 
     /// Helper to import an IPLD CARv1 file in to sqlite data store
@@ -98,10 +104,29 @@ fn main() -> Result<()> {
         Command::Serve {
             port,
             pds_secret_key,
+            registration_domain,
+            public_url,
         } => {
-            // TODO: log some config stuff?
             let keypair = KeyPair::from_hex(&pds_secret_key)?;
-            run_server(port, &opt.blockstore_db_path, &opt.atp_db_path, keypair)
+            // clean up config a bit
+            let registration_domain = match registration_domain {
+                None => None,
+                Some(v) if v.is_empty() => None,
+                Some(v) => Some(v),
+            };
+            let public_url = match public_url {
+                None => format!("http://localhost:{}", port),
+                Some(v) if v.is_empty() => format!("http://localhost:{}", port),
+                Some(v) => v,
+            };
+            let config = AtpServiceConfig {
+                listen_host_port: format!("localhost:{}", port),
+                public_url: public_url,
+                registration_domain: registration_domain,
+            };
+            log::info!("PDS config: {:?}", config);
+            let srv = AtpService::new(&opt.blockstore_db_path, &opt.atp_db_path, keypair, config)?;
+            srv.run_server()
         }
         // TODO: handle alias
         Command::Import { car_path, alias } => {
