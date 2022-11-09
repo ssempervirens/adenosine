@@ -31,6 +31,7 @@ dependencies = [
  "serde_json",
  "structopt",
  "termcolor",
+ "time",
 ]
 
 [[package]]
@@ -66,6 +67,7 @@ dependencies = [
  "sha256",
  "structopt",
  "thiserror",
+ "time",
  "tokio",
  "ucan",
 ]
@@ -3072,6 +3074,7 @@ version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fab5c8b9980850e06d92ddbe3ab839c062c801f3927c0fb8abd6fc8e918fbca"
 dependencies = [
+ "itoa",
  "libc",
  "num_threads",
  "serde",
