@@ -33,19 +33,22 @@ CREATE TABLE bsky_post(
     tid                 TEXT NOT NULL,
     cid                 TEXT NOT NULL,
     record_json         TEXT NOT NULL,
-    reply_root_uri      TEXT,
+    reply_to_parent_uri    TEXT,
+    reply_to_root_uri      TEXT,
     created_at          TIMESTAMP WITH TIME ZONE  NOT NULL,
     indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( DATETIME('now') ),
     PRIMARY KEY(did, tid)
 );
-CREATE INDEX bsky_post_reply_root_uri_idx on bsky_post(reply_root_uri);
+CREATE INDEX bsky_post_reply_to_parent_uri_idx on bsky_post(reply_to_parent_uri);
+CREATE INDEX bsky_post_reply_to_root_uri_idx on bsky_post(reply_to_root_uri);
 
 CREATE TABLE bsky_ref(
     ref_type            TEXT NOT NULL,
     did                 TEXT NOT NULL,
     tid                 TEXT NOT NULL,
     subject_uri         TEXT NOT NULL,
-    subject_cid         TEXT NOT NULL,
+    -- TODO: NOT NULL on subject_cid
+    subject_cid         TEXT,
     created_at          TIMESTAMP WITH TIME ZONE  NOT NULL,
     indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( DATETIME('now') ),
     PRIMARY KEY(ref_type, did, tid)
@@ -56,7 +59,8 @@ CREATE TABLE bsky_follow(
     did                 TEXT NOT NULL,
     tid                 TEXT NOT NULL,
     subject_did         TEXT NOT NULL,
-    subject_cid         TEXT NOT NULL,
+    -- TODO: NOT NULL on subject_cid
+    subject_cid         TEXT,
     created_at          TIMESTAMP WITH TIME ZONE  NOT NULL,
     indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( DATETIME('now') ),
     PRIMARY KEY(did, tid)
@@ -68,7 +72,8 @@ CREATE TABLE bsky_notification(
     pk                  INTEGER PRIMARY KEY AUTOINCREMENT,
     user_did            TEXT NOT NULL,
     subject_uri         TEXT NOT NULL,
-    subject_cid         TEXT NOT NULL,
+    -- TODO: NOT NULL on subject_cid
+    subject_cid         TEXT,
     reason              TEXT NOT NULL,
     seen_at             TIMESTAMP WITH TIME ZONE,
     indexed_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT ( DATETIME('now') )

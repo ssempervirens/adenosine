@@ -59,7 +59,8 @@ pub struct RepoBatchWrite {
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct Subject {
     pub uri: String,
-    pub cid: String,
+    // TODO: CID is required
+    pub cid: Option<String>,
 }
 
 /// Generic over Re-post and Like
@@ -122,7 +123,8 @@ pub struct User {
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct FeedItem {
     pub uri: String,
-    pub cid: String,
+    // TODO: cid is required
+    pub cid: Option<String>,
     pub author: User,
     pub repostedBy: Option<User>,
     pub record: Value,
@@ -139,7 +141,15 @@ pub struct FeedItem {
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct Post {
     pub text: String,
+    pub reply: Option<PostReply>,
     pub createdAt: Option<String>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct PostReply {
+    pub parent: Subject,
+    pub root: Subject,
 }
 
 #[allow(non_snake_case)]
@@ -152,7 +162,8 @@ pub struct PostThread {
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct ThreadItem {
     pub uri: String,
-    pub cid: String,
+    // TODO: CID is required
+    pub cid: Option<String>,
     pub author: User,
     pub record: Value,
     //pub embed?: RecordEmbed | ExternalEmbed | UnknownEmbed,

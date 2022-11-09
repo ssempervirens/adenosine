@@ -138,6 +138,16 @@ impl AtpService {
         })
     }
 
+    pub fn new_ephemeral() -> Result<Self> {
+        Ok(AtpService {
+            repo: RepoStore::open_ephemeral()?,
+            atp_db: AtpDatabase::open_ephemeral()?,
+            pds_keypair: KeyPair::new_random(),
+            tid_gen: TidLord::new(),
+            config: AtpServiceConfig::default(),
+        })
+    }
+
     pub fn run_server(self) -> Result<()> {
         let config = self.config.clone();
         let srv = Mutex::new(self);
@@ -389,6 +399,29 @@ fn xrpc_get_handler(
             };
             Ok(json!(desc))
         }
+        // =========== app.bsky methods
+        "app.bsky.actor.getProfile" => {
+            // TODO did or handle
+            let did = Did::from_str(&xrpc_required_param(request, "user")?)?;
+            let mut srv = srv.lock().unwrap();
+            Ok(json!(bsky_get_profile(&mut srv, &did)?))
+        }
+        "app.bsky.feed.getAuthorFeed" => {
+            // TODO did or handle
+            let did = Did::from_str(&xrpc_required_param(request, "author")?)?;
+            let mut srv = srv.lock().unwrap();
+            Ok(json!(bsky_get_author_feed(&mut srv, &did)?))
+        }
+        "app.bsky.feed.getTimeline" => {
+            let mut srv = srv.lock().unwrap();
+            let auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
+            Ok(json!(bsky_get_timeline(&mut srv, &auth_did)?))
+        }
+        "app.bsky.feed.getPostThread" => {
+            let uri = AtUri::from_str(&xrpc_required_param(request, "uri")?)?;
+            let mut srv = srv.lock().unwrap();
+            Ok(json!(bsky_get_thread(&mut srv, &uri, None)?))
+        }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
             "XRPC endpoint handler not found: {}",
             method
@@ -609,34 +642,12 @@ fn xrpc_post_handler(
             Ok(json!({}))
         }
         // =========== app.bsky methods
-        "app.bsky.actor.getProfile" => {
-            // TODO did or handle
-            let did = Did::from_str(&xrpc_required_param(request, "user")?)?;
-            let mut srv = srv.lock().unwrap();
-            Ok(json!(bsky_get_profile(&mut srv, &did)?))
-        }
         "app.bsky.actor.updateProfile" => {
             let profile: ProfileRecord = rouille::input::json_input(request)?;
             let mut srv = srv.lock().unwrap();
             let auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
             bsky_update_profile(&mut srv, &auth_did, profile)?;
             Ok(json!({}))
-        }
-        "app.bsky.feed.getAuthorFeed" => {
-            // TODO did or handle
-            let did = Did::from_str(&xrpc_required_param(request, "author")?)?;
-            let mut srv = srv.lock().unwrap();
-            Ok(json!(bsky_get_author_feed(&mut srv, &did)?))
-        }
-        "app.bsky.feed.getTimeline" => {
-            let mut srv = srv.lock().unwrap();
-            let auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
-            Ok(json!(bsky_get_timeline(&mut srv, &auth_did)?))
-        }
-        "app.bsky.feed.getPostThread" => {
-            let uri = AtUri::from_str(&xrpc_required_param(request, "uri")?)?;
-            let mut srv = srv.lock().unwrap();
-            Ok(json!(bsky_get_thread(&mut srv, &uri, None)?))
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
             "XRPC endpoint handler not found: {}",
@@ -809,4 +820,11 @@ fn record_handler(
         record,
     }
     .render()?)
+}
+
+/// Helper to generate the current timestamp as right now, UTC, formatted as a string
+pub fn created_at_now() -> String {
+    let now = time::OffsetDateTime::now_utc();
+    now.format(&time::format_description::well_known::Rfc3339)
+        .unwrap()
 }

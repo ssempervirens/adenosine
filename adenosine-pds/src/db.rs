@@ -1,6 +1,6 @@
 use crate::models::{FollowRecord, Post, RefRecord};
 /// ATP database (as distinct from blockstore)
-use crate::{ipld_into_json_value, AtpSession, Did, KeyPair, Tid};
+use crate::{created_at_now, ipld_into_json_value, AtpSession, Did, KeyPair, Tid};
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use libipld::cbor::DagCborCodec;
@@ -167,15 +167,21 @@ impl AtpDatabase {
             let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, &val)?;
             let cid = *block.cid();
             let post: Post = serde_json::from_value(ipld_into_json_value(val))?;
+            let (reply_to_parent_uri, reply_to_root_uri) = match post.reply {
+                Some(ref reply) => (Some(reply.parent.uri.clone()), Some(reply.root.uri.clone())),
+                None => (None, None),
+            };
             let mut stmt = self
                 .conn
-                .prepare_cached("INSERT INTO bsky_post (did, tid, cid, record_json, created_at) VALUES (?1, ?2, ?3, ?4, ?5)")?;
+                .prepare_cached("INSERT INTO bsky_post (did, tid, cid, reply_to_parent_uri, reply_to_root_uri, record_json, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)")?;
             stmt.execute(params!(
                 did.to_string(),
                 tid.to_string(),
                 cid.to_string(),
+                reply_to_parent_uri,
+                reply_to_root_uri,
                 serde_json::to_string(&post)?,
-                post.createdAt
+                post.createdAt.unwrap_or_else(|| created_at_now())
             ))?;
         } else {
             let mut stmt = self
