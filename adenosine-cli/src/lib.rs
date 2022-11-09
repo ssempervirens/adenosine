@@ -315,3 +315,10 @@ pub fn value_from_fields(fields: Vec<ArgField>) -> Value {
     }
     Value::Object(serde_json::map::Map::from_iter(map.into_iter()))
 }
+
+/// Helper to generate the current timestamp as right now, UTC, formatted as a string
+pub fn created_at_now() -> String {
+    let now = time::OffsetDateTime::now_utc();
+    now.format(&time::format_description::well_known::Rfc3339)
+        .unwrap()
+}

@@ -25,6 +25,7 @@ lazy_static = "*"
 dotenv = "*"
 data-encoding = "*"
 rand = "*"
+time = { version = "*", features = ["formatting"] }
 
 # uncertain about these...
 anyhow = "1.0"

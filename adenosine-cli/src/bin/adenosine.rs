@@ -117,8 +117,10 @@ enum RepoCommand {
 
 #[derive(StructOpt)]
 enum BskyCommand {
-    /// Fetch the home feed, or account feed for a specific user
+    /// Fetch the account feed for a specific user (or self, by default)
     Feed { name: Option<DidOrHost> },
+    /// Fetch timeline for currently logged-in account
+    Timeline,
     /// Fetch notification feed
     Notifications,
     /// Create a new 'post' record
@@ -127,9 +129,9 @@ enum BskyCommand {
     Repost { uri: AtUri },
     /// Create a 'like' record for the target by AT URI
     Like { uri: AtUri },
-    // TODO: Repost { uri: String, },
     /// Create a 'follow' record for the target by AT URI
     Follow { uri: DidOrHost },
+    // TODO: Unlike { uri: String, },
     // TODO: Unfollow { uri: String, },
     /* TODO:
     Follows {
@@ -302,7 +304,6 @@ fn run(opt: Opt) -> Result<()> {
             xrpc_client.get(&Nsid::from_str("com.atproto.repo.describe")?, Some(params))?
         }
         Command::Resolve { name } => {
-            let mut params: HashMap<String, String> = HashMap::new();
             params.insert("name".to_string(), name.to_string());
             xrpc_client.get(&Nsid::from_str("com.atproto.handle.resolve")?, Some(params))?
         }
@@ -319,7 +320,7 @@ fn run(opt: Opt) -> Result<()> {
             if let Some(c) = cid {
                 params.insert("cid".to_string(), c);
             }
-            xrpc_client.get(&Nsid::from_str("com.atproto.repoGetRecord")?, Some(params))?
+            xrpc_client.get(&Nsid::from_str("com.atproto.repo.getRecord")?, Some(params))?
         }
         Command::Ls { uri } => {
             // TODO: option to print fully-qualified path?
@@ -345,7 +346,7 @@ fn run(opt: Opt) -> Result<()> {
                 params.insert("collection".to_string(), uri.collection.unwrap());
                 let records = xrpc_client
                     .get(
-                        &Nsid::from_str("com.atproto.repoListRecords")?,
+                        &Nsid::from_str("com.atproto.repo.listRecords")?,
                         Some(params),
                     )?
                     .ok_or(anyhow!("expected a repoListRecords response"))?;
@@ -515,19 +516,22 @@ fn run(opt: Opt) -> Result<()> {
         Command::Bsky {
             cmd: BskyCommand::Feed { name },
         } => {
-            if let Some(name) = name {
-                params.insert("author".to_string(), name.to_string());
-                xrpc_client.get(
-                    &Nsid::from_str("app.bsky.feed.getAuthorFeed")?,
-                    Some(params),
-                )?
-            } else {
-                xrpc_client.get(&Nsid::from_str("app.bsky.feed.getTimeline")?, None)?
-            }
+            // TODO: not expect here
+            let name = name
+                .map(|v| v.to_string())
+                .unwrap_or(jwt_did.expect("feed name or logged in"));
+            params.insert("author".to_string(), name.to_string());
+            xrpc_client.get(
+                &Nsid::from_str("app.bsky.feed.getAuthorFeed")?,
+                Some(params),
+            )?
         }
         Command::Bsky {
+            cmd: BskyCommand::Timeline,
+        } => xrpc_client.get(&Nsid::from_str("app.bsky.feed.getTimeline")?, None)?,
+        Command::Bsky {
             cmd: BskyCommand::Notifications,
-        } => xrpc_client.get(&Nsid::from_str("app.bsky.getNotifications")?, None)?,
+        } => xrpc_client.get(&Nsid::from_str("app.bsky.notifications.get")?, None)?,
         Command::Bsky {
             cmd: BskyCommand::Post { text },
         } => {
@@ -557,7 +561,7 @@ fn run(opt: Opt) -> Result<()> {
                 Some(params),
                 Some(json!({
                     "subject": uri.to_string(),
-                    // TODO: "createdAt": now_timestamp(),
+                    "createdAt": created_at_now(),
                 })),
             )?
         }
@@ -573,8 +577,8 @@ fn run(opt: Opt) -> Result<()> {
                 &Nsid::from_str("com.atproto.repo.createRecord")?,
                 Some(params),
                 Some(json!({
-                    "subject": uri.to_string(),
-                    // TODO: "createdAt": now_timestamp(),
+                    "subject": { "uri": uri.to_string(), "cid": "TODO" },
+                    "createdAt": created_at_now(),
                 })),
             )?
         }
@@ -593,8 +597,8 @@ fn run(opt: Opt) -> Result<()> {
                 &Nsid::from_str("com.atproto.repo.createRecord")?,
                 Some(params),
                 Some(json!({
-                    "subject": uri.to_string(),
-                    // TODO: "createdAt": now_timestamp(),
+                    "subject": { "did": uri.to_string() },
+                    "createdAt": created_at_now(),
                 })),
             )?
         }
