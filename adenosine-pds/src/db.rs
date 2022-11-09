@@ -138,6 +138,32 @@ impl AtpDatabase {
         Ok(did_maybe.map(|v| Did::from_str(&v).expect("valid DID in database")))
     }
 
+    /// Looks up local account handle associated with a DID
+    ///
+    /// TODO: remote lookups, and/or local cache of external DIDs
+    pub fn resolve_did(&mut self, did: &Did) -> Result<Option<String>> {
+        let mut stmt = self
+            .conn
+            .prepare_cached("SELECT handle FROM account WHERE did = $1")?;
+        let handle_maybe: Option<String> = stmt
+            .query_row(params!(did.to_string()), |row| row.get(0))
+            .optional()?;
+        Ok(handle_maybe)
+    }
+
+    /// Looks up local DID associated with handle
+    ///
+    /// TODO: remote lookups, and/or local cache of external DIDs
+    pub fn resolve_handle(&mut self, handle: &str) -> Result<Option<Did>> {
+        let mut stmt = self
+            .conn
+            .prepare_cached("SELECT did FROM account WHERE handle = $1")?;
+        let did_maybe: Option<String> = stmt
+            .query_row(params!(handle), |row| row.get(0))
+            .optional()?;
+        Ok(did_maybe.map(|v| Did::from_str(&v).expect("valid DID in database")))
+    }
+
     pub fn delete_session(&mut self, jwt: &str) -> Result<bool> {
         let mut stmt = self
             .conn

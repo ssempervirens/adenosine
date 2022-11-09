@@ -383,21 +383,25 @@ fn xrpc_get_handler(
             }
             Ok(json!({ "records": record_list }))
         }
-        "com.atproto.repo.describe" => {
-            let did = Did::from_str(&xrpc_required_param(request, "user")?)?;
-            // TODO: resolve handle?
-            let handle = did.to_string();
+        "com.atproto.session.get" => {
             let mut srv = srv.lock().expect("service mutex");
-            let did_doc = srv.atp_db.get_did_doc(&did)?;
-            let collections: Vec<String> = srv.repo.collections(&did)?;
-            let desc = RepoDescribe {
-                name: handle,
-                did: did.to_string(),
-                didDoc: did_doc,
-                collections: collections,
-                nameIsCorrect: true,
-            };
-            Ok(json!(desc))
+            let auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
+            let handle = srv
+                .atp_db
+                .resolve_did(auth_did)?
+                .expect("registered account has handle");
+            Ok(json!({"did": auth_did.to_string(), "handle": handle}))
+        }
+        "com.atproto.handle.resolve" => {
+            let handle = xrpc_required_param(request, "handle")?;
+            let mut srv = srv.lock().expect("service mutex");
+            match srv.atp_db.resolve_handle(&handle)? {
+                Some(did) => Ok(json!({"did": did.to_string()})),
+                None => Err(XrpcError::NotFound(format!(
+                    "could not resolve handle internally: {}",
+                    handle
+                )))?,
+            }
         }
         // =========== app.bsky methods
         "app.bsky.actor.getProfile" => {
