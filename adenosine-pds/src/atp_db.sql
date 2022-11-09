@@ -40,33 +40,26 @@ CREATE TABLE bsky_post(
 );
 CREATE INDEX bsky_post_reply_root_uri_idx on bsky_post(reply_root_uri);
 
-CREATE TABLE bsky_repost(
+CREATE TABLE bsky_ref(
+    ref_type            TEXT NOT NULL,
     did                 TEXT NOT NULL,
+    tid                 TEXT NOT NULL,
     subject_uri         TEXT NOT NULL,
-    cid                 TEXT NOT NULL,
+    subject_cid         TEXT NOT NULL,
     created_at          TIMESTAMP WITH TIME ZONE  NOT NULL,
     indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( DATETIME('now') ),
-    PRIMARY KEY(did, subject_uri)
+    PRIMARY KEY(ref_type, did, tid)
 );
-CREATE INDEX bsky_repost_subject_uri_idx on bsky_repost(subject_uri);
-
-CREATE TABLE bsky_like(
-    did                 TEXT NOT NULL,
-    subject_uri         TEXT NOT NULL,
-    cid                 TEXT NOT NULL,
-    created_at          TIMESTAMP WITH TIME ZONE  NOT NULL,
-    indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( DATETIME('now') ),
-    PRIMARY KEY(did, subject_uri)
-);
-CREATE INDEX bsky_like_subject_uri_idx on bsky_like(subject_uri);
+CREATE INDEX bsky_ref_subject_uri_idx on bsky_ref(subject_uri);
 
 CREATE TABLE bsky_follow(
     did                 TEXT NOT NULL,
+    tid                 TEXT NOT NULL,
     subject_did         TEXT NOT NULL,
-    cid                 TEXT NOT NULL,
+    subject_cid         TEXT NOT NULL,
     created_at          TIMESTAMP WITH TIME ZONE  NOT NULL,
     indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( DATETIME('now') ),
-    PRIMARY KEY(did, subject_did)
+    PRIMARY KEY(did, tid)
 );
 CREATE INDEX bsky_follow_subject_did_idx on bsky_follow(subject_did);
 

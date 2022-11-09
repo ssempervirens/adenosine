@@ -1,4 +1,4 @@
-use adenosine_cli::identifiers::{Did, Nsid, Tid, TidLord};
+use adenosine_cli::identifiers::{AtUri, Did, Nsid, Tid, TidLord};
 use anyhow::{anyhow, Result};
 use askama::Template;
 use libipld::Cid;
@@ -13,6 +13,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Mutex;
 
+mod bsky;
 mod car;
 mod crypto;
 mod db;
@@ -24,6 +25,7 @@ mod ucan_p256;
 mod vendored;
 mod web;
 
+use bsky::*;
 pub use crypto::{KeyPair, PubKey};
 pub use db::AtpDatabase;
 pub use did::DidDocMeta;
@@ -359,7 +361,7 @@ fn xrpc_get_handler(
             let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
             let prefix = format!("/{}/", collection);
             for (mst_key, cid) in full_map.iter() {
-                debug!("{}", mst_key);
+                //debug!("{}", mst_key);
                 if mst_key.starts_with(&prefix) {
                     let record = srv.repo.get_ipld(cid)?;
                     record_list.push(json!({
@@ -541,7 +543,7 @@ fn xrpc_post_handler(
             }
             let keypair = srv.pds_keypair.clone();
             srv.repo.mutate_repo(&did, &mutations, &keypair)?;
-            // TODO: next handle updates to database
+            bsky_mutate_db(&mut srv.atp_db, &did, mutations)?;
             Ok(json!({}))
         }
         "com.atproto.repo.createRecord" => {
@@ -558,7 +560,7 @@ fn xrpc_post_handler(
             )];
             let keypair = srv.pds_keypair.clone();
             srv.repo.mutate_repo(&did, &mutations, &keypair)?;
-            // TODO: next handle updates to database
+            bsky_mutate_db(&mut srv.atp_db, &did, mutations)?;
             Ok(json!({}))
         }
         "com.atproto.repo.putRecord" => {
@@ -577,7 +579,7 @@ fn xrpc_post_handler(
             )];
             let keypair = srv.pds_keypair.clone();
             srv.repo.mutate_repo(&did, &mutations, &keypair)?;
-            // TODO: next handle updates to database
+            bsky_mutate_db(&mut srv.atp_db, &did, mutations)?;
             Ok(json!({}))
         }
         "com.atproto.repo.deleteRecord" => {
@@ -590,7 +592,7 @@ fn xrpc_post_handler(
             let mutations: Vec<Mutation> = vec![Mutation::Delete(collection, tid)];
             let keypair = srv.pds_keypair.clone();
             srv.repo.mutate_repo(&did, &mutations, &keypair)?;
-            // TODO: next handle updates to database
+            bsky_mutate_db(&mut srv.atp_db, &did, mutations)?;
             Ok(json!({}))
         }
         "com.atproto.sync.updateRepo" => {
@@ -603,7 +605,38 @@ fn xrpc_post_handler(
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
             srv.repo
                 .import_car_bytes(&car_bytes, Some(did.to_string()))?;
+            // TODO: need to update atp_db
             Ok(json!({}))
+        }
+        // =========== app.bsky methods
+        "app.bsky.actor.getProfile" => {
+            // TODO did or handle
+            let did = Did::from_str(&xrpc_required_param(request, "user")?)?;
+            let mut srv = srv.lock().unwrap();
+            Ok(json!(bsky_get_profile(&mut srv, &did)?))
+        }
+        "app.bsky.actor.updateProfile" => {
+            let profile: ProfileRecord = rouille::input::json_input(request)?;
+            let mut srv = srv.lock().unwrap();
+            let auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
+            bsky_update_profile(&mut srv, &auth_did, profile)?;
+            Ok(json!({}))
+        }
+        "app.bsky.feed.getAuthorFeed" => {
+            // TODO did or handle
+            let did = Did::from_str(&xrpc_required_param(request, "author")?)?;
+            let mut srv = srv.lock().unwrap();
+            Ok(json!(bsky_get_author_feed(&mut srv, &did)?))
+        }
+        "app.bsky.feed.getTimeline" => {
+            let mut srv = srv.lock().unwrap();
+            let auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
+            Ok(json!(bsky_get_timeline(&mut srv, &auth_did)?))
+        }
+        "app.bsky.feed.getPostThread" => {
+            let uri = AtUri::from_str(&xrpc_required_param(request, "uri")?)?;
+            let mut srv = srv.lock().unwrap();
+            Ok(json!(bsky_get_thread(&mut srv, &uri, None)?))
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
             "XRPC endpoint handler not found: {}",
