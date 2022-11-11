@@ -422,6 +422,21 @@ fn xrpc_get_handler(
                 )))?,
             }
         }
+        "com.atproto.repo.describe" => {
+            let did = Did::from_str(&xrpc_required_param(request, "user")?)?;
+
+            let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
+            let did_doc = srv.atp_db.get_did_doc(&did)?;
+            let collections: Vec<String> = srv.repo.collections(&did)?;
+            let desc = RepoDescribe {
+                name: did.to_string(), // TODO: handle?
+                did: did.to_string(),
+                didDoc: did_doc,
+                collections: collections,
+                nameIsCorrect: true,
+            };
+            Ok(json!(desc))
+        }
         // =========== app.bsky methods
         "app.bsky.actor.getProfile" => {
             // TODO did or handle
@@ -453,8 +468,9 @@ fn xrpc_get_handler(
 }
 
 fn xrpc_get_repo_handler(srv: &Mutex<AtpService>, request: &Request) -> Result<Vec<u8>> {
-    let did = Did::from_str(&xrpc_required_param(request, "user")?)?;
+    let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
     let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
+    // TODO: don't unwrap here
     let commit_cid = srv.repo.lookup_commit(&did)?.unwrap();
     Ok(srv.repo.export_car(&commit_cid, None)?)
 }
@@ -535,6 +551,9 @@ fn xrpc_post_handler(
                 .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
             // TODO: validate handle, email, recoverykey
             let mut srv = srv.lock().unwrap();
+            if srv.config.invite_code.is_some() && srv.config.invite_code != req.inviteCode {
+                Err(XrpcError::Forbidden("a valid invite code is required".to_string()))?;
+            };
             let sess = create_account(&mut srv, &req, true)?;
             Ok(json!(sess))
         }
