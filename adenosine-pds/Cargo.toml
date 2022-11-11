@@ -61,4 +61,6 @@ extended-description = """Simple informal personal data server (PDS) for AT prot
 assets = [
     ["target/release/adenosine-pds", "usr/bin/", "755"],
     ["../extra/adenosine-pds.1", "usr/share/man/man1/", "644"],
+    ["../extra/adenosine-pds.bash_completions", "usr/share/bash-completion/completions/adenosine-pds", "644"],
+    ["../extra/adenosine-pds.zsh_completions", "usr/share/zsh/vendor-completions/_adenosine-pds", "644"],
 ]
