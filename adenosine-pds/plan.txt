@@ -78,35 +78,55 @@ x CLI account creation (including did:web accounts)
 
 x cli: 'bsky timeline' command (for self)
 x wire up basic bsky stuff to web interface
-
+x bsky app handler (new module)
+    x  batch mutation handler
+    x  high-level database/repo helpers
 x post threads (simple parent/children to start)
-/ basic CLI testing of bsky stuff
+
+- basic CLI testing of bsky stuff (against upstream version and mine)
     => follow
     => like
     => follow
     => repost
     => author feed (of their posts and reposts)
     => timeline feed
-x bsky app handler (new module)
-    x  batch mutation handler
-    x  high-level database/repo helpers
 - bit of polish
     x  web error handler (request to request)
     x  handlers should catch mutex poison error and exist process
     x  /about
     x  version in web footer
     x  actually implement /.well-known/did.json, etc
-    => check if CAR export works (size, blocks)
-    => invite code validation
-    => registration domain validation (including lack of domain blocking all registration)
-    => update README
-    => basic manpage for adenosine-pds (just a stub)
-    => write systemd unit file
+    x  check if CAR export works (size, blocks)
+    x  invite code validation
+    x  registration domain validation (including lack of domain blocking all registration)
+    x  update README
+    x  basic manpage for adenosine-pds (just a stub)
+    x  CHANGELOG
+- push demo
+    => systemd unit files
+    => sketch nginx file
+    => get single-domain stuff working on adze
+    => get multi-domain stuff working on adze
+    => post some example dummy content
 
+    => git/local 0.1.0 tag
+    => build and push debs to adze, some archive.org mirror location
 
-- CLI: update profile
-- CLI: status actually connects to server, verifies auth
-- basic web handler (separate plan)
+    => share links
+
+- v0.1.1 (or v0.2.0?)
+    - make profile DID link an aturi (pink)
+    - reverse order of author feed (?)
+    - check compatibility with current atproto
+    - CLI: update TID implementation
+    - static compilation: rustls, musl
+    - reduce clap and reqwest size?
+    - PDS: RSS feed (and link to it)
+    - PDS: export download link (on repository page?)
+    - CLI: update profile
+    - CLI: status actually connects to server, verifies auth
+
+x basic web handler (separate plan)
 - JSON schema type generation (separate crate?)
 
 - RSS, webfinger, maybe some other protocols
