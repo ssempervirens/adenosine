@@ -60,5 +60,5 @@ priority = "optional"
 extended-description = """Simple informal personal data server (PDS) for AT protocol and bsky.app"""
 assets = [
     ["target/release/adenosine-pds", "usr/bin/", "755"],
-    #["../extra/adenosine-pds.1", "usr/share/man/man1/", "644"],
+    ["../extra/adenosine-pds.1", "usr/share/man/man1/", "644"],
 ]
