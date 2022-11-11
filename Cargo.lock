@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "adenosine-cli"
-version = "0.1.0-dev.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "atty",
@@ -12,7 +12,7 @@ dependencies = [
  "colored_json",
  "data-encoding",
  "dotenv",
- "env_logger 0.9.1",
+ "env_logger",
  "lazy_static",
  "log",
  "rand",
@@ -27,7 +27,7 @@ dependencies = [
 
 [[package]]
 name = "adenosine-pds"
-version = "0.1.0-dev.0"
+version = "0.1.0"
 dependencies = [
  "adenosine-cli",
  "anyhow",
@@ -930,20 +930,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44533bbbb3bb3c1fa17d9f2e4e38bbbaf8396ba82193c4cb1b6445d711445d36"
 dependencies = [
  "atty",
- "humantime 1.3.0",
- "log",
- "regex",
- "termcolor",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c90bf5f19754d10198ccb95b70664fc925bd1fc090a0fd9a6ebc54acc8cd6272"
-dependencies = [
- "atty",
- "humantime 2.1.0",
+ "humantime",
  "log",
  "regex",
  "termcolor",
@@ -1323,12 +1310,6 @@ checksum = "df004cfca50ef23c36850aaaa59ad52cc70d0e90243c3c7737a4dd32dc7a3c4f"
 dependencies = [
  "quick-error",
 ]
-
-[[package]]
-name = "humantime"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
@@ -2028,7 +2009,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "926d36b9553851b8b0005f1275891b392ee4d2d833852c417ed025477350fb9d"
 dependencies = [
- "env_logger 0.7.1",
+ "env_logger",
  "log",
 ]
 
