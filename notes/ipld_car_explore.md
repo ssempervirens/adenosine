@@ -1,5 +1,5 @@
 
-Thie CAR format used for repository exports is compatible with IPLD. This means
+The CAR format used for repository exports is compatible with IPLD. This means
 the generic `ipfs` command-line tool (aka,
 [kubo](https://docs.ipfs.tech/reference/kubo/cli/#ipfs-dag)) can be used to
 import and explore the tree contents.

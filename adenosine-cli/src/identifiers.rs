@@ -63,7 +63,7 @@ fn test_didorhost() {
     assert!(DidOrHost::from_str(" ").is_err());
     assert!(DidOrHost::from_str("1234").is_err());
 
-    assert!(DidOrHost::from_str("mutli.part.domain").is_ok());
+    assert!(DidOrHost::from_str("multi.part.domain").is_ok());
     assert!(DidOrHost::from_str("did:is:weird").is_ok());
     assert!(DidOrHost::from_str("did:plc:bv6ggog3tya2z3vxsub7hnal").is_ok());
 }
@@ -275,7 +275,7 @@ lazy_static! {
     };
 }
 
-/// A string identifier representing a UNIX time in miliseconds, plus a small counter
+/// A string identifier representing a UNIX time in milliseconds, plus a small counter
 ///
 /// Pretty permissive about what can be parsed/accepted, because there were some old TIDs floating
 /// around with weird format.
