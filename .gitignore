@@ -20,6 +20,7 @@ target/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+scratch/
 
 # Don't ignore this file itself
 !.gitignore
