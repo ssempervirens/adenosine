@@ -183,12 +183,16 @@ impl AtpService {
                 router!(request,
                     // ============= Web Interface
                     (GET) ["/"] => {
-                        let host = request.header("Host").unwrap_or("localhost");
-                        if Some(host.to_string()) == config.registration_domain {
-                            web_wrap(account_view_handler(&srv, &host, request))
+                        if let Some(ref handle) = config.homepage_handle {
+                            web_wrap(account_view_handler(&srv, handle, request))
                         } else {
-                            let view = GenericHomeView { domain: host.to_string() };
-                            Response::html(view.render().unwrap())
+                            web_wrap(home_view_handler(&srv, request))
+                        }
+                    },
+                    (GET) ["/.well-known/did.json"] => {
+                        match did_doc_view_handler(&srv, request) {
+                            Ok(resp) => resp,
+                            Err(e) => web_wrap(Err(e)),
                         }
                     },
                     (GET) ["/about"] => {
@@ -673,6 +677,39 @@ fn xrpc_post_handler(
             method
         )))),
     }
+}
+
+fn home_view_handler(srv: &Mutex<AtpService>, request: &Request) -> Result<String> {
+    let host = request.header("Host").unwrap_or("localhost");
+
+    // check if the hostname resolves to a DID (account)
+    let did: Option<Did> = {
+        // this mutex lock should drop at the end of this block
+        let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
+        srv.atp_db.resolve_handle(host)?
+    };
+    if did.is_some() {
+        account_view_handler(&srv, &host, request)
+    } else {
+        let view = GenericHomeView {
+            domain: host.to_string(),
+        };
+        Ok(view.render()?)
+    }
+}
+
+fn did_doc_view_handler(srv: &Mutex<AtpService>, request: &Request) -> Result<Response> {
+    let host = request.header("Host").unwrap_or("localhost");
+    let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
+    if let Some(did) = srv.atp_db.resolve_handle(host)? {
+        if did.to_string().starts_with("did:web:") {
+            let did_doc = srv.atp_db.get_did_doc(&did)?;
+            return Ok(Response::json(&did_doc));
+        }
+    };
+    Err(XrpcError::NotFound(
+        "no did:web: account registered at this domain".to_string(),
+    ))?
 }
 
 // TODO: did, collection, tid have already been parsed by this point
