@@ -61,7 +61,7 @@ enum AccountCommand {
         #[structopt(long, short)]
         email: String,
 
-        #[structopt(long, short)]
+        #[structopt(long = "--username", short = "-u")]
         handle: String,
 
         #[structopt(long, short)]
@@ -69,6 +69,9 @@ enum AccountCommand {
 
         #[structopt(long, short)]
         recovery_key: Option<String>,
+
+        #[structopt(long, short)]
+        invite_code: Option<String>,
     },
     /// Delete the currently logged-in account (danger!)
     Delete,
@@ -77,7 +80,7 @@ enum AccountCommand {
     /// This will return a JWT token that you should assign to the `ATP_AUTH_TOKEN` environment
     /// variable
     Login {
-        #[structopt(long, short)]
+        #[structopt(long = "--username", short = "-u")]
         handle: String,
 
         #[structopt(long, short)]
@@ -433,6 +436,7 @@ fn run(opt: Opt) -> Result<()> {
                     handle,
                     password,
                     recovery_key,
+                    invite_code,
                 },
         } => {
             let mut body = json!({
@@ -442,6 +446,9 @@ fn run(opt: Opt) -> Result<()> {
             });
             if let Some(key) = recovery_key {
                 body["recoveryKey"] = json!(key);
+            }
+            if let Some(code) = invite_code {
+                body["inviteCode"] = json!(code);
             }
             xrpc_client.post(
                 &Nsid::from_str("com.atproto.account.create")?,
