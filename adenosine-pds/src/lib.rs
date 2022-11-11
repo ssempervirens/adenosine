@@ -250,7 +250,7 @@ impl AtpService {
                     (GET) ["/xrpc/{endpoint}", endpoint: String] => {
                         xrpc_wrap(xrpc_get_handler(&srv, &endpoint, request))
                     },
-                    _ => Response::text("404: Not Found")
+                    _ => web_wrap(Err(XrpcError::NotFound("unknown URL pattern".to_string()).into())),
                 )
             })
         });

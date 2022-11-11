@@ -5,6 +5,14 @@ use askama::Template;
 use serde_json;
 
 #[derive(Template)]
+#[template(path = "error.html")]
+pub struct ErrorView {
+    pub domain: String,
+    pub status_code: u16,
+    pub error_message: String,
+}
+
+#[derive(Template)]
 #[template(path = "home.html")]
 pub struct GenericHomeView {
     pub domain: String,
