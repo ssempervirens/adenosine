@@ -91,6 +91,9 @@ _adenosine() {
             status)
                 cmd+="__status"
                 ;;
+            timeline)
+                cmd+="__timeline"
+                ;;
             update)
                 cmd+="__update"
                 ;;
@@ -224,18 +227,18 @@ _adenosine() {
             return 0
             ;;
         adenosine__account__login)
-            opts=" -V -v -h -p  --help --version --verbose --handle --password --host --auth-token  "
+            opts=" -h -V -v -u -p  --help --version --verbose --username --password --host --auth-token  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --handle)
+                --username)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -h)
+                    -u)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -286,7 +289,7 @@ _adenosine() {
             return 0
             ;;
         adenosine__account__register)
-            opts=" -V -v -e -h -p -r  --help --version --verbose --email --handle --password --recovery-key --host --auth-token  "
+            opts=" -h -V -v -e -u -p -r -i  --help --version --verbose --email --username --password --recovery-key --invite-code --host --auth-token  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -301,11 +304,11 @@ _adenosine() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --handle)
+                --username)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                    -h)
+                    -u)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -325,6 +328,14 @@ _adenosine() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --invite-code)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                    -i)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
@@ -341,7 +352,7 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token   feed notifications post repost like follow profile search-users help"
+            opts=" -h -V -v  --help --version --verbose --host --auth-token   feed timeline notifications post repost like follow profile search-users help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -549,6 +560,29 @@ _adenosine() {
             ;;
         adenosine__bsky__search__users)
             opts=" -h -V -v  --help --version --verbose --host --auth-token  <query> "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --host)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        adenosine__bsky__timeline)
+            opts=" -h -V -v  --help --version --verbose --host --auth-token  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

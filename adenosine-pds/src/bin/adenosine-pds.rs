@@ -37,6 +37,9 @@ struct Opt {
     #[structopt(global = true, long, short = "v", parse(from_occurrences))]
     verbose: i8,
 
+    #[structopt(long = "--shell-completions", hidden = true)]
+    shell_completions: Option<structopt::clap::Shell>,
+
     #[structopt(subcommand)]
     cmd: Command,
 }
@@ -128,6 +131,11 @@ fn main() -> Result<()> {
     dotenv::dotenv().ok();
     let opt = Opt::from_args();
 
+    if let Some(shell) = opt.shell_completions {
+        Opt::clap().gen_completions_to("adenosine", shell, &mut std::io::stdout());
+        std::process::exit(0);
+    }
+
     let log_level = match opt.verbose {
         std::i8::MIN..=-1 => "none",
         0 => "warn",
@@ -135,6 +143,7 @@ fn main() -> Result<()> {
         2 => "debug",
         3..=std::i8::MAX => "trace",
     };
+
     // hyper logging is very verbose, so crank that down even if everything else is more verbose
     let cli_filter = format!("{},hyper=error", log_level);
     // defer to env var config, fallback to CLI settings
