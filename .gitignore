@@ -21,6 +21,8 @@ target/
 *.sqlite-shm
 *.sqlite-wal
 scratch/
+*_amd64_linux
+*.deb
 
 # Don't ignore this file itself
 !.gitignore
