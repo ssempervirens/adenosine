@@ -15,26 +15,26 @@ readme = "../README.md"
 repository = "https://gitlab.com/bnewbold/adenosine"
 
 [dependencies]
-structopt = "*"
+structopt = "0.3"
 # NOTE: could try 'rustls-tls' feature instead of default native TLS?
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
-base64 = "*"
-regex = "*"
-lazy_static = "*"
-dotenv = "*"
-data-encoding = "*"
-rand = "*"
-time = { version = "*", features = ["formatting"] }
+base64 = "0.13"
+regex = "1"
+lazy_static = "1"
+dotenv = "0.15"
+data-encoding = "2"
+rand = "0.8"
+time = { version = "0.3", features = ["formatting"] }
 
 # uncertain about these...
-anyhow = "1.0"
+anyhow = "1"
 atty = "0.2"
-colored_json = "*"
-termcolor = "*"
-log = "*"
-env_logger = "*"
+colored_json = "3"
+termcolor = "1"
+log = "0.4"
+env_logger = "0.7"
 
 [package.metadata.deb]
 maintainer = "Bryan Newbold <bnewbold@robocracy.org>"

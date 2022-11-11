@@ -13,39 +13,39 @@ readme = "../README.md"
 repository = "https://gitlab.com/bnewbold/adenosine"
 
 [dependencies]
-anyhow = "*"
-structopt = "*"
+anyhow = "1"
+structopt = "0.3"
 serde = "1"
-serde_json = "*"
-log = "*"
-pretty_env_logger = "*"
-libipld = "*"
-ipfs-sqlite-block-store = "*"
-rusqlite = { version = "*", features = ["bundled"] }
-rusqlite_migration = "*"
+serde_json = "1"
+log = "0.4"
+pretty_env_logger = "0.4"
+libipld = "0.14"
+ipfs-sqlite-block-store = "0.13"
+rusqlite = { version = "0.26", features = ["bundled"] }
+rusqlite_migration = "1"
 # NOTE: lexicon validation not implemented yet
 #jsonschema = "*"
 #schemafy = "*"
-rouille = "*"
+rouille = "3"
 # NOTE: vendored for now
 #iroh-car = "*"
 adenosine-cli = { version = "0.1.0", path = "../adenosine-cli" }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
-sha256 = "*"
-lazy_static = "*"
+sha256 = "1"
+lazy_static = "1"
 bcrypt = "0.13"
-data-encoding = "*"
-k256 = { version = "*", features = ["ecdsa"] }
-p256 = { version = "*", features = ["ecdsa"] }
-multibase = "*"
+data-encoding = "2"
+k256 = { version = "0.11", features = ["ecdsa"] }
+p256 = { version = "0.11", features = ["ecdsa"] }
+multibase = "0.9"
 ucan = "0.7.0-alpha.1"
 # TODO: replace this with data-encoding or similar; this is only needed for ucan_p256 stuff
-bs58 = "*"
-async-trait = "*"
-dotenv = "*"
+bs58 = "0.4"
+async-trait = "0.1"
+dotenv = "0.15"
 askama = { version = "0.11", features = ["serde-json"] }
-time = { version = "*", features = ["formatting"] }
+time = { version = "0.3", features = ["formatting"] }
 
 # for vendored iroh-car
 thiserror = "1.0"
