@@ -40,7 +40,7 @@ pub struct ThreadView {
     pub did: Did,
     pub collection: Nsid,
     pub tid: Tid,
-    pub thread: Vec<ThreadItem>,
+    pub post: ThreadItem,
 }
 
 #[derive(Template)]

@@ -155,7 +155,7 @@ pub struct PostReply {
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct PostThread {
-    pub thread: Vec<ThreadItem>,
+    pub thread: ThreadItem,
 }
 
 #[allow(non_snake_case)]
@@ -168,7 +168,7 @@ pub struct ThreadItem {
     pub record: Value,
     //pub embed?: RecordEmbed | ExternalEmbed | UnknownEmbed,
     pub embed: Option<Value>,
-    pub parent: Box<ThreadItem>,
+    pub parent: Option<Box<ThreadItem>>,
     pub replyCount: u64,
     pub replies: Option<Vec<ThreadItem>>,
     pub likeCount: u64,

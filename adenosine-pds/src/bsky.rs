@@ -4,8 +4,10 @@ use crate::repo::Mutation;
 /// records
 use crate::{
     ipld_into_json_value, json_value_into_ipld, AtpDatabase, AtpService, Did, Result, Tid,
+    XrpcError,
 };
-use adenosine_cli::identifiers::{AtUri, Nsid};
+use adenosine_cli::identifiers::{AtUri, DidOrHost, Nsid};
+use anyhow::anyhow;
 use libipld::Cid;
 use rusqlite::params;
 use serde_json::json;
@@ -244,19 +246,103 @@ pub fn bsky_get_author_feed(srv: &mut AtpService, did: &Did) -> Result<GenericFe
     Ok(GenericFeed { feed })
 }
 
+// TODO: this is a partial implementation
+// TODO: should maybe have this take a did and tid instead of a aturi?
 pub fn bsky_get_thread(
-    _srv: &mut AtpService,
-    _uri: &AtUri,
+    srv: &mut AtpService,
+    uri: &AtUri,
     _depth: Option<u64>,
 ) -> Result<PostThread> {
-    // TODO: what is the best way to implement this? recurisvely? just first-level children to
-    // start?
-    unimplemented!()
+    // parse the URI
+    let did = match uri.repository {
+        DidOrHost::Did(ref did_type, ref did_body) => {
+            Did::from_str(&format!("did:{}:{}", did_type, did_body))?
+        }
+        _ => Err(anyhow!("expected a DID, not handle, in uri: {}", uri))?,
+    };
+    if uri.collection != Some("app.bsky.feed.post".to_string()) {
+        Err(anyhow!("expected a post collection in uri: {}", uri))?;
+    };
+    let tid = match uri.record {
+        Some(ref tid) => Tid::from_str(&tid)?,
+        _ => Err(anyhow!("expected a record in uri: {}", uri))?,
+    };
+
+    // post itself, as a FeedItem
+    let post_items = {
+        let mut stmt = srv.atp_db
+            .conn
+            .prepare_cached("SELECT account.did, account.handle, bsky_post.tid, bsky_post.cid, bsky_post.indexed_at FROM bsky_post LEFT JOIN account ON bsky_post.did = account.did WHERE bsky_post.did = ?1 AND bsky_post.tid = ?2")?;
+        let mut sql_rows = stmt.query(params!(did.to_string(), tid.to_string()))?;
+        let mut rows: Vec<FeedRow> = vec![];
+        while let Some(sql_row) = sql_rows.next()? {
+            let row = feed_row(sql_row)?;
+            rows.push(row);
+        }
+        rows
+    };
+    if post_items.is_empty() {
+        Err(XrpcError::NotFound("post not found".to_string()))?;
+    };
+    let post_item = feed_row_to_item(srv, post_items.into_iter().nth(0).unwrap())?;
+
+    // TODO: any parent
+    let parent = None;
+
+    // any children
+    let mut children = vec![];
+    let rows = {
+        let mut stmt = srv.atp_db
+            .conn
+            .prepare_cached("SELECT account.did, account.handle, bsky_post.tid, bsky_post.cid, bsky_post.indexed_at FROM bsky_post LEFT JOIN account ON bsky_post.did = account.did WHERE bsky_post.reply_to_parent_uri = ?1 ORDER BY bsky_post.tid DESC LIMIT 20")?;
+        let mut sql_rows = stmt.query(params!(uri.to_string()))?;
+        let mut rows: Vec<FeedRow> = vec![];
+        while let Some(sql_row) = sql_rows.next()? {
+            let row = feed_row(sql_row)?;
+            rows.push(row);
+        }
+        rows
+    };
+    for row in rows {
+        let item = feed_row_to_item(srv, row)?;
+        children.push(ThreadItem {
+            uri: item.uri,
+            cid: item.cid,
+            author: item.author,
+            record: item.record,
+            embed: item.embed,
+            // don't want a loop here
+            parent: None,
+            replyCount: item.replyCount,
+            // only going to depth of one here
+            replies: None,
+            likeCount: item.likeCount,
+            repostCount: item.repostCount,
+            indexedAt: item.indexedAt,
+            myState: None,
+        });
+    }
+
+    let post = ThreadItem {
+        uri: post_item.uri,
+        cid: post_item.cid,
+        author: post_item.author,
+        record: post_item.record,
+        embed: post_item.embed,
+        parent: parent,
+        replyCount: post_item.replyCount,
+        replies: Some(children),
+        likeCount: post_item.likeCount,
+        repostCount: post_item.repostCount,
+        indexedAt: post_item.indexedAt,
+        myState: None,
+    };
+    Ok(PostThread { thread: post })
 }
 
 #[test]
 fn test_bsky_profile() {
-    use crate::{create_account, created_at_now};
+    use crate::create_account;
     use libipld::ipld;
 
     let post_nsid = Nsid::from_str("app.bsky.feed.post").unwrap();
@@ -339,6 +425,7 @@ fn test_bsky_profile() {
 
 #[test]
 fn test_bsky_feeds() {
+    // TODO: test that displayName comes through in feeds and timelines (it does not currently)
     use crate::{create_account, created_at_now};
     use libipld::ipld;
 
@@ -564,4 +651,105 @@ fn test_bsky_feeds() {
     assert!(carol_feed.feed.is_empty());
 }
 
-// TODO: post threads (include in the above test?)
+#[test]
+fn test_bsky_thread() {
+    use crate::{create_account, created_at_now};
+    use libipld::ipld;
+
+    let post_nsid = Nsid::from_str("app.bsky.feed.post").unwrap();
+
+    let mut srv = AtpService::new_ephemeral().unwrap();
+    let alice_did = {
+        let req = AccountRequest {
+            email: "alice@bogus.com".to_string(),
+            handle: "alice.test".to_string(),
+            password: "bogus".to_string(),
+            inviteCode: None,
+            recoveryKey: None,
+        };
+        let session = create_account(&mut srv, &req, true).unwrap();
+        Did::from_str(&session.did).unwrap()
+    };
+    let bob_did = {
+        let req = AccountRequest {
+            email: "bob@bogus.com".to_string(),
+            handle: "bob.test".to_string(),
+            password: "bogus".to_string(),
+            inviteCode: None,
+            recoveryKey: None,
+        };
+        let session = create_account(&mut srv, &req, true).unwrap();
+        Did::from_str(&session.did).unwrap()
+    };
+
+    // alice does a post
+    let alice_post1_tid = srv.tid_gen.next_tid();
+    let mutations = vec![Mutation::Create(
+        post_nsid.clone(),
+        alice_post1_tid.clone(),
+        ipld!({"text": "alice first post"}),
+    )];
+    srv.repo
+        .mutate_repo(&alice_did, &mutations, &srv.pds_keypair)
+        .unwrap();
+    bsky_mutate_db(&mut srv.atp_db, &alice_did, mutations).unwrap();
+    let alice_post1_uri = format!(
+        "at://{}/{}/{}",
+        alice_did.to_string(),
+        post_nsid.to_string(),
+        alice_post1_tid.to_string()
+    );
+
+    // bob likes and replies first post
+    let bob_post1_tid = srv.tid_gen.next_tid();
+    let mutations = vec![Mutation::Create(
+        post_nsid.clone(),
+        bob_post1_tid.clone(),
+        ipld!({"text": "bob comment on alice post1", "reply": {"parent": {"uri": alice_post1_uri.clone()}, "root": {"uri": alice_post1_uri.clone()}}}),
+    )];
+    srv.repo
+        .mutate_repo(&bob_did, &mutations, &srv.pds_keypair)
+        .unwrap();
+    bsky_mutate_db(&mut srv.atp_db, &bob_did, mutations).unwrap();
+    let bob_post1_uri = format!(
+        "at://{}/{}/{}",
+        bob_did.to_string(),
+        post_nsid.to_string(),
+        bob_post1_tid.to_string()
+    );
+
+    // alice replies to bob reply
+    let alice_post2_tid = srv.tid_gen.next_tid();
+    let mutations = vec![Mutation::Create(
+        post_nsid.clone(),
+        alice_post2_tid.clone(),
+        ipld!({"text": "alice second post, replying to bob comment", "reply": {"parent": {"uri": bob_post1_uri.clone()}, "root": {"uri": alice_post1_uri.clone()}}}),
+    )];
+    srv.repo
+        .mutate_repo(&alice_did, &mutations, &srv.pds_keypair)
+        .unwrap();
+    bsky_mutate_db(&mut srv.atp_db, &alice_did, mutations).unwrap();
+    let _alice_post2_uri = format!(
+        "at://{}/{}/{}",
+        alice_did.to_string(),
+        post_nsid.to_string(),
+        alice_post2_tid.to_string()
+    );
+
+    // get thread from bob's post
+    // TODO: should have both parent and children
+    let post = bsky_get_thread(&mut srv, &AtUri::from_str(&bob_post1_uri).unwrap(), None)
+        .unwrap()
+        .thread;
+    assert_eq!(post.author.did, bob_did.to_string());
+    assert_eq!(post.author.handle, "bob.test".to_string());
+    assert_eq!(post.embed, None);
+    assert_eq!(post.replyCount, 1);
+    assert_eq!(post.repostCount, 0);
+    assert_eq!(post.likeCount, 0);
+    assert_eq!(post.replies.as_ref().unwrap().len(), 1);
+
+    let post_replies = post.replies.unwrap();
+    assert_eq!(post_replies[0].author.did, alice_did.to_string());
+    // TODO: root URI, etc
+}

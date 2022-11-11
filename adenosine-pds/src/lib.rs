@@ -720,7 +720,7 @@ fn thread_view_handler(
         did,
         collection,
         tid: tid.clone(),
-        thread: bsky_get_thread(&mut srv, &uri, None)?.thread,
+        post: bsky_get_thread(&mut srv, &uri, None)?.thread,
     }
     .render()?)
 }

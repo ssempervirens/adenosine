@@ -2,10 +2,12 @@
 {% macro feed_item(item) %}
 
 <div class="feed_item">
+{# TODO: handle both thread items and feed items
 {% if item.repostedBy.is_some() %}
   {% if item.author.displayName.is_some() %}{{ item.author.displayName.as_ref().unwrap() }}{% endif %}
   <b>@{{ item.author.handle }}</b>
 {% endif %}
+#}
 
 <div style="float: right;">
   <a class="item_timestamp" href="/u/{{ item.author.handle }}/post/{{ item.uri|aturi_to_tid }}">
@@ -27,6 +29,7 @@
 <br>
 <span class="counts">
   [<a href="#">{{ item.likeCount }} like</a> / <a href="#">{{ item.repostCount }} repost</a> / <a href="#">{{ item.replyCount }} reply</a>]
+  [<a href="{{ item.uri|aturi_to_path }}">inspect</a>]
 </span>
 
 {% if item.record.get("reply").is_some() %}

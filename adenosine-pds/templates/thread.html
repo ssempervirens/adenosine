@@ -1,8 +1,20 @@
 {% extends "base.html" %}
 {% import "macro.html" as macro %}
 
-{% block post %}
+{% block main %}
 
-Post stuff will go here
+{% if post.parent.is_some() %}
+  {% call macro::feed_item(post.parent.as_ref().unwrap()) %}
+  <center><i>---</i></center>
+{% endif %}
+
+{% call macro::feed_item(post) %}
+
+{% if post.replies.is_some() && post.replies.as_ref().unwrap().len() > 0 %}
+  <center><i>--- replies ---</i></center>
+  {% for item in post.replies.as_ref().unwrap() %}
+    {% call macro::feed_item(item) %}
+  {% endfor %}
+{% endif %}
 
 {% endblock %}
