@@ -43,7 +43,7 @@ ucan = "0.7.0-alpha.1"
 bs58 = "*"
 async-trait = "*"
 dotenv = "*"
-askama = "0.11"
+askama = { version = "0.11", features = ["serde-json"] }
 time = { version = "*", features = ["formatting"] }
 
 # for vendored iroh-car

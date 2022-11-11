@@ -155,7 +155,7 @@ pub struct PostReply {
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct PostThread {
-    pub thread: ThreadItem,
+    pub thread: Vec<ThreadItem>,
 }
 
 #[allow(non_snake_case)]

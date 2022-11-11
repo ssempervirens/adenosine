@@ -172,10 +172,10 @@ impl AtpService {
                     (GET) ["/"] => {
                         let host = request.header("Host").unwrap_or("localhost");
                         if Some(host.to_string()) == config.registration_domain {
+                            web_wrap(account_view_handler(&srv, &host, request))
+                        } else {
                             let view = GenericHomeView { domain: host.to_string() };
                             Response::html(view.render().unwrap())
-                        } else {
-                            web_wrap(home_profile_handler(&srv, request))
                         }
                     },
                     (GET) ["/about"] => {
@@ -184,19 +184,19 @@ impl AtpService {
                         Response::html(view.render().unwrap())
                     },
                     (GET) ["/u/{handle}", handle: String] => {
-                        web_wrap(profile_handler(&srv, &handle, request))
+                        web_wrap(account_view_handler(&srv, &handle, request))
                     },
-                    (GET) ["/u/{did}/{collection}/{tid}", did: Did, collection: Nsid, tid: Tid] => {
-                        web_wrap(post_handler(&srv, &did, &collection, &tid, request))
+                    (GET) ["/u/{did}/post/{tid}", did: Did, tid: Tid] => {
+                        web_wrap(thread_view_handler(&srv, &did, &tid, request))
                     },
                     (GET) ["/at/{did}", did: Did] => {
-                        web_wrap(repo_handler(&srv, &did, request))
+                        web_wrap(repo_view_handler(&srv, &did, request))
                     },
                     (GET) ["/at/{did}/{collection}", did: Did, collection: Nsid] => {
-                        web_wrap(collection_handler(&srv, &did, &collection, request))
+                        web_wrap(collection_view_handler(&srv, &did, &collection, request))
                     },
                     (GET) ["/at/{did}/{collection}/{tid}", did: Did, collection: Nsid, tid: Tid] => {
-                        web_wrap(record_handler(&srv, &did, &collection, &tid, request))
+                        web_wrap(record_view_handler(&srv, &did, &collection, &tid, request))
                     },
                     // ============ Static Files (compiled in to executable)
                     (GET) ["/static/adenosine.css"] => {
@@ -660,77 +660,57 @@ fn xrpc_post_handler(
     }
 }
 
-fn home_profile_handler(srv: &Mutex<AtpService>, request: &Request) -> Result<String> {
-    let host = request.header("Host").unwrap_or("localhost");
-    // XXX
-    let did = Did::from_str(host)?;
-    let mut _srv = srv.lock().expect("service mutex");
-
-    // TODO: get profile (bsky helper)
-    // TODO: get feed (bsky helper)
-
-    Ok(ProfileView {
-        domain: host.to_string(),
-        did: did,
-        profile: json!({}),
-        feed: vec![],
-    }
-    .render()?)
-}
-
 // TODO: did, collection, tid have already been parsed by this point
-fn profile_handler(srv: &Mutex<AtpService>, did: &str, request: &Request) -> Result<String> {
-    let host = request.header("Host").unwrap_or("localhost");
-    let did = Did::from_str(did)?;
-    let mut _srv = srv.lock().expect("service mutex");
-
-    // TODO: get profile (bsky helper)
-    // TODO: get feed (bsky helper)
-
-    Ok(ProfileView {
-        domain: host.to_string(),
-        did: did,
-        profile: json!({}),
-        feed: vec![],
-    }
-    .render()?)
-}
-
-fn post_handler(
+fn account_view_handler(
     srv: &Mutex<AtpService>,
-    did: &str,
-    collection: &str,
-    tid: &str,
+    handle: &str,
     request: &Request,
 ) -> Result<String> {
     let host = request.header("Host").unwrap_or("localhost");
-    let did = Did::from_str(did)?;
-    let collection = Nsid::from_str(collection)?;
-    let rkey = Tid::from_str(tid)?;
     let mut srv = srv.lock().expect("service mutex");
+    // TODO: unwrap as 404
+    let did = srv
+        .atp_db
+        .resolve_handle(handle)?
+        .ok_or(XrpcError::NotFound(format!(
+            "no DID found for handle: {}",
+            handle
+        )))?;
 
-    let post = match srv.repo.get_atp_record(&did, &collection, &rkey) {
-        // TODO: format as JSON, not text debug
-        Ok(Some(ipld)) => ipld_into_json_value(ipld),
-        Ok(None) => Err(anyhow!(XrpcError::NotFound(format!(
-            "could not find record: /{}/{}",
-            collection, rkey
-        ))))?,
-        Err(e) => Err(e)?,
-    };
-
-    Ok(PostView {
+    Ok(AccountView {
         domain: host.to_string(),
-        did: did,
-        collection: collection,
-        tid: rkey,
-        post_text: post["text"].as_str().unwrap().to_string(), // TODO: unwrap
-        post_created_at: "some-time".to_string(),
+        did: did.clone(),
+        profile: bsky_get_profile(&mut srv, &did)?,
+        feed: bsky_get_author_feed(&mut srv, &did)?.feed,
     }
     .render()?)
 }
 
-fn repo_handler(srv: &Mutex<AtpService>, did: &str, request: &Request) -> Result<String> {
+fn thread_view_handler(
+    srv: &Mutex<AtpService>,
+    handle: &str,
+    tid: &Tid,
+    request: &Request,
+) -> Result<String> {
+    let host = request.header("Host").unwrap_or("localhost");
+    let collection = Nsid::from_str("app.bsky.feed.post")?;
+    let mut srv = srv.lock().expect("service mutex");
+    // TODO: not unwrap
+    let did = srv.atp_db.resolve_handle(handle)?.unwrap();
+
+    // TODO: could construct URI directly
+    let uri = AtUri::from_str(&format!("at://{}/{}/{}", did, collection, tid))?;
+    Ok(ThreadView {
+        domain: host.to_string(),
+        did,
+        collection,
+        tid: tid.clone(),
+        thread: bsky_get_thread(&mut srv, &uri, None)?.thread,
+    }
+    .render()?)
+}
+
+fn repo_view_handler(srv: &Mutex<AtpService>, did: &str, request: &Request) -> Result<String> {
     let host = request.header("Host").unwrap_or("localhost");
     let did = Did::from_str(did)?;
 
@@ -756,7 +736,7 @@ fn repo_handler(srv: &Mutex<AtpService>, did: &str, request: &Request) -> Result
     .render()?)
 }
 
-fn collection_handler(
+fn collection_view_handler(
     srv: &Mutex<AtpService>,
     did: &str,
     collection: &str,
@@ -794,7 +774,7 @@ fn collection_handler(
     .render()?)
 }
 
-fn record_handler(
+fn record_view_handler(
     srv: &Mutex<AtpService>,
     did: &str,
     collection: &str,

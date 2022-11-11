@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "macro.html" as macro %}
+
+{% block main %}
+
+<article class="profile">
+<h4>
+  {% if profile.displayName.is_some() %}
+    <span class="display_name">{{ profile.displayName.as_ref().unwrap() }}</span>
+  {% endif %}
+  <span class="handle">@{{ profile.handle }}</span>
+</h4>
+<a href="/at/{{ profile.did }}" class="ident">{{ profile.did }}</a>
+
+{% if profile.description.is_some() %}
+  <p>{{ profile.description.as_ref().unwrap() }}
+{% endif %}
+
+<p class="counts">
+  [<a href="#">{{ profile.followersCount}} followers</a> /
+   <a href="#">{{ profile.followsCount }} follows</a>]
+</p>
+</article>
+
+{% if feed.len() == 0 %} 
+  <center><i>--- no posts yet! ---</i></center>
+{% else %}
+  <center><i>--- showing {{ feed.len() }} of {{ profile.postsCount }}  posts</i> ---</center>
+{% endif %}
+
+{% for item in feed %}
+  {% call macro::feed_item(item) %}
+{% endfor %}
+
+
+{% endblock %}

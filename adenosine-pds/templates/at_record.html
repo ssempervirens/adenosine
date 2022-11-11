@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 
 {% block main %}
-<p><b>at://{{ did }}/{{ collection }}/{{ tid }}</b>
+<h2>ATP Repository Explorer</h2>
+<div class="repo_aturi">at://<a href="/at/{{ did }}">{{ did }}</a>/<a href="/at/{{ did }}/{{ collection }}">{{ collection }}</a>/{{ tid }}</div>
 
-<p><b>record json:</b>
-<pre><code>{{ record }}</code></pre>
+<h4>JSON</h4>
+<pre><code>{{ record|json }}</code></pre>
 {% endblock %}

@@ -622,5 +622,75 @@ progress:indeterminate::-moz-progress-bar {
 }
 
 /********** adenosine tweaks **********/
-body { font-family: var(--mono-font); }
-a { text-decoration: none; }
+body {
+    font-family: var(--mono-font);
+}
+a {
+    text-decoration: none;
+}
+main {
+    font-size: smaller;
+    padding-top: 0px;
+}
+h2 {
+    margin-top: 0px;
+    margin-bottom: 1rem;
+    font-size: 2.5em;
+}
+nav.header {
+    border-bottom: 2px dashed var(--border);
+}
+nav.header img {
+    vertical-align: middle;
+}
+nav.header span {
+    vertical-align: middle;
+    color: var(--text);
+}
+nav.header h1 {
+    font-weight: normal;
+    font-size: 2rem;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+.ident, a:hover.ident, a:visited.ident {
+    color: var(--text-light);
+}
+.smaller {
+    font-size: smaller;
+}
+body footer {
+    border-top: 2px dashed var(--border);
+    padding: 1rem 1rem 1rem 1rem;
+}
+.counts {
+    color: var(--text-light);
+}
+.counts a {
+    color: var(--text-light);
+}
+p.counts {
+    margin-bottom: 0px;
+}
+.display_name {
+    color: green;
+    font-weight: normal;
+}
+.handle {
+    color: green;
+    font-weight: bold;
+}
+.feed_item {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+.profile h4 {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+.repo_aturi, .repo_aturi a, .repo_aturi a:visited {
+    color: var(--code);
+    font-size: smaller;
+    overflow: auto;
+    font-weight: bold;
+}

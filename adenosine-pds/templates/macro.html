@@ -1,0 +1,41 @@
+
+{% macro feed_item(item) %}
+
+<div class="feed_item">
+{% if item.repostedBy.is_some() %}
+  {% if item.author.displayName.is_some() %}{{ item.author.displayName.as_ref().unwrap() }}{% endif %}
+  <b>@{{ item.author.handle }}</b>
+{% endif %}
+
+<div style="float: right;">
+  <a class="item_timestamp" href="/u/{{ item.author.handle }}/post/{{ item.uri|aturi_to_tid }}">
+    {% if item.record["createdAt"].as_str().is_some() %}
+      {{ item.record["createdAt"].as_str().unwrap() }}
+    {% else %}
+      {{ item.indexedAt }}
+    {% endif %}
+  </a>
+</div>
+
+
+{% if item.author.displayName.is_some() %}
+  <a href="/u/{{ item.author.handle }}"><span class="display_name">{{ item.author.displayName.as_ref().unwrap() }}</span></a>
+{% endif %}
+<a href="/u/{{ item.author.handle }}"><span class="handle">@{{ item.author.handle }}</span></a>
+<br>
+{{ item.record["text"].as_str().unwrap() }}
+<br>
+<span class="counts">
+  [<a href="#">{{ item.likeCount }} like</a> / <a href="#">{{ item.repostCount }} repost</a> / <a href="#">{{ item.replyCount }} reply</a>]
+</span>
+
+{% if item.record.get("reply").is_some() %}
+<br>
+<b style="color: orange;">reply to:</b> <a href="{{ item.record["reply"]["uri"].as_str().unwrap()|aturi_to_thread_path }}">{{ item.record["reply"]["uri"] }}</a>
+{% endif %}
+
+<!-- TODO: "reposted by" -->
+<!-- TODO: "reply to" -->
+
+</div>
+{% endmacro %}

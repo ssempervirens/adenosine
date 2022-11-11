@@ -248,7 +248,7 @@ pub fn bsky_get_thread(
     _srv: &mut AtpService,
     _uri: &AtUri,
     _depth: Option<u64>,
-) -> Result<GenericFeed> {
+) -> Result<PostThread> {
     // TODO: what is the best way to implement this? recurisvely? just first-level children to
     // start?
     unimplemented!()

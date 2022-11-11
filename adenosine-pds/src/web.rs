@@ -17,23 +17,22 @@ pub struct AboutView {
 }
 
 #[derive(Template)]
-#[template(path = "profile.html")]
-pub struct ProfileView {
+#[template(path = "account.html")]
+pub struct AccountView {
     pub domain: String,
     pub did: Did,
-    pub profile: serde_json::Value,
-    pub feed: Vec<serde_json::Value>,
+    pub profile: Profile,
+    pub feed: Vec<FeedItem>,
 }
 
 #[derive(Template)]
-#[template(path = "post.html")]
-pub struct PostView {
+#[template(path = "thread.html")]
+pub struct ThreadView {
     pub domain: String,
     pub did: Did,
     pub collection: Nsid,
     pub tid: Tid,
-    pub post_text: String,
-    pub post_created_at: String,
+    pub thread: Vec<ThreadItem>,
 }
 
 #[derive(Template)]
@@ -62,4 +61,48 @@ pub struct RecordView {
     pub collection: Nsid,
     pub tid: Tid,
     pub record: serde_json::Value,
+}
+
+mod filters {
+    use crate::AtUri;
+    use std::str::FromStr;
+
+    pub fn aturi_to_path(aturi: &str) -> ::askama::Result<String> {
+        let aturi = AtUri::from_str(aturi).expect("aturi parse");
+        if aturi.record.is_some() {
+            Ok(format!(
+                "/at/{}/{}/{}",
+                aturi.repository,
+                aturi.collection.unwrap(),
+                aturi.record.unwrap()
+            ))
+        } else if aturi.collection.is_some() {
+            Ok(format!(
+                "/at/{}/{}",
+                aturi.repository,
+                aturi.collection.unwrap()
+            ))
+        } else {
+            Ok(format!("/at/{}", aturi.repository))
+        }
+    }
+
+    pub fn aturi_to_thread_path(aturi: &str) -> ::askama::Result<String> {
+        let aturi = AtUri::from_str(aturi).expect("aturi parse");
+        Ok(format!(
+            "/u/{}/post/{}",
+            aturi.repository,
+            aturi.record.unwrap()
+        ))
+    }
+
+    pub fn aturi_to_tid(aturi: &str) -> ::askama::Result<String> {
+        let aturi = AtUri::from_str(aturi).expect("aturi parse");
+        if aturi.record.is_some() {
+            Ok(aturi.record.unwrap())
+        } else {
+            // TODO: raise an askama error here?
+            Ok("<MISSING>".to_string())
+        }
+    }
 }
