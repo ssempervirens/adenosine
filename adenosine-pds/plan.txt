@@ -20,19 +20,19 @@ x basic crypto and did:plc stuff
   x signature read/write helpers
 x single shared signing key for all users (not what I expected)
 x sqlite schema (for application)
-- MST code to read and mutate tree state
+x fix did multibase key encoding:
+    https://medium.com/asecuritysite-when-bob-met-alice/02-03-or-04-so-what-are-compressed-and-uncompressed-public-keys-6abcb57efeb6
+x MST code to read and mutate tree state
     x  check that empty tree works (eg, for account creation, and after deletes)
     x  with in-memory tests
-    => mutation batches
-- service-level config
-    domain suffixes (eg, just ".test" for now)
-    account registration allowed or not
-    CLI account creation (?)
-    PDS signing key
-- figure out auth JWT 'sub' situation (not a UCAN? CLI should ignore?)
-- switch to Argon2 for passwords? meh
+    x  mutation batches
 x IPLD objects to JSON value
-- implement basic non-authenticated CRUD on repository, test with CLI
+x Did, Tid, Nsid types, with TID generator object?
+x push types back "down" (less String typing in function signatures)
+    => eg Cid in repo
+x helper web methods
+x cli: aturi should accept trailing slash
+x implement basic non-authenticated CRUD on repository, test with CLI
     com.atproto
       x getAccountsConfig
       x createAccount
@@ -45,33 +45,23 @@ x IPLD objects to JSON value
       x     repoCreateRecord
       x     repoPutRecord
       x     repoDeleteRecord
-        syncGetRepo
-        syncUpdateRepo
-x Did, Tid, Nsid types, with TID generator object?
-    => xrpc_parse wrappers
-- push types back "down" (less String typing in function signatures)
-    => eg Cid in repo
-- aturi canonicalization helper (re-writes usernames to DID?)
-x helper web methods
-- python XRPC API test script
-- PDS CLI helpers
-    create-account <username> <password> <email>
-    reset-password <username> <password>
-    list-repos
-    list-accounts 
-    import-car <car-file> [<did|alias>}
-- mutate wrapper which updates MST *and* updates other tables in transactions
-- JSON schema type generation (separate crate?)
+      x syncGetRepo
+      x syncUpdateRepo
+x service-level config
+      x domain suffixes (eg, just ".test" for now)
+      x account registration allowed or not
+      x PDS signing key
+x CLI account creation (including did:web accounts)
 - HTTP API handler implementing many endpoints
     com.atproto
-        getSession
-        resolveName
+      x getSession
+      x resolveName
     app.bsky
-        updateProfile
-        getProfile
+      x updateProfile
+      x getProfile
 
-        getHomeFeed
-        getAuthorFeed
+      x getHomeFeed
+      x getAuthorFeed
         getPostThread
 
         getUserFollowers
@@ -86,8 +76,56 @@ x helper web methods
 
         getUsersSearch
 
+x cli: 'bsky timeline' command (for self)
+x wire up basic bsky stuff to web interface
+
+x post threads (simple parent/children to start)
+/ basic CLI testing of bsky stuff
+    => follow
+    => like
+    => follow
+    => repost
+    => author feed (of their posts and reposts)
+    => timeline feed
+x bsky app handler (new module)
+    x  batch mutation handler
+    x  high-level database/repo helpers
+- bit of polish
+    x  web error handler (request to request)
+    x  handlers should catch mutex poison error and exist process
+    x  /about
+    x  version in web footer
+    x  actually implement /.well-known/did.json, etc
+    => check if CAR export works (size, blocks)
+    => invite code validation
+    => registration domain validation (including lack of domain blocking all registration)
+    => update README
+    => basic manpage for adenosine-pds (just a stub)
+    => write systemd unit file
+
+
+- CLI: update profile
+- CLI: status actually connects to server, verifies auth
+- basic web handler (separate plan)
+- JSON schema type generation (separate crate?)
+
+- RSS, webfinger, maybe some other protocols
+    https://lib.rs/crates/rss
+
+- improve updateRepo implementation
+- figure out auth JWT 'sub' situation (not a UCAN? CLI should ignore?)
+- switch to Argon2 for passwords? meh
+- aturi canonicalization helper (re-writes usernames to DID?)
+- python XRPC API test script
+- PDS CLI helpers
+    create-account <username> <password> <email>
+    reset-password <username> <password>
+    list-repos
+    list-accounts 
+    import-car <car-file> [<did|alias>}
+
 later:
-- TODO: why are the multiformat keys so long in did doc?
+x TODO: why are the multiformat keys so long in did doc?
 - correct JWT helper stuff (?)
 - did:web handler?
 
