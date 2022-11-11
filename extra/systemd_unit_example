@@ -1,0 +1,19 @@
+[Unit]
+Description=adenosine PDS
+After=network.target
+StartLimitBurst=20
+StartLimitInterval=30min
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+# TODO: under /var/lib/adenosine/ instead?
+WorkingDirectory=/srv/adenosine/
+EnvironmentFile=/srv/adenosine/config.env
+ExecStart=/usr/bin/adenosine-pds serve -v
+Restart=always
+RestartSec=3sec
+
+[Install]
+WantedBy=multi-user.target
