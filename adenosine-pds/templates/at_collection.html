@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
 {% block main %}
-<h2>ATP Repository Explorer</h2>
+<h2>atp repository explorer</h2>
 <div class="repo_aturi">at://<a href="/at/{{ did }}">{{ did }}</a>/{{ collection }}/</div>
 
-<h4>Records</h4>
+<h4>records</h4>
 <ul>
 {% for record in records %}
   <li>/{{ collection }}/<a href="/at/{{did}}/{{collection}}/{{record["tid"].as_str().unwrap() }}">{{ record["tid"].as_str().unwrap() }}</a>/

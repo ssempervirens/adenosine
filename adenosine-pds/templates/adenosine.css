@@ -690,7 +690,7 @@ p.counts {
 }
 .repo_aturi, .repo_aturi a, .repo_aturi a:visited {
     color: var(--code);
-    font-size: smaller;
+    font-size: small;
     overflow: auto;
     font-weight: bold;
 }

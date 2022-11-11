@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 
 {% block main %}
-<h2>ATP Repository Explorer</h2>
+<h2>atp repository explorer</h2>
 <div class="repo_aturi">at://{{ did }}/</div>
 
-<h4>Collections</h4>
+<h4>collections</h4>
 <ul>
 {% for collection in describe.collections %}
   <li>/<a href="/at/{{ did }}/{{ collection }}">{{collection}}</a>/
 {% endfor %}
 </ul>
 
-<h4>Describe</h4>
+<h4>describe</h4>
 <pre><code>{{ describe|json }}</code></pre>
 
-<h4>Commit Node</h4>
+<h4>commit node</h4>
 <pre><code>{{ commit|json }}</code></pre>
 
 {% endblock %}
