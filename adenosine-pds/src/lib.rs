@@ -551,8 +551,23 @@ fn xrpc_post_handler(
                 .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
             // TODO: validate handle, email, recoverykey
             let mut srv = srv.lock().unwrap();
+            if let Some(ref domain) = srv.config.registration_domain {
+                // TODO: better matching, should not allow arbitrary sub-domains
+                if !req.handle.ends_with(domain) {
+                    Err(XrpcError::BadRequest(format!(
+                        "handle is not under registration domain ({})",
+                        domain
+                    )))?;
+                }
+            } else {
+                Err(XrpcError::BadRequest(
+                    "account registration is disabled on this PDS".to_string(),
+                ))?;
+            };
             if srv.config.invite_code.is_some() && srv.config.invite_code != req.inviteCode {
-                Err(XrpcError::Forbidden("a valid invite code is required".to_string()))?;
+                Err(XrpcError::Forbidden(
+                    "a valid invite code is required".to_string(),
+                ))?;
             };
             let sess = create_account(&mut srv, &req, true)?;
             Ok(json!(sess))
