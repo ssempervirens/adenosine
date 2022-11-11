@@ -48,7 +48,7 @@ pub struct AtpServiceConfig {
     pub public_url: String,
     pub registration_domain: Option<String>,
     pub invite_code: Option<String>,
-    pub homepage_did: Option<Did>,
+    pub homepage_handle: Option<String>,
 }
 
 impl Default for AtpServiceConfig {
@@ -58,7 +58,7 @@ impl Default for AtpServiceConfig {
             public_url: "http://localhost".to_string(),
             registration_domain: None,
             invite_code: None,
-            homepage_did: None,
+            homepage_handle: None,
         }
     }
 }
@@ -199,8 +199,8 @@ impl AtpService {
                     (GET) ["/u/{handle}", handle: String] => {
                         web_wrap(account_view_handler(&srv, &handle, request))
                     },
-                    (GET) ["/u/{did}/post/{tid}", did: Did, tid: Tid] => {
-                        web_wrap(thread_view_handler(&srv, &did, &tid, request))
+                    (GET) ["/u/{handle}/post/{tid}", handle: String, tid: Tid] => {
+                        web_wrap(thread_view_handler(&srv, &handle, &tid, request))
                     },
                     (GET) ["/at/{did}", did: Did] => {
                         web_wrap(repo_view_handler(&srv, &did, request))

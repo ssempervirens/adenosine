@@ -1,4 +1,3 @@
-use adenosine_cli::identifiers::Did;
 use adenosine_pds::models::AccountRequest;
 use adenosine_pds::*;
 use anyhow::Result;
@@ -71,10 +70,10 @@ enum Command {
         #[structopt(long = "--invite-code", env = "ATP_PDS_INVITE_CODE")]
         invite_code: Option<String>,
 
-        /// Optionally, override domain name check and force the homepage to display this user page
-        /// for this DID
-        #[structopt(long = "--homepage-did", env = "ATP_PDS_HOMEPAGE_DID")]
-        homepage_did: Option<Did>,
+        /// Optionally, override domain name check and force the homepage to display the account
+        /// page for this handle
+        #[structopt(long = "--homepage-handle", env = "ATP_PDS_HOMEPAGE_HANDLE")]
+        homepage_handle: Option<String>,
     },
 
     /// Helper to import an IPLD CARv1 file in to sqlite data store
@@ -153,7 +152,7 @@ fn main() -> Result<()> {
             registration_domain,
             public_url,
             invite_code,
-            homepage_did,
+            homepage_handle,
         } => {
             let keypair = KeyPair::from_hex(&pds_secret_key)?;
             // clean up config a bit
@@ -169,10 +168,10 @@ fn main() -> Result<()> {
             };
             let config = AtpServiceConfig {
                 listen_host_port: format!("localhost:{}", port),
-                public_url: public_url,
-                registration_domain: registration_domain,
-                invite_code: invite_code,
-                homepage_did: homepage_did,
+                public_url,
+                registration_domain,
+                invite_code,
+                homepage_handle,
             };
             log::info!("PDS config: {:?}", config);
             let srv = AtpService::new(&opt.blockstore_db_path, &opt.atp_db_path, keypair, config)?;
