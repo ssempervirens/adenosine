@@ -43,7 +43,7 @@ ucan = "0.7.0-alpha.1"
 # TODO: replace this with data-encoding or similar; this is only needed for ucan_p256 stuff
 bs58 = "0.4"
 async-trait = "0.1"
-dotenv = "0.15"
+dotenvy = "0.15"
 askama = { version = "0.11", features = ["serde-json"] }
 time = { version = "0.3", features = ["formatting"] }
 

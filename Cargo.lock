@@ -11,7 +11,7 @@ dependencies = [
  "base64",
  "colored_json",
  "data-encoding",
- "dotenv",
+ "dotenvy",
  "env_logger",
  "lazy_static",
  "log",
@@ -36,7 +36,7 @@ dependencies = [
  "bcrypt",
  "bs58",
  "data-encoding",
- "dotenv",
+ "dotenvy",
  "futures",
  "integer-encoding",
  "ipfs-sqlite-block-store",
@@ -871,10 +871,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
 
 [[package]]
-name = "dotenv"
-version = "0.15.0"
+name = "dotenvy"
+version = "0.15.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
+checksum = "03d8c417d7a8cb362e0c37e5d815f5eb7c37f79ff93707329d5a194e42e54ca0"
 
 [[package]]
 name = "ecdsa"
