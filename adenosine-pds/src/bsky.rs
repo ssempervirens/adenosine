@@ -342,7 +342,7 @@ pub fn bsky_get_thread(
 
 #[test]
 fn test_bsky_profile() {
-    use crate::create_account;
+    use crate::{create_account, created_at_now};
     use libipld::ipld;
 
     let post_nsid = Nsid::from_str("app.bsky.feed.post").unwrap();
@@ -653,7 +653,7 @@ fn test_bsky_feeds() {
 
 #[test]
 fn test_bsky_thread() {
-    use crate::{create_account, created_at_now};
+    use crate::create_account;
     use libipld::ipld;
 
     let post_nsid = Nsid::from_str("app.bsky.feed.post").unwrap();
