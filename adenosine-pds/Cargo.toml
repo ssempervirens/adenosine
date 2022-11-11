@@ -23,8 +23,9 @@ libipld = "*"
 ipfs-sqlite-block-store = "*"
 rusqlite = { version = "*", features = ["bundled"] }
 rusqlite_migration = "*"
-jsonschema = "*"
-schemafy = "*"
+# NOTE: lexicon validation not implemented yet
+#jsonschema = "*"
+#schemafy = "*"
 rouille = "*"
 # NOTE: vendored for now
 #iroh-car = "*"
