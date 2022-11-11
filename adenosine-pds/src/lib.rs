@@ -370,7 +370,7 @@ fn xrpc_get_handler(
             let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
             srv.repo
                 .lookup_commit(&did)?
-                .map(|v| json!({ "root": v }))
+                .map(|v| json!({ "root": v.to_string() }))
                 .ok_or(XrpcError::NotFound(format!("no repository found for DID: {}", did)).into())
         }
         "com.atproto.repo.listRecords" => {
@@ -391,7 +391,7 @@ fn xrpc_get_handler(
                     let record = srv.repo.get_ipld(cid)?;
                     record_list.push(json!({
                         "uri": format!("at://{}{}", did, mst_key),
-                        "cid": cid,
+                        "cid": cid.to_string(),
                         "value": ipld_into_json_value(record),
                     }));
                 }
