@@ -1,5 +1,5 @@
 
-CLI polish:
+CLI:
 - register and login commands should do more than just dump JSON
     => return shell 'export' command (for easier config)
 - log (info level) all XRPC requests and responses. especially non-200 response bodies
@@ -12,10 +12,9 @@ CLI polish:
 - update top-level README
     => badges: AGPL, CI
 
-later:
-- mention IPFS exploration of export CAR files
-- invite codes in account registration
-- try musl/rustls builds, especially for CLI
+
+packaging/deployment:
+- try musl/rustls builds
     https://burgers.io/cross-compile-rust-from-arm-to-x86-64
     rustup target add x86_64-unknown-linux-musl
     cargo build --release --target=x86_64-unknown-linux-musl

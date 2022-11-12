@@ -18,11 +18,19 @@ goal is to think through how the protocol might work by implementing it.
 
 Components:
 
-- `adenosine-cli` ([README](./adenosine-cli/README.md): command-line client (`adenosine`)
-- `adenosine-pds` ([README](./adenosine-pds/README.md): "small world" personal data server implementation, with data in sqlite
+- `adenosine-cli` ([README](./adenosine-cli/README.md), [manpage](./extra/adenosine.1.md)): command-line client (`adenosine`)
+- `adenosine-pds` ([README](./adenosine-pds/README.md), [manpage](./extra/adenosine-pds.1.md)): "small world" personal data server implementation, with data in sqlite
 
+## Disclaimer
 
+In addition to the below standard Free Software disclaimer from the LICENSE
+file, note that this project is likely to be out of sync with upstream protocol
+specifications; is not intended for real-world use; is entirely naive about
+abuse, security, and privacy; will not have an upgrade/migration path; etc.
 
+> [CONTRIBUTORS] PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, >
+> EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED >
+> WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 
 ## Development and Contributions
 
