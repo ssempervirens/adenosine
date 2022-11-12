@@ -694,3 +694,7 @@ p.counts {
     overflow: auto;
     font-weight: bold;
 }
+.pink, a.pink, a:visited.pink, a:hover.pink {
+    color: var(--code);
+    text-decoration: none;
+}

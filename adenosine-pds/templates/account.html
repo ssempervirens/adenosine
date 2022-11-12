@@ -10,7 +10,7 @@
   {% endif %}
   <span class="handle">@{{ profile.handle }}</span>
 </h4>
-<a href="/at/{{ profile.did }}" class="ident">{{ profile.did }}</a>
+<a href="/at/{{ profile.did }}" class="pink">at://{{ profile.did }}</a>
 
 {% if profile.description.is_some() %}
   <p>{{ profile.description.as_ref().unwrap() }}

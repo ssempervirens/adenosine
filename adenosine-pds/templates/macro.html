@@ -29,7 +29,7 @@
 <br>
 <span class="counts">
   [<a href="#">{{ item.likeCount }} like</a> / <a href="#">{{ item.repostCount }} repost</a> / <a href="#">{{ item.replyCount }} reply</a>]
-  [<a href="{{ item.uri|aturi_to_path }}">inspect</a>]
+  <a href="{{ item.uri|aturi_to_path }}" class="pink">[inspect]</a>
 </span>
 
 {% if item.record.get("reply").is_some() %}
