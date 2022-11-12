@@ -1,6 +1,17 @@
 
 # CHANGELOG
 
+## [0.1.1] - 2022-11-11
+
+## Fixed
+
+- crate-specific README files included in crate metadata
+
+## Changed
+
+- all: `dotenv` replace by `dotenvy`
+- pds: pink inspect links
+
 ## [0.1.0] - 2022-11-11
 
 First tagged release.
