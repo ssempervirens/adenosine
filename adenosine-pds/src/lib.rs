@@ -1,4 +1,4 @@
-use adenosine_cli::identifiers::{AtUri, Did, Nsid, Tid, TidLord};
+use adenosine_cli::identifiers::{AtUri, Did, Nsid, Ticker, Tid};
 use anyhow::{anyhow, Result};
 use askama::Template;
 use libipld::Cid;
@@ -38,7 +38,7 @@ pub struct AtpService {
     pub repo: RepoStore,
     pub atp_db: AtpDatabase,
     pub pds_keypair: KeyPair,
-    pub tid_gen: TidLord,
+    pub tid_gen: Ticker,
     pub config: AtpServiceConfig,
 }
 
@@ -141,7 +141,7 @@ impl AtpService {
             repo: RepoStore::open(blockstore_db_path)?,
             atp_db: AtpDatabase::open(atp_db_path)?,
             pds_keypair: keypair,
-            tid_gen: TidLord::new(),
+            tid_gen: Ticker::new(),
             config,
         })
     }
@@ -151,7 +151,7 @@ impl AtpService {
             repo: RepoStore::open_ephemeral()?,
             atp_db: AtpDatabase::open_ephemeral()?,
             pds_keypair: KeyPair::new_random(),
-            tid_gen: TidLord::new(),
+            tid_gen: Ticker::new(),
             config: AtpServiceConfig::default(),
         })
     }
