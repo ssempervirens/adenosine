@@ -275,7 +275,9 @@ lazy_static! {
     };
 }
 
-/// A string identifier representing a UNIX time in milliseconds, plus a small counter
+/// A string identifier for individual records, based on UNIX timestamp in microseconds.
+///
+/// See also: https://github.com/bluesky-social/atproto/issues/334
 ///
 /// Pretty permissive about what can be parsed/accepted, because there were some old TIDs floating
 /// around with weird format.
@@ -312,13 +314,20 @@ impl fmt::Display for Tid {
 }
 
 impl Tid {
-    /// Bluesky does not specify, but assuming u64 math here
-    pub fn new(millis: u64, count: u64, clock_id: u8) -> Self {
-        let val = millis * 1000 + count;
+    pub fn new(micros: u64, clock_id: u16) -> Self {
+        // 53 bits of millis
+        let micros = micros & 0x001FFFFFFFFFFFFF;
+        // 10 bits of clock ID
+        let clock_id = clock_id & 0x03FF;
+        let val: u64 = (micros << 10) | (clock_id as u64);
+        // big-endian encoding
+        let enc = BASE32SORT.encode(&val.to_be_bytes());
         Tid(format!(
-            "{}{}",
-            BASE32SORT.encode(&val.to_le_bytes()),
-            BASE32SORT.encode(&[clock_id]),
+            "{}-{}-{}-{}",
+            &enc[0..4],
+            &enc[4..7],
+            &enc[7..11],
+            &enc[11..13]
         ))
     }
 }
@@ -336,59 +345,74 @@ fn test_tid() {
     assert!(Tid::from_str("com").is_err());
     assert!(Tid::from_str("com.blah.Thing").is_err());
     assert!(Tid::from_str("did:stuff:blah").is_err());
+
+    let t1 = Tid::new(0, 0);
+    assert_eq!(t1.to_string(), "2222-222-2222-22".to_string());
 }
 
-pub struct TidLord {
+/// TID Generator
+///
+/// This version uses 53-bit microsecond counter (since UNIX epoch), and a random 10-bit clock id.
+///
+/// If the current timestamp is not greater than the last timestamp (either because clock did not
+/// advance monotonically, or multiple TIDs were generated in the same microsecond (very unlikely),
+/// the timestamp is simply incremented.
+pub struct Ticker {
     last_timestamp: u64,
-    last_counter: u64,
-    clock_id: u8,
+    clock_id: u16,
 }
 
-impl TidLord {
+impl Ticker {
     pub fn new() -> Self {
-        let mut lord = Self {
+        let mut ticker = Self {
             last_timestamp: 0,
-            last_counter: 0,
-            // just 5 bits (?)
-            clock_id: rand::random::<u8>() & 0x1F,
+            // mask to 10 bits
+            clock_id: rand::random::<u16>() & 0x03FF,
         };
         // prime the pump
-        lord.next_tid();
-        lord
+        ticker.next_tid();
+        ticker
     }
 
     pub fn next_tid(&mut self) -> Tid {
         let now = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+            .expect("timestamp in micros since UNIX epoch")
+            .as_micros() as u64;
+        // mask to 53 bits
+        let now = now & 0x001FFFFFFFFFFFFF;
         if now > self.last_timestamp {
             self.last_timestamp = now;
-            self.last_counter = 0;
         } else {
-            self.last_counter += 1;
+            self.last_timestamp += 1;
         }
-        Tid::new(self.last_timestamp, self.last_counter, self.clock_id)
+        Tid::new(self.last_timestamp, self.clock_id)
     }
 }
 
-impl Default for TidLord {
+impl Default for Ticker {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[test]
-fn test_tid_lord() {
-    let mut time_lord = TidLord::new();
-    let mut prev = time_lord.next_tid();
-    let mut next = time_lord.next_tid();
+fn test_ticker() {
+    let mut ticker = Ticker::new();
+    let mut prev = ticker.next_tid();
+    let mut next = ticker.next_tid();
     for _ in [0..100] {
         println!("{} >? {}", next, prev);
         assert!(next > prev);
         prev = next;
-        next = time_lord.next_tid();
+        next = ticker.next_tid();
     }
-    assert_eq!(prev, Tid::from_str(&prev.to_string()).unwrap());
     println!("{}", prev);
+    assert_eq!(prev, Tid::from_str(&prev.to_string()).unwrap());
+    assert_eq!(next[13..16], prev[13..16]);
+
+    let mut other_ticker = Ticker::new();
+    let other = other_ticker.next_tid();
+    assert!(other > next);
+    assert!(next[13..16] != other[13..16]);
 }
