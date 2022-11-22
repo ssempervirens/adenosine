@@ -1,3 +1,4 @@
+use adenosine_cli::created_at_now;
 use adenosine_cli::identifiers::{AtUri, Did, Nsid, Ticker, Tid};
 use anyhow::{anyhow, Result};
 use askama::Template;
@@ -890,11 +891,4 @@ fn record_view_handler(
         record,
     }
     .render()?)
-}
-
-/// Helper to generate the current timestamp as right now, UTC, formatted as a string
-pub fn created_at_now() -> String {
-    let now = time::OffsetDateTime::now_utc();
-    now.format(&time::format_description::well_known::Rfc3339)
-        .unwrap()
 }
