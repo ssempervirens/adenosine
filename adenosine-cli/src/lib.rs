@@ -316,9 +316,24 @@ pub fn value_from_fields(fields: Vec<ArgField>) -> Value {
     Value::Object(serde_json::map::Map::from_iter(map.into_iter()))
 }
 
-/// Helper to generate the current timestamp as right now, UTC, formatted as a string
+/// Helper to generate the current timestamp as right now, UTC, formatted as a string.
+///
+/// Returns something like "2022-11-22T09:21:15Z"
 pub fn created_at_now() -> String {
-    let now = time::OffsetDateTime::now_utc();
+    let now = time::OffsetDateTime::now_utc()
+        .replace_microsecond(0)
+        .unwrap();
     now.format(&time::format_description::well_known::Rfc3339)
         .unwrap()
+}
+
+#[test]
+fn test_created_at_now() {
+    // eg: 2022-11-22T09:20:44Z
+    let ts = created_at_now();
+    println!("{}", ts);
+    assert_eq!(&ts[4..5], "-");
+    assert_eq!(&ts[7..8], "-");
+    assert_eq!(&ts[10..11], "T");
+    assert_eq!(&ts[19..20], "Z");
 }
