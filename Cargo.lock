@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "adenosine-cli"
-version = "0.1.1"
+version = "0.1.2-dev.0"
 dependencies = [
  "anyhow",
  "atty",
@@ -27,7 +27,7 @@ dependencies = [
 
 [[package]]
 name = "adenosine-pds"
-version = "0.1.1"
+version = "0.1.2-dev.0"
 dependencies = [
  "adenosine-cli",
  "anyhow",
