@@ -15,6 +15,6 @@
 <pre><code>{{ describe|json }}</code></pre>
 
 <h4>commit node</h4>
-<pre><code>{{ commit|json }}</code></pre>
+<pre><code>{{ commit.to_pretty_json()|json }}</code></pre>
 
 {% endblock %}

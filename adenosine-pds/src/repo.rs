@@ -11,6 +11,7 @@ use libipld::multihash::Code;
 use libipld::prelude::Codec;
 use libipld::store::DefaultParams;
 use libipld::{Block, Cid, Ipld};
+use serde_json::{json, Value};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::collections::HashSet;
@@ -26,6 +27,22 @@ pub struct RepoCommit {
     pub prev: Option<Cid>,
     pub meta_cid: Cid,
     pub mst_cid: Cid,
+}
+
+impl RepoCommit {
+    /// Returns a JSON object version of this struct, with CIDs and signatures in expected format
+    /// (aka, CID as a string, not an array of bytes).
+    pub fn to_pretty_json(&self) -> Value {
+        json!({
+            "sig": data_encoding::HEXUPPER.encode(&self.sig),
+            "commit_cid": self.commit_cid.to_string(),
+            "root_cid": self.root_cid.to_string(),
+            "did": self.did.to_string(),
+            "prev": self.prev.map(|v| v.to_string()),
+            "meta_cid": self.meta_cid.to_string(),
+            "mst_cid": self.mst_cid.to_string(),
+        })
+    }
 }
 
 pub struct RepoStore {
