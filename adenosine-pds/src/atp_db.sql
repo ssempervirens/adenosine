@@ -7,7 +7,7 @@ CREATE TABLE account(
     email               TEXT NOT NULL,
     password_bcrypt     TEXT NOT NULL,
     recovery_pubkey     TEXT NOT NULL,
-    created_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT ( DATETIME('now') )
+    created_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT ( strftime('%Y-%m-%dT%H:%M:%SZ', 'now') )
 );
 CREATE UNIQUE INDEX account_handle_uniq_idx on account(lower(handle));
 CREATE UNIQUE INDEX account_email_uniq_idx on account(lower(email));
@@ -16,13 +16,13 @@ CREATE TABLE did_doc(
     did                 TEXT PRIMARY KEY NOT NULL,
     -- TODO: handle              TEXT NOT NULL,
     doc_json            TEXT NOT NULL,
-    indexed_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT ( DATETIME('now') )
+    indexed_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT ( strftime('%Y-%m-%dT%H:%M:%SZ', 'now') )
 );
 
 CREATE TABLE session(
     did                 TEXT NOT NULL,
     jwt                 TEXT NOT NULL,
-    created_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( DATETIME('now') ),
+    created_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( strftime('%Y-%m-%dT%H:%M:%SZ', 'now') ),
     PRIMARY KEY(did, jwt)
 );
 
@@ -36,7 +36,7 @@ CREATE TABLE bsky_post(
     reply_to_parent_uri    TEXT,
     reply_to_root_uri      TEXT,
     created_at          TIMESTAMP WITH TIME ZONE  NOT NULL,
-    indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( DATETIME('now') ),
+    indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( strftime('%Y-%m-%dT%H:%M:%SZ', 'now') ),
     PRIMARY KEY(did, tid)
 );
 CREATE INDEX bsky_post_reply_to_parent_uri_idx on bsky_post(reply_to_parent_uri);
@@ -50,7 +50,7 @@ CREATE TABLE bsky_ref(
     -- TODO: NOT NULL on subject_cid
     subject_cid         TEXT,
     created_at          TIMESTAMP WITH TIME ZONE  NOT NULL,
-    indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( DATETIME('now') ),
+    indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( strftime('%Y-%m-%dT%H:%M:%SZ', 'now') ),
     PRIMARY KEY(ref_type, did, tid)
 );
 CREATE INDEX bsky_ref_subject_uri_idx on bsky_ref(subject_uri);
@@ -62,7 +62,7 @@ CREATE TABLE bsky_follow(
     -- TODO: NOT NULL on subject_cid
     subject_cid         TEXT,
     created_at          TIMESTAMP WITH TIME ZONE  NOT NULL,
-    indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( DATETIME('now') ),
+    indexed_at          TIMESTAMP WITH TIME ZONE  NOT NULL DEFAULT ( strftime('%Y-%m-%dT%H:%M:%SZ', 'now') ),
     PRIMARY KEY(did, tid)
 );
 CREATE INDEX bsky_follow_subject_did_idx on bsky_follow(subject_did);
@@ -76,5 +76,5 @@ CREATE TABLE bsky_notification(
     subject_cid         TEXT,
     reason              TEXT NOT NULL,
     seen_at             TIMESTAMP WITH TIME ZONE,
-    indexed_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT ( DATETIME('now') )
+    indexed_at          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT ( strftime('%Y-%m-%dT%H:%M:%SZ', 'now') )
 );
