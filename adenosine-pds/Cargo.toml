@@ -29,7 +29,7 @@ rusqlite_migration = "1"
 rouille = "3"
 # NOTE: vendored for now
 #iroh-car = "*"
-adenosine-cli = { version = "0.1.2-dev.0", path = "../adenosine-cli" }
+adenosine-cli = { version = "0.1.2", path = "../adenosine-cli" }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 sha256 = "1"
