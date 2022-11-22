@@ -4,7 +4,7 @@ description = "Simple informal personal data server (PDS) for AT protocol and bs
 keywords = ["atproto"]
 categories = []
 
-version = "0.1.2-dev.0"
+version = "0.1.2"
 edition = "2021"
 rust-version = "1.61"
 authors = ["Bryan Newbold <bnewbold@robocracy.org>"]

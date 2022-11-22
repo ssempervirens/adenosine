@@ -1,6 +1,20 @@
 
 # CHANGELOG
 
+## [0.1.2] - 2022-11-22
+
+## Added
+
+- pds: CAR download links
+
+## Changed
+
+- both: proper timestamp formatting, both in Rust and SQL schema
+- both: clippy lint fixes
+- both: TID formatting and generation
+- pds: cleaner commit metadata display in web UI
+
+
 ## [0.1.1] - 2022-11-11
 
 ## Fixed
