@@ -11,7 +11,8 @@ test: build ## Run all tests (requires Cargo.lock up to date)
 
 .PHONY: lint
 lint: ## Run syntax/style checks
-	cargo clippy -- --no-deps
+	# for now, allow function calls in '.or()'
+	cargo clippy -- --no-deps -A clippy::or_fun_call
 
 .PHONY: fmt
 fmt: ## Run syntax re-formatting
