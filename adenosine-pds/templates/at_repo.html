@@ -11,6 +11,9 @@
 {% endfor %}
 </ul>
 
+<h4>export</h4>
+<a href="/xrpc/com.atproto.sync.getRepo?did={{ did }}" download="{{ did }}.car" class="pink">[repo.car]</a>
+
 <h4>describe</h4>
 <pre><code>{{ describe|json }}</code></pre>
 

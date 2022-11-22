@@ -16,6 +16,9 @@
   <p>{{ profile.description.as_ref().unwrap() }}
 {% endif %}
 
+<div style="float: right;">
+  <a href="/xrpc/com.atproto.sync.getRepo?did={{ profile.did }}" download="{{ profile.did }}.car" class="pink">[repo.car]</a>
+</div>
 <p class="counts">
   [<a href="#">{{ profile.followersCount}} followers</a> /
    <a href="#">{{ profile.followsCount }} follows</a>]
