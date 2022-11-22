@@ -527,7 +527,7 @@ fn run(opt: Opt) -> Result<()> {
             let name = name
                 .map(|v| v.to_string())
                 .unwrap_or(jwt_did.expect("feed name or logged in"));
-            params.insert("author".to_string(), name.to_string());
+            params.insert("author".to_string(), name);
             xrpc_client.get(
                 &Nsid::from_str("app.bsky.feed.getAuthorFeed")?,
                 Some(params),

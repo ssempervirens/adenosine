@@ -2,7 +2,6 @@ use crate::models::*;
 use crate::repo::RepoCommit;
 use adenosine_cli::identifiers::{Did, Nsid, Tid};
 use askama::Template;
-use serde_json;
 
 #[derive(Template)]
 #[template(path = "error.html")]

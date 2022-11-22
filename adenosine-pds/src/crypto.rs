@@ -76,16 +76,14 @@ impl KeyPair {
     }
 
     pub fn from_hex(hex: &str) -> Result<Self> {
-        Ok(Self::from_bytes(
-            &data_encoding::HEXUPPER.decode(hex.as_bytes())?,
-        )?)
+        Self::from_bytes(&data_encoding::HEXUPPER.decode(hex.as_bytes())?)
     }
 }
 
 async fn build_ucan(key_material: P256KeyMaterial, did: &Did) -> Result<String> {
     let token_string = UcanBuilder::default()
         .issued_by(&key_material)
-        .for_audience(&did.to_string())
+        .for_audience(did)
         .with_nonce()
         .with_lifetime(60 * 60 * 24 * 90)
         .build()?
@@ -136,7 +134,7 @@ impl PubKey {
                 bytes.extend_from_slice(&key.to_bytes());
             }
         }
-        format!("{}", multibase::encode(multibase::Base::Base58Btc, &bytes))
+        multibase::encode(multibase::Base::Base58Btc, &bytes)
     }
 
     /// Serializes as a 'did:key' string.

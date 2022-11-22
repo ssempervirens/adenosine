@@ -162,8 +162,8 @@ pub fn collect_mst_keys(
 fn leading_zeros(key: &str) -> u8 {
     let digest = sha256::digest(key);
     let digest = digest.as_bytes();
-    for i in 0..digest.len() {
-        if digest[i] != b'0' {
+    for (i, c) in digest.iter().enumerate() {
+        if *c != b'0' {
             return i as u8;
         }
     }

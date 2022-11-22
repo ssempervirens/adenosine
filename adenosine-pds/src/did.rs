@@ -41,7 +41,7 @@ impl UnsignedCreateOp {
         CreateOp {
             op_type: self.op_type,
             prev: self.prev,
-            sig: sig,
+            sig,
             signingKey: self.signingKey,
             recoveryKey: self.recoveryKey,
             username: self.username,
@@ -64,7 +64,7 @@ impl CreateOp {
             prev: None,
             signingKey: signing_key,
             recoveryKey: recovery_key,
-            username: username,
+            username,
             service: atp_pds,
         };
         let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, &unsigned)

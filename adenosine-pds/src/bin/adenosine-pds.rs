@@ -208,14 +208,16 @@ fn main() -> Result<()> {
             did_plc,
         } => {
             let req = AccountRequest {
-                email: email,
+                email,
                 handle: handle.clone(),
-                password: password,
+                password,
                 inviteCode: None,
                 recoveryKey: recovery_key,
             };
-            let mut config = AtpServiceConfig::default();
-            config.public_url = public_url.unwrap_or(format!("https://{}", handle));
+            let config = AtpServiceConfig {
+                public_url: public_url.unwrap_or(format!("https://{}", handle)),
+                ..Default::default()
+            };
             let keypair = KeyPair::from_hex(&pds_secret_key)?;
             let mut srv =
                 AtpService::new(&opt.blockstore_db_path, &opt.atp_db_path, keypair, config)?;

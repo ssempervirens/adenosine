@@ -87,7 +87,7 @@ async fn inner_car_bytes_reader(
     db: &mut BlockStore<libipld::DefaultParams>,
     root: &Cid,
 ) -> Result<Vec<u8>> {
-    let car_header = CarHeader::new_v1(vec![root.clone()]);
+    let car_header = CarHeader::new_v1(vec![*root]);
     let buf: Vec<u8> = Default::default();
     let mut car_writer = CarWriter::new(car_header, buf);
 

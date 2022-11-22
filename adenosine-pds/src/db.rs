@@ -207,7 +207,7 @@ impl AtpDatabase {
                 reply_to_parent_uri,
                 reply_to_root_uri,
                 serde_json::to_string(&post)?,
-                post.createdAt.unwrap_or_else(|| created_at_now())
+                post.createdAt.unwrap_or_else(created_at_now)
             ))?;
         } else {
             let mut stmt = self

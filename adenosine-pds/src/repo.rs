@@ -76,7 +76,7 @@ impl RepoStore {
 
     pub fn get_ipld(&mut self, cid: &Cid) -> Result<Ipld> {
         if let Some(b) = self.db.get_block(cid)? {
-            let block: Block<DefaultParams> = Block::new(cid.clone(), b)?;
+            let block: Block<DefaultParams> = Block::new(*cid, b)?;
             block.ipld()
         } else {
             Err(anyhow!("missing IPLD CID: {}", cid))
@@ -150,8 +150,8 @@ impl RepoStore {
         );
         Ok(RepoCommit {
             sig: commit_node.sig,
-            commit_cid: commit_cid.clone(),
-            root_cid: commit_node.root.clone(),
+            commit_cid: *commit_cid,
+            root_cid: commit_node.root,
             meta_cid: root_node.meta,
             did: Did::from_str(&metadata_node.did)?,
             prev: root_node.prev,
@@ -162,7 +162,7 @@ impl RepoStore {
     pub fn get_mst_record_by_key(&mut self, mst_cid: &Cid, key: &str) -> Result<Option<Ipld>> {
         let map = self.mst_to_map(mst_cid)?;
         if let Some(cid) = map.get(key) {
-            self.get_ipld(&cid).map(|v| Some(v))
+            self.get_ipld(cid).map(Some)
         } else {
             Ok(None)
         }
@@ -269,7 +269,7 @@ impl RepoStore {
         let commit_cid = self.lookup_commit(did)?.unwrap();
         let last_commit = self.get_commit(&commit_cid)?;
         let new_mst_cid = self
-            .update_mst(&last_commit.mst_cid, &mutations)
+            .update_mst(&last_commit.mst_cid, mutations)
             .context("updating MST in repo")?;
         let new_root_cid = self.write_root(
             last_commit.meta_cid,
@@ -278,7 +278,7 @@ impl RepoStore {
         )?;
         // TODO: is this how signatures are supposed to work?
         let sig = signing_key.sign_bytes(new_root_cid.to_string().as_bytes());
-        self.write_commit(&did, new_root_cid, &sig)
+        self.write_commit(did, new_root_cid, &sig)
     }
 
     /// Reads in a full MST tree starting at a repo commit, then re-builds and re-writes the tree
@@ -347,7 +347,7 @@ impl RepoStore {
         _from_commit_cid: Option<&Cid>,
     ) -> Result<Vec<u8>> {
         // TODO: from_commit_cid
-        read_car_bytes_from_blockstore(&mut self.db, &commit_cid)
+        read_car_bytes_from_blockstore(&mut self.db, commit_cid)
     }
 }
 

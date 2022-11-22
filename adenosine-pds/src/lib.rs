@@ -433,7 +433,7 @@ fn xrpc_get_handler(
                 name: did.to_string(), // TODO: handle?
                 did: did.to_string(),
                 didDoc: did_doc,
-                collections: collections,
+                collections,
                 nameIsCorrect: true,
             };
             Ok(json!(desc))
@@ -454,7 +454,7 @@ fn xrpc_get_handler(
         "app.bsky.feed.getTimeline" => {
             let mut srv = srv.lock().unwrap();
             let auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
-            Ok(json!(bsky_get_timeline(&mut srv, &auth_did)?))
+            Ok(json!(bsky_get_timeline(&mut srv, auth_did)?))
         }
         "app.bsky.feed.getPostThread" => {
             let uri = AtUri::from_str(&xrpc_required_param(request, "uri")?)?;
@@ -473,7 +473,7 @@ fn xrpc_get_repo_handler(srv: &Mutex<AtpService>, request: &Request) -> Result<V
     let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
     // TODO: don't unwrap here
     let commit_cid = srv.repo.lookup_commit(&did)?.unwrap();
-    Ok(srv.repo.export_car(&commit_cid, None)?)
+    srv.repo.export_car(&commit_cid, None)
 }
 
 pub fn create_account(
@@ -704,7 +704,7 @@ fn xrpc_post_handler(
             let profile: ProfileRecord = rouille::input::json_input(request)?;
             let mut srv = srv.lock().unwrap();
             let auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
-            bsky_update_profile(&mut srv, &auth_did, profile)?;
+            bsky_update_profile(&mut srv, auth_did, profile)?;
             Ok(json!({}))
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
@@ -724,7 +724,7 @@ fn home_view_handler(srv: &Mutex<AtpService>, request: &Request) -> Result<Strin
         srv.atp_db.resolve_handle(host)?
     };
     if did.is_some() {
-        account_view_handler(&srv, &host, request)
+        account_view_handler(srv, host, request)
     } else {
         let view = GenericHomeView {
             domain: host.to_string(),
@@ -810,14 +810,14 @@ fn repo_view_handler(srv: &Mutex<AtpService>, did: &str, request: &Request) -> R
         name: did.to_string(), // TODO
         did: did.to_string(),
         didDoc: did_doc,
-        collections: collections,
+        collections,
         nameIsCorrect: true,
     };
 
     Ok(RepoView {
         domain: host.to_string(),
-        did: did,
-        commit: commit,
+        did,
+        commit,
         describe: desc,
     }
     .render()?)
@@ -854,8 +854,8 @@ fn collection_view_handler(
 
     Ok(CollectionView {
         domain: host.to_string(),
-        did: did,
-        collection: collection,
+        did,
+        collection,
         records: record_list,
     }
     .render()?)

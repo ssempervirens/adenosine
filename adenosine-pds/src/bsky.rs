@@ -63,7 +63,7 @@ pub fn bsky_mutate_db(db: &mut AtpDatabase, did: &Did, mutations: Vec<Mutation>)
 pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<Profile> {
     // first get the profile record
     let mut profile_cid: Option<Cid> = None;
-    let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
+    let commit_cid = &srv.repo.lookup_commit(did)?.unwrap();
     let last_commit = srv.repo.get_commit(commit_cid)?;
     let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
     let prefix = "/app.bsky.actor.profile/";
@@ -102,9 +102,9 @@ pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<Profile> {
     let followers_count: u64 = stmt.query_row(params!(did.to_string()), |row| row.get(0))?;
     Ok(Profile {
         did: did.to_string(),
-        handle: handle,
+        handle,
         displayName: display_name,
-        description: description,
+        description,
         followersCount: followers_count,
         followsCount: follows_count,
         postsCount: post_count,
@@ -115,7 +115,7 @@ pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<Profile> {
 pub fn bsky_update_profile(srv: &mut AtpService, did: &Did, profile: ProfileRecord) -> Result<()> {
     // get the profile record
     let mut profile_tid: Option<Tid> = None;
-    let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
+    let commit_cid = &srv.repo.lookup_commit(did)?.unwrap();
     let last_commit = srv.repo.get_commit(commit_cid)?;
     let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
     let prefix = "/app.bsky.actor.profile/";
@@ -131,7 +131,7 @@ pub fn bsky_update_profile(srv: &mut AtpService, did: &Did, profile: ProfileReco
         json_value_into_ipld(serde_json::to_value(profile)?),
     )];
     let keypair = srv.pds_keypair.clone();
-    srv.repo.mutate_repo(&did, &mutations, &keypair)?;
+    srv.repo.mutate_repo(did, &mutations, &keypair)?;
     Ok(())
 }
 
@@ -185,7 +185,7 @@ fn feed_row_to_item(srv: &mut AtpService, row: FeedRow) -> Result<FeedItem> {
     let reply_count: u64 = stmt.query_row(params!(uri), |row| row.get(0))?;
 
     let feed_item = FeedItem {
-        uri: uri,
+        uri,
         cid: Some(row.item_post_cid.to_string()),
         author: User {
             did: row.item_did.to_string(),
@@ -264,7 +264,7 @@ pub fn bsky_get_thread(
         Err(anyhow!("expected a post collection in uri: {}", uri))?;
     };
     let tid = match uri.record {
-        Some(ref tid) => Tid::from_str(&tid)?,
+        Some(ref tid) => Tid::from_str(tid)?,
         _ => Err(anyhow!("expected a record in uri: {}", uri))?,
     };
 
@@ -284,7 +284,7 @@ pub fn bsky_get_thread(
     if post_items.is_empty() {
         Err(XrpcError::NotFound("post not found".to_string()))?;
     };
-    let post_item = feed_row_to_item(srv, post_items.into_iter().nth(0).unwrap())?;
+    let post_item = feed_row_to_item(srv, post_items.into_iter().next().unwrap())?;
 
     // TODO: any parent
     let parent = None;
@@ -329,7 +329,7 @@ pub fn bsky_get_thread(
         author: post_item.author,
         record: post_item.record,
         embed: post_item.embed,
-        parent: parent,
+        parent,
         replyCount: post_item.replyCount,
         replies: Some(children),
         likeCount: post_item.likeCount,
