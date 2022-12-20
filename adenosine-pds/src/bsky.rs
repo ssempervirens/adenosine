@@ -68,7 +68,7 @@ pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<Profile> {
     let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
     let prefix = "/app.bsky.actor.profile/";
     for (mst_key, cid) in full_map.iter() {
-        if mst_key.starts_with(&prefix) {
+        if mst_key.starts_with(prefix) {
             profile_cid = Some(*cid);
         }
     }
@@ -120,7 +120,7 @@ pub fn bsky_update_profile(srv: &mut AtpService, did: &Did, profile: ProfileReco
     let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
     let prefix = "/app.bsky.actor.profile/";
     for (mst_key, _cid) in full_map.iter() {
-        if mst_key.starts_with(&prefix) {
+        if mst_key.starts_with(prefix) {
             profile_tid = Some(Tid::from_str(mst_key.split('/').nth(2).unwrap())?);
         }
     }

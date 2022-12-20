@@ -617,7 +617,7 @@ fn xrpc_post_handler(
 
             Ok(json!(AtpSession {
                 did: did.to_string(),
-                name: handle.to_string(),
+                name: handle,
                 accessJwt: jwt.to_string(),
                 refreshJwt: jwt.to_string(),
             }))
