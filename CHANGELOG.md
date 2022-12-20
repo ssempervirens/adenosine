@@ -22,12 +22,18 @@ neither supports bsky media attachments (blobs, photos, etc) in this release.
 - update deps (`Cargo.lock`)
 - both: `getActor` query param is "actor" not "user" (so far upstream has not
   refactored other "user" instances)
+- pds: udpated `getProfile` schema
+- pds: "upvotesCount" in schemas, not "likesCount"
 
 ## Added
 
 - both: com.atproto.session.refresh endpoint
 - pds: stub implementation of new `app.bsky.actor` lexicons (`search`,
-  `searchTypeahead`, `getSuggestions`)
+  `searchTypeahead`, `getSuggestions`), notifications, memberships
+
+## Fixed
+
+- pds: `getProfile` for non-existant DID as an error, not panic
 
 
 ## [0.1.2] - 2022-11-22
