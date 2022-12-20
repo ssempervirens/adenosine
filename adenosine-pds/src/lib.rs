@@ -599,6 +599,29 @@ fn xrpc_post_handler(
                 &keypair
             )?))
         }
+        "com.atproto.session.refresh" => {
+            // actually just returns current session, because we don't implement refresh
+            let mut srv = srv.lock().unwrap();
+            let did = xrpc_check_auth_header(&mut srv, request, None)?;
+            let header = request
+                .header("Authorization")
+                .ok_or(XrpcError::Forbidden("require auth header".to_string()))?;
+            if !header.starts_with("Bearer ") {
+                Err(XrpcError::Forbidden("require bearer token".to_string()))?;
+            }
+            let jwt = header.split(' ').nth(1).unwrap();
+            let handle = srv
+                .atp_db
+                .resolve_did(&did)?
+                .expect("DID matches to a handle");
+
+            Ok(json!(AtpSession {
+                did: did.to_string(),
+                name: handle.to_string(),
+                accessJwt: jwt.to_string(),
+                refreshJwt: jwt.to_string(),
+            }))
+        }
         "com.atproto.session.delete" => {
             let mut srv = srv.lock().unwrap();
             let _did = xrpc_check_auth_header(&mut srv, request, None)?;
