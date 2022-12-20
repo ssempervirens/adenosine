@@ -602,7 +602,7 @@ fn run(opt: Opt) -> Result<()> {
                 .map(|v| v.to_string())
                 .or(jwt_did)
                 .ok_or(anyhow!("expected a name, or self via auth token"))?;
-            params.insert("user".to_string(), name);
+            params.insert("actor".to_string(), name);
             xrpc_client.get(&Nsid::from_str("app.bsky.actor.getProfile")?, Some(params))?
         }
         Command::Bsky {

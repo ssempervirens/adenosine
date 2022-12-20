@@ -442,7 +442,7 @@ fn xrpc_get_handler(
         // =========== app.bsky methods
         "app.bsky.actor.getProfile" => {
             // TODO did or handle
-            let did = Did::from_str(&xrpc_required_param(request, "user")?)?;
+            let did = Did::from_str(&xrpc_required_param(request, "actor")?)?;
             let mut srv = srv.lock().unwrap();
             Ok(json!(bsky_get_profile(&mut srv, &did)?))
         }
