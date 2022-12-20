@@ -40,7 +40,33 @@ pub struct RepoDescribe {
 
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct RepoCreateRecord {
+    pub did: String,
+    pub collection: String,
+    pub record: serde_json::Value,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct RepoPutRecord {
+    pub did: String,
+    pub collection: String,
+    pub rkey: String,
+    pub record: serde_json::Value,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct RepoDeleteRecord {
+    pub did: String,
+    pub collection: String,
+    pub rkey: String,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct RepoBatchWriteBody {
+    pub did: String,
     pub writes: Vec<RepoBatchWrite>,
 }
 

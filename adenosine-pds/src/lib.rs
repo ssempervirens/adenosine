@@ -619,7 +619,7 @@ fn xrpc_post_handler(
         "com.atproto.repo.batchWrite" => {
             let batch: RepoBatchWriteBody = rouille::input::json_input(request)?;
             // TODO: validate edits against schemas
-            let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
+            let did = Did::from_str(&batch.did)?;
             let mut srv = srv.lock().unwrap();
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
             let mut mutations: Vec<Mutation> = Default::default();
@@ -654,15 +654,15 @@ fn xrpc_post_handler(
         }
         "com.atproto.repo.createRecord" => {
             // TODO: validate edits against schemas
-            let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
-            let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;
-            let record: Value = rouille::input::json_input(request)?;
+            let create: RepoCreateRecord = rouille::input::json_input(request)?;
+            let did = Did::from_str(&create.did)?;
+            let collection = Nsid::from_str(&create.collection)?;
             let mut srv = srv.lock().unwrap();
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
             let mutations: Vec<Mutation> = vec![Mutation::Create(
                 collection,
                 srv.tid_gen.next_tid(),
-                json_value_into_ipld(record),
+                json_value_into_ipld(create.record),
             )];
             let keypair = srv.pds_keypair.clone();
             srv.repo.mutate_repo(&did, &mutations, &keypair)?;
@@ -671,17 +671,17 @@ fn xrpc_post_handler(
         }
         "com.atproto.repo.putRecord" => {
             // TODO: validate edits against schemas
-            let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
-            let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;
-            let tid = Tid::from_str(&xrpc_required_param(request, "rkey")?)?;
-            let record: Value = rouille::input::json_input(request)?;
+            let put: RepoPutRecord = rouille::input::json_input(request)?;
+            let did = Did::from_str(&put.did)?;
+            let collection = Nsid::from_str(&put.collection)?;
+            let tid = Tid::from_str(&put.rkey)?;
             let mut srv = srv.lock().unwrap();
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
 
             let mutations: Vec<Mutation> = vec![Mutation::Update(
                 collection,
                 tid,
-                json_value_into_ipld(record),
+                json_value_into_ipld(put.record),
             )];
             let keypair = srv.pds_keypair.clone();
             srv.repo.mutate_repo(&did, &mutations, &keypair)?;
@@ -689,9 +689,10 @@ fn xrpc_post_handler(
             Ok(json!({}))
         }
         "com.atproto.repo.deleteRecord" => {
-            let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
-            let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;
-            let tid = Tid::from_str(&xrpc_required_param(request, "rkey")?)?;
+            let delete: RepoDeleteRecord = rouille::input::json_input(request)?;
+            let did = Did::from_str(&delete.did)?;
+            let collection = Nsid::from_str(&delete.collection)?;
+            let tid = Tid::from_str(&delete.rkey)?;
             let mut srv = srv.lock().unwrap();
             let _auth_did = &xrpc_check_auth_header(&mut srv, request, Some(&did))?;
 
@@ -702,6 +703,7 @@ fn xrpc_post_handler(
             Ok(json!({}))
         }
         "com.atproto.sync.updateRepo" => {
+            // TODO: all other XRPC POST methods removed params (eg, 'did' in this case)
             let did = Did::from_str(&xrpc_required_param(request, "did")?)?;
             // important that this read is before we take the mutex, because it could be slow!
             let mut car_bytes: Vec<u8> = Default::default();
