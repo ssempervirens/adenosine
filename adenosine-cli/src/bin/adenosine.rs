@@ -362,59 +362,54 @@ fn run(opt: Opt) -> Result<()> {
             None
         }
         Command::Create { collection, fields } => {
-            params.insert(
-                "did".to_string(),
-                jwt_did.ok_or(anyhow!("need auth token"))?,
-            );
-            params.insert("collection".to_string(), collection.to_string());
-            update_params_from_fields(&fields, &mut params);
+            let did = jwt_did.ok_or(anyhow!("need auth token"))?;
             let val = value_from_fields(fields);
             xrpc_client.post(
                 &Nsid::from_str("com.atproto.repo.createRecord")?,
-                Some(params),
-                Some(val),
+                None,
+                Some(json!({
+                    "did": did,
+                    "collection": collection,
+                    // TODO: "validate" (boolean)
+                    "record": val
+                })),
             )?
         }
         Command::Update { uri, fields } => {
-            params.insert("did".to_string(), uri.repository.to_string());
-            params.insert("user".to_string(), uri.repository.to_string());
-            params.insert(
-                "collection".to_string(),
-                uri.collection.ok_or(anyhow!("collection required"))?,
-            );
-            params.insert(
-                "rkey".to_string(),
-                uri.record.ok_or(anyhow!("record key required"))?,
-            );
+            let did = uri.repository.to_string();
+            let collection = uri.collection.ok_or(anyhow!("collection required"))?;
+            let rkey = uri.record.ok_or(anyhow!("record key required"))?;
+            params.insert("did".to_string(), did.clone());
+            params.insert("collection".to_string(), collection.clone());
+            params.insert("rkey".to_string(), rkey.clone());
             // fetch existing, extend map with fields, put the updated value
             let mut record = xrpc_client
-                .get(
-                    &Nsid::from_str("com.atproto.repo.getRecord")?,
-                    Some(params.clone()),
-                )?
+                .get(&Nsid::from_str("com.atproto.repo.getRecord")?, Some(params))?
                 .unwrap_or(json!({}));
-            update_params_from_fields(&fields, &mut params);
             update_value_from_fields(fields, &mut record);
             xrpc_client.post(
                 &Nsid::from_str("com.atproto.repo.putRecord")?,
-                Some(params),
-                Some(record),
+                None,
+                Some(json!({
+                    "did": did,
+                    "collection": collection,
+                    "rkey": rkey,
+                    "record": record,
+                })),
             )?
         }
         Command::Delete { uri } => {
-            params.insert("did".to_string(), uri.repository.to_string());
-            params.insert(
-                "collection".to_string(),
-                uri.collection.ok_or(anyhow!("collection required"))?,
-            );
-            params.insert(
-                "rkey".to_string(),
-                uri.record.ok_or(anyhow!("record key required"))?,
-            );
+            let did = uri.repository.to_string();
+            let collection = uri.collection.ok_or(anyhow!("collection required"))?;
+            let rkey = uri.record.ok_or(anyhow!("record key required"))?;
             xrpc_client.post(
                 &Nsid::from_str("com.atproto.repo.deleteRecord")?,
-                Some(params),
                 None,
+                Some(json!({
+                    "did": did,
+                    "collection": collection,
+                    "rkey": rkey,
+                })),
             )?
         }
         Command::Xrpc {
@@ -541,74 +536,60 @@ fn run(opt: Opt) -> Result<()> {
         } => xrpc_client.get(&Nsid::from_str("app.bsky.notifications.get")?, None)?,
         Command::Bsky {
             cmd: BskyCommand::Post { text },
-        } => {
-            params.insert(
-                "did".to_string(),
-                jwt_did.ok_or(anyhow!("need auth token"))?,
-            );
-            params.insert("collection".to_string(), "app.bsky.feed.post".to_string());
-            xrpc_client.post(
-                &Nsid::from_str("com.atproto.repo.createRecord")?,
-                Some(params),
-                Some(json!({
+        } => xrpc_client.post(
+            &Nsid::from_str("com.atproto.repo.createRecord")?,
+            None,
+            Some(json!({
+                "did": jwt_did.ok_or(anyhow!("need auth token"))?,
+                "collection": "app.bsky.feed.post",
+                "record": {
                     "text": text,
-                })),
-            )?
-        }
+                    "createdAt": created_at_now(),
+                },
+            })),
+        )?,
         Command::Bsky {
             cmd: BskyCommand::Repost { uri },
-        } => {
-            params.insert(
-                "did".to_string(),
-                jwt_did.ok_or(anyhow!("need auth token"))?,
-            );
-            params.insert("collection".to_string(), "app.bsky.feed.repost".to_string());
-            xrpc_client.post(
-                &Nsid::from_str("com.atproto.repo.createRecord")?,
-                Some(params),
-                Some(json!({
+        } => xrpc_client.post(
+            &Nsid::from_str("com.atproto.repo.createRecord")?,
+            None,
+            Some(json!({
+                "did": jwt_did.ok_or(anyhow!("need auth token"))?,
+                "collection": "app.bsky.feed.repost",
+                "record": {
                     "subject": uri.to_string(),
                     "createdAt": created_at_now(),
-                })),
-            )?
-        }
+                }
+            })),
+        )?,
         Command::Bsky {
             cmd: BskyCommand::Like { uri },
-        } => {
-            params.insert(
-                "did".to_string(),
-                jwt_did.ok_or(anyhow!("need auth token"))?,
-            );
-            params.insert("collection".to_string(), "app.bsky.feed.like".to_string());
-            xrpc_client.post(
-                &Nsid::from_str("com.atproto.repo.createRecord")?,
-                Some(params),
-                Some(json!({
+        } => xrpc_client.post(
+            &Nsid::from_str("com.atproto.repo.createRecord")?,
+            None,
+            Some(json!({
+                "did": jwt_did.ok_or(anyhow!("need auth token"))?,
+                "collection": "app.bsky.feed.like",
+                "record": {
                     "subject": { "uri": uri.to_string(), "cid": "TODO" },
                     "createdAt": created_at_now(),
-                })),
-            )?
-        }
+                },
+            })),
+        )?,
         Command::Bsky {
             cmd: BskyCommand::Follow { uri },
-        } => {
-            params.insert(
-                "did".to_string(),
-                jwt_did.ok_or(anyhow!("need auth token"))?,
-            );
-            params.insert(
-                "collection".to_string(),
-                "app.bsky.graph.follow".to_string(),
-            );
-            xrpc_client.post(
-                &Nsid::from_str("com.atproto.repo.createRecord")?,
-                Some(params),
-                Some(json!({
+        } => xrpc_client.post(
+            &Nsid::from_str("com.atproto.repo.createRecord")?,
+            None,
+            Some(json!({
+                "did": jwt_did.ok_or(anyhow!("need auth token"))?,
+                "collection": "app.bsky.graph.follow",
+                "record": {
                     "subject": { "did": uri.to_string() },
                     "createdAt": created_at_now(),
-                })),
-            )?
-        }
+                }
+            })),
+        )?,
         Command::Bsky {
             cmd: BskyCommand::Profile { name },
         } => {
