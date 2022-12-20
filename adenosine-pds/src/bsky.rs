@@ -200,7 +200,7 @@ fn feed_row_to_item(srv: &mut AtpService, row: FeedRow) -> Result<FeedItem> {
 
     let feed_item = FeedItem {
         uri,
-        cid: Some(row.item_post_cid.to_string()),
+        cid: row.item_post_cid.to_string(),
         author: User {
             did: row.item_did.to_string(),
             handle: row.item_handle,

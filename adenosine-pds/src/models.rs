@@ -169,8 +169,7 @@ pub struct User {
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct FeedItem {
     pub uri: String,
-    // TODO: cid is required
-    pub cid: Option<String>,
+    pub cid: String,
     pub author: User,
     pub repostedBy: Option<User>,
     pub record: Value,
@@ -211,8 +210,7 @@ pub struct PostThread {
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct ThreadItem {
     pub uri: String,
-    // TODO: CID is required
-    pub cid: Option<String>,
+    pub cid: String,
     pub author: User,
     pub record: Value,
     //pub embed?: RecordEmbed | ExternalEmbed | UnknownEmbed,
