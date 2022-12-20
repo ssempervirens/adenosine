@@ -1,6 +1,35 @@
 
 # CHANGELOG
 
+## [0.2.0] - 2022-12-19
+
+Tracking upstream Lexicon changes. Not backwards-compatible at the CLI/PDS XRPC
+layer, but doesn't seem to impact existing repo content. Bumping major version
+for this reason.
+
+The PDS sqlite schema was tweaked, but only to change the auto-generated
+`indexed_at` columns to use milisecond precision; believe this should be
+backwards/forwards compatible.
+
+Still not a complete implementation of lexicons, in either CLI or PDS. Notably,
+neither supports bsky media attachments (blobs, photos, etc) in this release.
+
+## Changed
+
+- both: most XRPC POST params moved from HTTP query to JSON body (upstream lexicon change)
+- both: use milisecond precision in timestamps (eg, `createdAt`)
+- pds: use milisecond precision in sqlite-generated `indexedAt` fields (schema change)
+- update deps (`Cargo.lock`)
+- both: `getActor` query param is "actor" not "user" (so far upstream has not
+  refactored other "user" instances)
+
+## Added
+
+- both: com.atproto.session.refresh endpoint
+- pds: stub implementation of new `app.bsky.actor` lexicons (`search`,
+  `searchTypeahead`, `getSuggestions`)
+
+
 ## [0.1.2] - 2022-11-22
 
 ## Added
