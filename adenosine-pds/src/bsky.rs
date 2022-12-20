@@ -104,14 +104,21 @@ pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<Profile> {
         .conn
         .prepare_cached("SELECT COUNT(*) FROM bsky_follow WHERE subject_did = $1")?;
     let followers_count: u64 = stmt.query_row(params!(did.to_string()), |row| row.get(0))?;
+    let decl = DeclRef {
+        actorType: "app.bsky.system.actorUser".to_string(),
+        cid: "bafyreid27zk7lbis4zw5fz4podbvbs4fc5ivwji3dmrwa6zggnj4bnd57u".to_string(),
+    };
     Ok(Profile {
         did: did.to_string(),
         handle,
+        creator: did.to_string(),
         displayName: display_name,
         description,
+        declaration: decl,
         followersCount: followers_count,
         followsCount: follows_count,
         postsCount: post_count,
+        membersCount: 0,
         myState: json!({}),
     })
 }

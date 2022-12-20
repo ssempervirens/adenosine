@@ -118,15 +118,35 @@ pub struct ProfileRecord {
     pub description: Option<String>,
 }
 
+// app.bsky.system.actorUser or app.bsky.system.actorScene
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct Declaration {
+    pub actorType: String,
+}
+
+// actorType: app.bsky.system.actorUser
+// cid: bafyreid27zk7lbis4zw5fz4podbvbs4fc5ivwji3dmrwa6zggnj4bnd57u
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct DeclRef {
+    pub actorType: String,
+    pub cid: String,
+}
+
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct Profile {
     pub did: String,
+    pub declaration: DeclRef,
     pub handle: String,
+    // for simple accounts, 'creator' is just the did
+    pub creator: String,
     pub displayName: Option<String>,
     pub description: Option<String>,
     pub followersCount: u64,
     pub followsCount: u64,
+    pub membersCount: u64,
     pub postsCount: u64,
     pub myState: serde_json::Value,
 }
