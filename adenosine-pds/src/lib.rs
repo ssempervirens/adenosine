@@ -350,6 +350,7 @@ fn xrpc_get_handler(
             if let Some(domain) = &srv.config.registration_domain {
                 avail_domains.push(domain)
             }
+            // TODO: optional "links" object with "privacyPolicy" and "termsOfService" URLs
             Ok(
                 json!({"availableUserDomains": avail_domains, "inviteCodeRequired": srv.config.invite_code.is_some()}),
             )

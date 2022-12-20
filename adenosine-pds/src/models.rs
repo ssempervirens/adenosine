@@ -158,6 +158,8 @@ pub struct PostThread {
     pub thread: ThreadItem,
 }
 
+// TODO: 'parent' and 'replies' should allow "NotFoundPost" for references that point to an unknown
+// URI
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct ThreadItem {
