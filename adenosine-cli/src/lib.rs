@@ -61,6 +61,7 @@ impl XrpcClient {
         nsid: &Nsid,
         params: Option<HashMap<String, String>>,
     ) -> Result<Option<Value>> {
+        log::debug!("XRPC GET endpoint={} params={:?}", nsid, params);
         let params: HashMap<String, String> = params.unwrap_or_default();
         let res = self
             .http_client
@@ -121,6 +122,12 @@ impl XrpcClient {
         body: Option<Value>,
     ) -> Result<Option<Value>> {
         let params: HashMap<String, String> = params.unwrap_or_default();
+        log::debug!(
+            "XRPC POST endpoint={} params={:?} body={:?}",
+            nsid,
+            params,
+            body
+        );
         let mut req = self
             .http_client
             .post(format!("{}/xrpc/{}", self.host, nsid))
