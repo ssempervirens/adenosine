@@ -211,7 +211,8 @@ fn feed_row_to_item(srv: &mut AtpService, row: FeedRow) -> Result<FeedItem> {
         embed: None,
         replyCount: reply_count,
         repostCount: repost_count,
-        likeCount: like_count,
+        upvoteCount: like_count,
+        downvoteCount: 0,
         indexedAt: row.indexed_at,
         myState: None,
     };
@@ -330,7 +331,8 @@ pub fn bsky_get_thread(
             replyCount: item.replyCount,
             // only going to depth of one here
             replies: None,
-            likeCount: item.likeCount,
+            upvoteCount: item.upvoteCount,
+            downvoteCount: 0,
             repostCount: item.repostCount,
             indexedAt: item.indexedAt,
             myState: None,
@@ -346,7 +348,8 @@ pub fn bsky_get_thread(
         parent,
         replyCount: post_item.replyCount,
         replies: Some(children),
-        likeCount: post_item.likeCount,
+        upvoteCount: post_item.upvoteCount,
+        downvoteCount: 0,
         repostCount: post_item.repostCount,
         indexedAt: post_item.indexedAt,
         myState: None,
@@ -604,17 +607,18 @@ fn test_bsky_feeds() {
     assert_eq!(alice_feed.feed[2].embed, None);
     assert_eq!(alice_feed.feed[2].replyCount, 0);
     assert_eq!(alice_feed.feed[2].repostCount, 0);
-    assert_eq!(alice_feed.feed[2].likeCount, 1);
+    assert_eq!(alice_feed.feed[2].upvoteCount, 1);
+    assert_eq!(alice_feed.feed[2].downvoteCount, 0);
 
     assert_eq!(alice_feed.feed[1].author.did, alice_did.to_string());
     assert_eq!(alice_feed.feed[1].replyCount, 0);
     assert_eq!(alice_feed.feed[1].repostCount, 1);
-    assert_eq!(alice_feed.feed[1].likeCount, 0);
+    assert_eq!(alice_feed.feed[1].upvoteCount, 0);
 
     assert_eq!(alice_feed.feed[0].author.did, alice_did.to_string());
     assert_eq!(alice_feed.feed[0].replyCount, 1);
     assert_eq!(alice_feed.feed[0].repostCount, 0);
-    assert_eq!(alice_feed.feed[0].likeCount, 0);
+    assert_eq!(alice_feed.feed[0].upvoteCount, 0);
 
     // test bob timeline: should include alice posts
     let bob_timeline = bsky_get_timeline(&mut srv, &bob_did).unwrap();
@@ -760,7 +764,7 @@ fn test_bsky_thread() {
     assert_eq!(post.embed, None);
     assert_eq!(post.replyCount, 1);
     assert_eq!(post.repostCount, 0);
-    assert_eq!(post.likeCount, 0);
+    assert_eq!(post.upvoteCount, 0);
     assert_eq!(post.replies.as_ref().unwrap().len(), 1);
 
     let post_replies = post.replies.unwrap();

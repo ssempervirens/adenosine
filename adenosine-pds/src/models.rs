@@ -178,7 +178,8 @@ pub struct FeedItem {
     pub embed: Option<Value>,
     pub replyCount: u64,
     pub repostCount: u64,
-    pub likeCount: u64,
+    pub upvoteCount: u64,
+    pub downvoteCount: u64,
     pub indexedAt: String,
     pub myState: Option<Value>,
 }
@@ -219,8 +220,9 @@ pub struct ThreadItem {
     pub parent: Option<Box<ThreadItem>>,
     pub replyCount: u64,
     pub replies: Option<Vec<ThreadItem>>,
-    pub likeCount: u64,
     pub repostCount: u64,
+    pub upvoteCount: u64,
+    pub downvoteCount: u64,
     pub indexedAt: String,
     pub myState: Option<Value>,
 }

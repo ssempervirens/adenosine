@@ -28,7 +28,7 @@
 {{ item.record["text"].as_str().unwrap() }}
 <br>
 <span class="counts">
-  [<a href="#">{{ item.likeCount }} like</a> / <a href="#">{{ item.repostCount }} repost</a> / <a href="#">{{ item.replyCount }} reply</a>]
+  [<a href="#">{{ item.upvoteCount }} upvote</a> / <a href="#">{{ item.repostCount }} repost</a> / <a href="#">{{ item.replyCount }} reply</a>]
   <a href="{{ item.uri|aturi_to_path }}" class="pink">[inspect]</a>
 </span>
 
