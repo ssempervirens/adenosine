@@ -477,6 +477,24 @@ fn xrpc_get_handler(
             let mut srv = srv.lock().unwrap();
             Ok(json!(bsky_get_thread(&mut srv, &uri, None)?))
         }
+        "app.bsky.graph.getMemberships" => {
+            // TODO: actual implementation
+            // TODO did or handle
+            let _actor = Did::from_str(&xrpc_required_param(request, "actor")?)?;
+            Ok(json!({"memberships": []}))
+        }
+        "app.bsky.notification.getCount" => {
+            // TODO: actual implementation
+            let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
+            let _auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
+            Ok(json!({"count": 0}))
+        }
+        "app.bsky.notification.list" => {
+            // TODO: actual implementation
+            let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
+            let _auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
+            Ok(json!({"notifications": []}))
+        }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
             "XRPC endpoint handler not found: {}",
             method
@@ -746,6 +764,12 @@ fn xrpc_post_handler(
             let mut srv = srv.lock().unwrap();
             let auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
             bsky_update_profile(&mut srv, auth_did, profile)?;
+            Ok(json!({}))
+        }
+        "app.bsky.notification.updateSeen" => {
+            // TODO: actual implementation
+            let mut srv = srv.lock().unwrap();
+            let _auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
             Ok(json!({}))
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
