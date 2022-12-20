@@ -444,6 +444,7 @@ fn xrpc_get_handler(
             // TODO did or handle
             let did = Did::from_str(&xrpc_required_param(request, "actor")?)?;
             let mut srv = srv.lock().unwrap();
+            // TODO: if profile doesn't exist, return a 404
             Ok(json!(bsky_get_profile(&mut srv, &did)?))
         }
         "app.bsky.actor.search" => {

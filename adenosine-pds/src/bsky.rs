@@ -60,11 +60,15 @@ pub fn bsky_mutate_db(db: &mut AtpDatabase, did: &Did, mutations: Vec<Mutation>)
     Ok(())
 }
 
+// TODO: should probably return Result<Option<Profile>>?
 pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<Profile> {
     // first get the profile record
     let mut profile_cid: Option<Cid> = None;
-    let commit_cid = &srv.repo.lookup_commit(did)?.unwrap();
-    let last_commit = srv.repo.get_commit(commit_cid)?;
+    let commit_cid = match srv.repo.lookup_commit(did)? {
+        Some(cid) => cid,
+        None => Err(anyhow!("repository not found: {}", did))?,
+    };
+    let last_commit = srv.repo.get_commit(&commit_cid)?;
     let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
     let prefix = "/app.bsky.actor.profile/";
     for (mst_key, cid) in full_map.iter() {
@@ -115,8 +119,11 @@ pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<Profile> {
 pub fn bsky_update_profile(srv: &mut AtpService, did: &Did, profile: ProfileRecord) -> Result<()> {
     // get the profile record
     let mut profile_tid: Option<Tid> = None;
-    let commit_cid = &srv.repo.lookup_commit(did)?.unwrap();
-    let last_commit = srv.repo.get_commit(commit_cid)?;
+    let commit_cid = match srv.repo.lookup_commit(did)? {
+        Some(cid) => cid,
+        None => Err(anyhow!("repository not found: {}", did))?,
+    };
+    let last_commit = srv.repo.get_commit(&commit_cid)?;
     let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
     let prefix = "/app.bsky.actor.profile/";
     for (mst_key, _cid) in full_map.iter() {
