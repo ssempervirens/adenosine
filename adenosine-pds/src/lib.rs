@@ -446,6 +446,20 @@ fn xrpc_get_handler(
             let mut srv = srv.lock().unwrap();
             Ok(json!(bsky_get_profile(&mut srv, &did)?))
         }
+        "app.bsky.actor.search" => {
+            // TODO: actual implementation
+            let _term = xrpc_required_param(request, "term")?;
+            Ok(json!({"users": []}))
+        }
+        "app.bsky.actor.searchTypeahead" => {
+            // TODO: actual implementation
+            let _term = xrpc_required_param(request, "term")?;
+            Ok(json!({"users": []}))
+        }
+        "app.bsky.actor.getSuggestions" => {
+            // TODO: actual implementation
+            Ok(json!({"actors": []}))
+        }
         "app.bsky.feed.getAuthorFeed" => {
             // TODO did or handle
             let did = Did::from_str(&xrpc_required_param(request, "author")?)?;
