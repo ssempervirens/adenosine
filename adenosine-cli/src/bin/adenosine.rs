@@ -86,6 +86,8 @@ enum AccountCommand {
         #[structopt(long, short)]
         password: String,
     },
+    /// Refreshes JWT token
+    Refresh,
     /// Deletes the current login session
     Logout,
     /// Fetches account metadata for the current session
@@ -461,6 +463,9 @@ fn run(opt: Opt) -> Result<()> {
                 "password": password,
             })),
         )?,
+        Command::Account {
+            cmd: AccountCommand::Refresh,
+        } => xrpc_client.post(&Nsid::from_str("com.atproto.session.refresh")?, None, None)?,
         Command::Account {
             cmd: AccountCommand::Logout,
         } => xrpc_client.post(&Nsid::from_str("com.atproto.session.delete")?, None, None)?,
