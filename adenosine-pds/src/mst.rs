@@ -70,7 +70,7 @@ fn get_mst_node(db: &mut BlockStore<libipld::DefaultParams>, cid: &Cid) -> Resul
     Ok(mst_node)
 }
 
-fn print_mst_keys(db: &mut BlockStore<libipld::DefaultParams>, cid: &Cid) -> Result<()> {
+pub fn print_mst_keys(db: &mut BlockStore<libipld::DefaultParams>, cid: &Cid) -> Result<()> {
     let node = get_mst_node(db, cid)?;
     if let Some(ref left) = node.l {
         print_mst_keys(db, left)?;
@@ -170,6 +170,27 @@ fn leading_zeros(key: &str) -> u8 {
     digest.len() as u8
 }
 
+// # python code to generate test cases
+// import hashlib
+// seed = b"asdf"
+// while True:
+//     out = hashlib.sha256(seed).hexdigest()
+//     if out.startswith("00"):
+//         print(f"{seed} -> {out}")
+//     seed = b"app.bsky.feed.post/" + out.encode('utf8')[:12]
+
+#[test]
+fn test_leading_zeros() {
+    assert_eq!(leading_zeros(""), 0);
+    assert_eq!(leading_zeros("asdf"), 0);
+    assert_eq!(leading_zeros("2653ae71"), 0);
+    assert_eq!(leading_zeros("88bfafc7"), 1);
+    assert_eq!(leading_zeros("2a92d355"), 2);
+    assert_eq!(leading_zeros("884976f5"), 3);
+    assert_eq!(leading_zeros("app.bsky.feed.post/454397e440ec"), 2);
+    assert_eq!(leading_zeros("app.bsky.feed.post/9adeb165882c"), 4);
+}
+
 pub fn generate_mst(
     db: &mut BlockStore<libipld::DefaultParams>,
     map: &BTreeMap<String, Cid>,
@@ -255,9 +276,33 @@ fn common_prefix_len(a: &str, b: &str) -> usize {
 #[test]
 fn test_common_prefix_len() {
     assert_eq!(common_prefix_len("abc", "abc"), 3);
+    assert_eq!(common_prefix_len("", "abc"), 0);
+    assert_eq!(common_prefix_len("abc", ""), 0);
+    assert_eq!(common_prefix_len("ab", "abc"), 2);
+    assert_eq!(common_prefix_len("abc", "ab"), 2);
     assert_eq!(common_prefix_len("abcde", "abc"), 3);
+    assert_eq!(common_prefix_len("abc", "abcde"), 3);
+    assert_eq!(common_prefix_len("abcde", "abc1"), 3);
     assert_eq!(common_prefix_len("abcde", "abb"), 2);
-    assert_eq!(common_prefix_len("", "asdf"), 0);
+    assert_eq!(common_prefix_len("abcde", "qbb"), 0);
+    assert_eq!(common_prefix_len("abc", "abc\x00"), 3);
+    assert_eq!(common_prefix_len("abc\x00", "abc"), 3);
+}
+
+#[test]
+fn test_common_prefix_len_wide() {
+    // TODO: these are not cross-language consistent!
+    assert_eq!("jalapeño".len(), 9); // 8 in javascript
+    assert_eq!("💩".len(), 4); // 2 in javascript
+    assert_eq!("👩‍👧‍👧".len(), 18); // 8 in javascript
+
+    // many of the below are different in JS; in Rust we *must* cast down to bytes to count
+    assert_eq!(common_prefix_len("jalapeño", "jalapeno"), 6);
+    assert_eq!(common_prefix_len("jalapeñoA", "jalapeñoB"), 9);
+    assert_eq!(common_prefix_len("coöperative", "coüperative"), 3);
+    assert_eq!(common_prefix_len("abc💩abc", "abcabc"), 3);
+    assert_eq!(common_prefix_len("💩abc", "💩ab"), 6);
+    assert_eq!(common_prefix_len("abc👩‍👦‍👦de", "abc👩‍👧‍👧de"), 13);
 }
 
 fn serialize_wip_tree(

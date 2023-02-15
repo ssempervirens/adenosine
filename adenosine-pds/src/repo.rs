@@ -46,7 +46,8 @@ impl RepoCommit {
 }
 
 pub struct RepoStore {
-    db: BlockStore<libipld::DefaultParams>,
+    // TODO: only public for test/debug; should wrap instead
+    pub db: BlockStore<libipld::DefaultParams>,
 }
 
 pub enum Mutation {
