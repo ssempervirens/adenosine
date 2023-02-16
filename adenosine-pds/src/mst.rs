@@ -223,28 +223,48 @@ pub fn generate_mst(
     serialize_wip_tree(db, root.unwrap_or(empty_node))
 }
 
+// this routine assumes that entries are added in sorted key order. AKA, the `entry` being added is
+// "further right" in the tree than any existing entries
 fn insert_entry(mut node: WipNode, entry: WipEntry) -> WipNode {
-    // if we are higher on tree than existing node, replace it with new layer first
-    if entry.height > node.height {
+    // if we are higher on tree than existing node, replace it (recursively) with new layers first
+    while entry.height > node.height {
         node = WipNode {
-            height: entry.height,
+            height: node.height + 1,
             left: Some(Box::new(node)),
             entries: vec![],
         }
-    };
+    }
     // if we are lower on tree, then need to descend first
     if entry.height < node.height {
-        // we should never be lower down the left than an existing node, and always to the right
+        // if no entries at this node, then we should insert down "left" (which is just "down", not
+        // "before" any entries)
+        if node.entries.is_empty() {
+            if let Some(left) = node.left {
+                node.left = Some(Box::new(insert_entry(*left, entry)));
+                return node;
+            } else {
+                panic!("hit existing totally empty MST node");
+            }
+        }
         let mut last = node.entries.pop().expect("hit empty existing entry list");
         assert!(entry.key > last.key);
         if last.right.is_some() {
             last.right = Some(Box::new(insert_entry(*last.right.unwrap(), entry)));
         } else {
-            last.right = Some(Box::new(WipNode {
+            let mut new_node = WipNode {
                 height: entry.height,
                 left: None,
                 entries: vec![entry],
-            }));
+            };
+            // may need to (recursively) insert multiple filler layers
+            while new_node.height + 1 < node.height {
+                new_node = WipNode {
+                    height: new_node.height + 1,
+                    left: Some(Box::new(new_node)),
+                    entries: vec![],
+                }
+            }
+            last.right = Some(Box::new(new_node));
         }
         node.entries.push(last);
         return node;

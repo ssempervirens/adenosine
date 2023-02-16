@@ -3,7 +3,6 @@ use libipld::Cid;
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
-#[ignore]
 #[test]
 fn test_known_maps() {
     let mut repo = RepoStore::open_ephemeral().unwrap();
@@ -42,6 +41,7 @@ fn test_known_maps() {
     );
 }
 
+// TODO: behavior of these wide-char keys is undefined behavior in string MST
 #[ignore]
 #[test]
 fn test_tricky_map() {
@@ -71,7 +71,6 @@ fn test_trims_top() {
         Cid::from_str("bafyreie5cvv4h45feadgeuwhbcutmh6t2ceseocckahdoe6uat64zmz454").unwrap();
     let l1root = "bafyreihuyj2vzb2vjw3yhxg6dy25achg5fmre6gg5m6fjtxn64bqju4dee";
     let l0root = "bafyreibmijjc63mekkjzl3v2pegngwke5u6cu66g75z6uw27v64bc6ahqi";
-
 
     // NOTE: this test doesn't do much in this case of rust implementation
     let mut trim_map: BTreeMap<String, Cid> = Default::default();
@@ -123,7 +122,6 @@ fn test_insertion() {
     assert_eq!(insertion_after_cid.to_string(), l2root);
 }
 
-#[ignore]
 #[test]
 fn test_higher_layers() {
     // "handles new layers that are two higher than existing"
