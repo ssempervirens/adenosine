@@ -1,4 +1,7 @@
 
+PDS:
+- keys in MST (repo) should NOT have leading slash (!)
+
 CLI:
 - register and login commands should do more than just dump JSON
     => return shell 'export' command (for easier config)
