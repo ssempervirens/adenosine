@@ -1,3 +1,15 @@
+/// This is a simple immutable implemenation of of a Merkle Search Tree (MST) for atproto.
+///
+/// Mutations on the data structure are not implemented; instead the entire tree is read into a
+/// BTreeMap, that is mutated, and then the entire tree is regenerated. This makes implementation
+/// much simpler, at the obvious cost of performance in some situations.
+///
+/// The MST is basically a sorted key/value store where the key is a string and the value is a CID.
+/// Tree nodes are stored as DAG-CBOG IPLD blocks, with references as CIDs.
+///
+/// In the atproto MST implementation, SHA-256 is the hashing algorithm, and "leading zeros" are
+/// counted in blocks of 4 bits (so a leading zero byte counts as two zeros). This happens to match
+/// simple hex encoding of the SHA-256 hash.
 use anyhow::{anyhow, Context, Result};
 use ipfs_sqlite_block_store::BlockStore;
 use libipld::cbor::DagCborCodec;
@@ -34,8 +46,8 @@ pub struct MetadataNode {
 
 #[derive(Debug, DagCbor, PartialEq, Eq)]
 struct MstEntry {
-    k: String,
     p: u32,
+    k: String,
     v: Cid,
     t: Option<Cid>,
 }
@@ -360,4 +372,28 @@ fn serialize_wip_tree(
     let cid = *block.cid();
     db.put_block(block, None)?;
     Ok(cid)
+}
+
+#[test]
+fn test_mst_node_cbor() {
+    use std::str::FromStr;
+    let cid1 =
+        Cid::from_str("bafyreie5cvv4h45feadgeuwhbcutmh6t2ceseocckahdoe6uat64zmz454").unwrap();
+    let node = MstNode {
+        l: None,
+        e: vec![MstEntry {
+            k: "asdf".to_string(),
+            p: 0,
+            v: cid1,
+            t: None,
+        }],
+    };
+    let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, &node).unwrap();
+    println!("{:?}", block);
+    //assert_eq!(1, 2);
+    let cid = *block.cid();
+    assert_eq!(
+        cid.to_string(),
+        "bafyreidaftbr35xhh4lzmv5jcoeufqjh75ohzmz6u56v7n2ippbtxdgqqe"
+    );
 }
