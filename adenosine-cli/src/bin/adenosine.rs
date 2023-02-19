@@ -1,4 +1,5 @@
-use adenosine_cli::identifiers::*;
+use adenosine::identifiers::*;
+use adenosine::*;
 use adenosine_cli::*;
 use anyhow::anyhow;
 use serde_json::{json, Value};
