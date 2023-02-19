@@ -1,5 +1,4 @@
 use crate::models::*;
-use crate::repo::Mutation;
 /// Helper functions for doing database and repo operations relating to bluesky endpoints and
 /// records
 use crate::{
@@ -7,6 +6,7 @@ use crate::{
     XrpcError,
 };
 use adenosine::identifiers::{AtUri, DidOrHost, Nsid};
+use adenosine::repo::Mutation;
 use anyhow::anyhow;
 use libipld::Cid;
 use rusqlite::params;

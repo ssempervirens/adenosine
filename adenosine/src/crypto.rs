@@ -1,5 +1,5 @@
-use crate::P256KeyMaterial;
-use adenosine::identifiers::Did;
+use crate::identifiers::Did;
+use crate::ucan_p256::P256KeyMaterial;
 use anyhow::{anyhow, ensure, Result};
 use p256::ecdsa::signature::{Signer, Verifier};
 use std::str::FromStr;

@@ -1,9 +1,9 @@
 use crate::car::{
     load_car_bytes_to_blockstore, load_car_path_to_blockstore, read_car_bytes_from_blockstore,
 };
+use crate::crypto::KeyPair;
+use crate::identifiers::{Did, Nsid, Tid};
 use crate::mst::{collect_mst_keys, generate_mst, CommitNode, MetadataNode, RootNode};
-use crate::KeyPair;
-use adenosine::identifiers::{Did, Nsid, Tid};
 use anyhow::{anyhow, ensure, Context, Result};
 use ipfs_sqlite_block_store::BlockStore;
 use libipld::cbor::DagCborCodec;

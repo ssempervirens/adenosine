@@ -24,6 +24,22 @@ lazy_static = "1"
 data-encoding = "2"
 rand = "0.8"
 time = { version = "0.3", features = ["formatting"] }
+k256 = { version = "0.11", features = ["ecdsa"] }
+p256 = { version = "0.11", features = ["ecdsa"] }
+bs58 = "0.4"
+libipld = "0.14"
+ipfs-sqlite-block-store = "0.13"
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+sha256 = "1"
+multibase = "0.9"
+ucan = "0.7.0-alpha.1"
+async-trait = "0.1"
+
+# for vendored iroh-car
+thiserror = "1.0"
+integer-encoding = { version = "3", features = ["tokio_async"] }
+multihash = "0.16"
 
 # uncertain about these...
 anyhow = "1"

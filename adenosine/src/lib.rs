@@ -6,7 +6,14 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::Duration;
 
+pub mod car;
+pub mod crypto;
+pub mod did;
 pub mod identifiers;
+pub mod mst;
+pub mod repo;
+pub mod ucan_p256;
+pub mod vendored;
 use identifiers::Nsid;
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);

@@ -32,25 +32,13 @@ rouille = "3"
 adenosine = { version = "0.2.0", path = "../adenosine" }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
-sha256 = "1"
 lazy_static = "1"
 bcrypt = "0.13"
 data-encoding = "2"
-k256 = { version = "0.11", features = ["ecdsa"] }
-p256 = { version = "0.11", features = ["ecdsa"] }
-multibase = "0.9"
-ucan = "0.7.0-alpha.1"
 # TODO: replace this with data-encoding or similar; this is only needed for ucan_p256 stuff
-bs58 = "0.4"
 async-trait = "0.1"
 dotenvy = "0.15"
 askama = { version = "0.11", features = ["serde-json"] }
-time = { version = "0.3", features = ["formatting"] }
-
-# for vendored iroh-car
-thiserror = "1.0"
-integer-encoding = { version = "3", features = ["tokio_async"] }
-multihash = "0.16"
 
 [package.metadata.deb]
 maintainer = "Bryan Newbold <bnewbold@robocracy.org>"

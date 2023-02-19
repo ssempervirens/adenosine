@@ -1,9 +1,10 @@
+use crate::crypto::{KeyPair, PubKey};
 /// DID and 'did:plc' stuff
 ///
 /// This is currently a partial/skeleton implementation, which only generates local/testing did:plc
 /// DIDs (and DID documents) using a single 'create' genesis block. Key rotation, etc, is not
 /// supported.
-use crate::{Did, KeyPair, PubKey};
+use crate::identifiers::Did;
 use anyhow::Result;
 use libipld::cbor::DagCborCodec;
 use libipld::multihash::Code;

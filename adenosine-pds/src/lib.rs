@@ -15,24 +15,18 @@ use std::str::FromStr;
 use std::sync::Mutex;
 
 mod bsky;
-mod car;
-mod crypto;
 mod db;
-mod did;
 pub mod models;
-pub mod mst;
-mod repo;
-mod ucan_p256;
-mod vendored;
 mod web;
 
+pub use adenosine::crypto::{KeyPair, PubKey};
+pub use adenosine::did;
+pub use adenosine::did::DidDocMeta;
+pub use adenosine::repo::{Mutation, RepoCommit, RepoStore};
+pub use adenosine::ucan_p256::P256KeyMaterial;
 use bsky::*;
-pub use crypto::{KeyPair, PubKey};
 pub use db::AtpDatabase;
-pub use did::DidDocMeta;
 pub use models::*;
-pub use repo::{Mutation, RepoCommit, RepoStore};
-pub use ucan_p256::P256KeyMaterial;
 use web::*;
 
 pub struct AtpService {

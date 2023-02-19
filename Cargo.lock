@@ -7,17 +7,31 @@ name = "adenosine"
 version = "0.2.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "base64",
+ "bs58",
  "data-encoding",
  "env_logger",
+ "futures",
+ "integer-encoding",
+ "ipfs-sqlite-block-store",
+ "k256",
  "lazy_static",
+ "libipld",
  "log",
+ "multibase",
+ "multihash",
+ "p256",
  "rand",
  "regex",
  "reqwest",
  "serde",
  "serde_json",
+ "sha256",
+ "thiserror",
  "time",
+ "tokio",
+ "ucan",
 ]
 
 [[package]]
@@ -53,31 +67,21 @@ dependencies = [
  "askama",
  "async-trait",
  "bcrypt",
- "bs58",
  "data-encoding",
  "dotenvy",
  "futures",
- "integer-encoding",
  "ipfs-sqlite-block-store",
- "k256",
  "lazy_static",
  "libipld",
  "log",
- "multibase",
- "multihash",
- "p256",
  "pretty_env_logger",
  "rouille",
  "rusqlite",
  "rusqlite_migration",
  "serde",
  "serde_json",
- "sha256",
  "structopt",
- "thiserror",
- "time",
  "tokio",
- "ucan",
 ]
 
 [[package]]
@@ -284,9 +288,9 @@ dependencies = [
 
 [[package]]
 name = "async-recursion"
-version = "1.0.0"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cda8f4bcc10624c4e85bc66b3f452cca98cfa5ca002dc83a16aad2367641bea"
+checksum = "3b015a331cc64ebd1774ba119538573603427eaace0a1950c423ab971f903796"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -338,9 +342,9 @@ dependencies = [
 
 [[package]]
 name = "atomic-waker"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "065374052e7df7ee4047b1160cca5e1467a12351a40b3da123c870ba0b8eda2a"
+checksum = "debc29dde2e69f9e47506b525f639ed42300fc014a3e007832592448fa8e4599"
 
 [[package]]
 name = "atty"
@@ -645,9 +649,9 @@ dependencies = [
 
 [[package]]
 name = "concurrent-queue"
-version = "2.0.0"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd7bef69dc86e3c610e4e7aed41035e2a7ed12e72dd7530f61327a6579a4390b"
+checksum = "c278839b831783b70278b14df4d45e1beb1aad306c07bb796637de9a0e323e8e"
 dependencies = [
  "crossbeam-utils",
 ]
@@ -1169,9 +1173,9 @@ dependencies = [
 
 [[package]]
 name = "gloo-timers"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98c4a8d6391675c6b2ee1a6c8d06e8e2d03605c44cec1270675985a4c2a5500b"
+checksum = "9b995a66bb87bebce9a0f4a95aed01daca4872c050bfcb21653361c03bc35e5c"
 dependencies = [
  "futures-channel",
  "futures-core",
@@ -2448,9 +2452,9 @@ dependencies = [
 
 [[package]]
 name = "serde_bytes"
-version = "0.11.8"
+version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "718dc5fff5b36f99093fc49b280cfc96ce6fc824317783bff5a1fed0c7a64819"
+checksum = "416bda436f9aab92e02c8e10d49a15ddd339cea90b6e340fe51ed97abb548294"
 dependencies = [
  "serde",
 ]
@@ -2541,9 +2545,9 @@ dependencies = [
 
 [[package]]
 name = "sha256"
-version = "1.1.1"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e334db67871c14c18fc066ad14af13f9fdf5f9a91c61af432d1e3a39c8c6a141"
+checksum = "328169f167261957e83d82be47f9e36629e257c62308129033d7f7e7c173d180"
 dependencies = [
  "hex",
  "sha2 0.9.9",
