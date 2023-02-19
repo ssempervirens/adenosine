@@ -1,0 +1,31 @@
+[package]
+name = "adenosine"
+description = "Common libraries for AT protocol and bsky.app"
+keywords = ["atproto"]
+categories = []
+
+# common across workspace
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.61"
+authors = ["Bryan Newbold <bnewbold@robocracy.org>"]
+license = "AGPL-3.0-or-later"
+readme = "README.md"
+repository = "https://gitlab.com/bnewbold/adenosine"
+
+[dependencies]
+# NOTE: could try 'rustls-tls' feature instead of default native TLS?
+reqwest = { version = "0.11", features = ["blocking", "json"] }
+serde = { version = "1", features = ["serde_derive"] }
+serde_json = "1"
+base64 = "0.13"
+regex = "1"
+lazy_static = "1"
+data-encoding = "2"
+rand = "0.8"
+time = { version = "0.3", features = ["formatting"] }
+
+# uncertain about these...
+anyhow = "1"
+log = "0.4"
+env_logger = "0.7"
