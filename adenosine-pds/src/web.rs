@@ -1,6 +1,6 @@
 use crate::models::*;
 use crate::repo::RepoCommit;
-use adenosine_cli::identifiers::{Did, Nsid, Tid};
+use adenosine::identifiers::{Did, Nsid, Tid};
 use askama::Template;
 
 #[derive(Template)]

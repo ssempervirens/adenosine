@@ -6,7 +6,7 @@ use crate::{
     ipld_into_json_value, json_value_into_ipld, AtpDatabase, AtpService, Did, Result, Tid,
     XrpcError,
 };
-use adenosine_cli::identifiers::{AtUri, DidOrHost, Nsid};
+use adenosine::identifiers::{AtUri, DidOrHost, Nsid};
 use anyhow::anyhow;
 use libipld::Cid;
 use rusqlite::params;

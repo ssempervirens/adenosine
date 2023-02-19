@@ -1,5 +1,5 @@
-use adenosine_cli::created_at_now;
-use adenosine_cli::identifiers::{AtUri, Did, Nsid, Ticker, Tid};
+use adenosine::created_at_now;
+use adenosine::identifiers::{AtUri, Did, Nsid, Ticker, Tid};
 use anyhow::{anyhow, Result};
 use askama::Template;
 use libipld::Cid;
