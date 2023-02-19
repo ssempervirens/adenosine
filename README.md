@@ -18,6 +18,7 @@ goal is to think through how the protocol might work by implementing it.
 
 Components:
 
+- `adenosine` ([README](./adenosine/README.md)): common library code
 - `adenosine-cli` ([README](./adenosine-cli/README.md), [manpage](./extra/adenosine.1.md)): command-line client (`adenosine`)
 - `adenosine-pds` ([README](./adenosine-pds/README.md), [manpage](./extra/adenosine-pds.1.md)): "small world" personal data server implementation, with data in sqlite
 

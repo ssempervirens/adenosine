@@ -1,6 +1,19 @@
 
 # CHANGELOG
 
+## [0.3.0] - UNRELEASED
+
+Refactored common library code into `adenosine` crate. Will put common types,
+helpers, and probably client code and generated Lexicon code there.
+
+## Changed
+
+- mst: include "empty" intermediate nodes between layers (following upstream
+  behavior)
+
+## Added
+- mst: interop tests with upstream `atproto` (Typescript) repository
+
 ## [0.2.0] - 2022-12-19
 
 Tracking upstream Lexicon changes. Not backwards-compatible at the CLI/PDS XRPC

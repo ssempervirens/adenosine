@@ -3,9 +3,28 @@
 version = 3
 
 [[package]]
+name = "adenosine"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "data-encoding",
+ "env_logger",
+ "lazy_static",
+ "log",
+ "rand",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "time",
+]
+
+[[package]]
 name = "adenosine-cli"
 version = "0.2.0"
 dependencies = [
+ "adenosine",
  "anyhow",
  "atty",
  "base64",
@@ -29,7 +48,7 @@ dependencies = [
 name = "adenosine-pds"
 version = "0.2.0"
 dependencies = [
- "adenosine-cli",
+ "adenosine",
  "anyhow",
  "askama",
  "async-trait",

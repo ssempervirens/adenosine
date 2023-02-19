@@ -1,5 +1,5 @@
 [workspace]
-members = ["adenosine-cli", "adenosine-pds"]
+members = ["adenosine", "adenosine-cli", "adenosine-pds"]
 
 # NOTE: [workspace.package] did not work with some plugins and build tools
 
