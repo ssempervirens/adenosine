@@ -1,4 +1,5 @@
-use crate::models::*;
+use adenosine::app_bsky;
+use adenosine::com_atproto;
 use adenosine::identifiers::{Did, Nsid, Tid};
 use adenosine::repo::RepoCommit;
 use askama::Template;
@@ -28,8 +29,8 @@ pub struct AboutView {
 pub struct AccountView {
     pub domain: String,
     pub did: Did,
-    pub profile: Profile,
-    pub feed: Vec<FeedItem>,
+    pub profile: app_bsky::Profile,
+    pub feed: Vec<app_bsky::FeedItem>,
 }
 
 #[derive(Template)]
@@ -39,7 +40,7 @@ pub struct ThreadView {
     pub did: Did,
     pub collection: Nsid,
     pub tid: Tid,
-    pub post: ThreadItem,
+    pub post: app_bsky::ThreadItem,
 }
 
 #[derive(Template)]
@@ -48,7 +49,7 @@ pub struct RepoView {
     pub domain: String,
     pub did: Did,
     pub commit: RepoCommit,
-    pub describe: RepoDescribe,
+    pub describe: com_atproto::repo::Describe,
 }
 
 #[derive(Template)]

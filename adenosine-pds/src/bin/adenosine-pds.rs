@@ -1,5 +1,7 @@
+use adenosine::com_atproto;
+use adenosine::crypto::KeyPair;
 use adenosine::mst;
-use adenosine_pds::models::AccountRequest;
+use adenosine::repo::RepoStore;
 use adenosine_pds::*;
 use anyhow::Result;
 use serde_json::json;
@@ -208,7 +210,7 @@ fn main() -> Result<()> {
             public_url,
             did_plc,
         } => {
-            let req = AccountRequest {
+            let req = com_atproto::AccountRequest {
                 email,
                 handle: handle.clone(),
                 password,

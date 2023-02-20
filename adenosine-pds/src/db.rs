@@ -1,6 +1,7 @@
-use crate::models::{FollowRecord, Post, RefRecord};
 /// ATP database (as distinct from blockstore)
-use crate::{created_at_now, ipld_into_json_value, AtpSession, Did, KeyPair, Tid};
+use crate::{created_at_now, ipld_into_json_value, Did, KeyPair, Tid};
+use adenosine::app_bsky;
+use adenosine::com_atproto;
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use libipld::cbor::DagCborCodec;
@@ -105,7 +106,7 @@ impl AtpDatabase {
         handle: &str,
         password: &str,
         keypair: &KeyPair,
-    ) -> Result<AtpSession> {
+    ) -> Result<com_atproto::Session> {
         let mut stmt = self
             .conn
             .prepare_cached("SELECT did, password_bcrypt FROM account WHERE handle = ?1")?;
@@ -120,7 +121,7 @@ impl AtpDatabase {
             .conn
             .prepare_cached("INSERT INTO session (did, jwt) VALUES (?1, ?2)")?;
         stmt.execute(params!(did.to_string(), jwt))?;
-        Ok(AtpSession {
+        Ok(com_atproto::Session {
             did: did.to_string(),
             name: handle.to_string(),
             accessJwt: jwt.to_string(),
@@ -192,7 +193,7 @@ impl AtpDatabase {
             // need to re-compute the CID from DagCbor re-encoding, I guess. bleh.
             let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, &val)?;
             let cid = *block.cid();
-            let post: Post = serde_json::from_value(ipld_into_json_value(val))?;
+            let post: app_bsky::Post = serde_json::from_value(ipld_into_json_value(val))?;
             let (reply_to_parent_uri, reply_to_root_uri) = match post.reply {
                 Some(ref reply) => (Some(reply.parent.uri.clone()), Some(reply.root.uri.clone())),
                 None => (None, None),
@@ -226,7 +227,7 @@ impl AtpDatabase {
         val: Option<Ipld>,
     ) -> Result<()> {
         if let Some(val) = val {
-            let ref_obj: RefRecord = serde_json::from_value(ipld_into_json_value(val))?;
+            let ref_obj: app_bsky::RefRecord = serde_json::from_value(ipld_into_json_value(val))?;
             let mut stmt = self
                 .conn
                 .prepare_cached("INSERT INTO bsky_ref (ref_type, did, tid, subject_uri, subject_cid, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)")?;
@@ -253,7 +254,7 @@ impl AtpDatabase {
 
     pub fn bsky_upsert_follow(&mut self, did: &Did, tid: &Tid, val: Option<Ipld>) -> Result<()> {
         if let Some(val) = val {
-            let follow: FollowRecord = serde_json::from_value(ipld_into_json_value(val))?;
+            let follow: app_bsky::FollowRecord = serde_json::from_value(ipld_into_json_value(val))?;
             let mut stmt = self
                 .conn
                 .prepare_cached("INSERT INTO bsky_follow (did, tid, subject_did, created_at) VALUES (?1, ?2, ?3, ?4)")?;

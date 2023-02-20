@@ -2,32 +2,50 @@ use adenosine::created_at_now;
 use adenosine::identifiers::{AtUri, Did, Nsid, Ticker, Tid};
 use anyhow::{anyhow, Result};
 use askama::Template;
-use libipld::Cid;
-use libipld::Ipld;
 use log::{debug, error, info, warn};
 use rouille::{router, Request, Response};
 use serde_json::{json, Value};
-use std::collections::BTreeMap;
 use std::fmt;
 use std::io::Read;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Mutex;
 
-mod bsky;
 mod db;
-pub mod models;
+mod db_bsky;
 mod web;
 
-pub use adenosine::crypto::{KeyPair, PubKey};
-pub use adenosine::did;
-pub use adenosine::did::DidDocMeta;
-pub use adenosine::repo::{Mutation, RepoCommit, RepoStore};
-pub use adenosine::ucan_p256::P256KeyMaterial;
-use bsky::*;
-pub use db::AtpDatabase;
-pub use models::*;
+use adenosine::app_bsky;
+use adenosine::com_atproto;
+use adenosine::crypto::KeyPair;
+use adenosine::ipld::{ipld_into_json_value, json_value_into_ipld};
+use adenosine::plc;
+use adenosine::plc::DidDocMeta;
+use adenosine::repo::{Mutation, RepoStore};
+use db::AtpDatabase;
+use db_bsky::*;
 use web::*;
+
+#[derive(Debug)]
+pub enum XrpcError {
+    BadRequest(String),
+    NotFound(String),
+    Forbidden(String),
+    MutexPoisoned,
+}
+
+impl std::error::Error for XrpcError {}
+
+impl fmt::Display for XrpcError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::BadRequest(msg) | Self::NotFound(msg) | Self::Forbidden(msg) => {
+                write!(f, "{}", msg)
+            }
+            Self::MutexPoisoned => write!(f, "service mutex poisoned"),
+        }
+    }
+}
 
 pub struct AtpService {
     pub repo: RepoStore,
@@ -54,27 +72,6 @@ impl Default for AtpServiceConfig {
             registration_domain: None,
             invite_code: None,
             homepage_handle: None,
-        }
-    }
-}
-
-#[derive(Debug)]
-enum XrpcError {
-    BadRequest(String),
-    NotFound(String),
-    Forbidden(String),
-    MutexPoisoned,
-}
-
-impl std::error::Error for XrpcError {}
-
-impl fmt::Display for XrpcError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::BadRequest(msg) | Self::NotFound(msg) | Self::Forbidden(msg) => {
-                write!(f, "{}", msg)
-            }
-            Self::MutexPoisoned => write!(f, "service mutex poisoned"),
         }
     }
 }
@@ -256,49 +253,6 @@ impl AtpService {
     }
 }
 
-/// Intentionally serializing with this instead of DAG-JSON, because ATP schemas don't encode CID
-/// links in any special way, they just pass the CID as a string.
-fn ipld_into_json_value(val: Ipld) -> Value {
-    match val {
-        Ipld::Null => Value::Null,
-        Ipld::Bool(b) => Value::Bool(b),
-        Ipld::Integer(v) => json!(v),
-        Ipld::Float(v) => json!(v),
-        Ipld::String(s) => Value::String(s),
-        Ipld::Bytes(b) => Value::String(data_encoding::BASE64_NOPAD.encode(&b)),
-        Ipld::List(l) => Value::Array(l.into_iter().map(ipld_into_json_value).collect()),
-        Ipld::Map(m) => Value::Object(serde_json::Map::from_iter(
-            m.into_iter().map(|(k, v)| (k, ipld_into_json_value(v))),
-        )),
-        Ipld::Link(c) => Value::String(c.to_string()),
-    }
-}
-
-/// Crude reverse generation
-///
-/// Does not handle base64 to bytes, and the link generation is pretty simple (object elements with
-/// key "car"). Numbers always come through as f64 (float).
-fn json_value_into_ipld(val: Value) -> Ipld {
-    match val {
-        Value::Null => Ipld::Null,
-        Value::Bool(b) => Ipld::Bool(b),
-        Value::String(s) => Ipld::String(s),
-        // TODO: handle numbers better?
-        Value::Number(v) => Ipld::Float(v.as_f64().unwrap()),
-        Value::Array(l) => Ipld::List(l.into_iter().map(json_value_into_ipld).collect()),
-        Value::Object(m) => {
-            let map: BTreeMap<String, Ipld> = BTreeMap::from_iter(m.into_iter().map(|(k, v)| {
-                if k == "car" && v.is_string() {
-                    (k, Ipld::Link(Cid::from_str(v.as_str().unwrap()).unwrap()))
-                } else {
-                    (k, json_value_into_ipld(v))
-                }
-            }));
-            Ipld::Map(map)
-        }
-    }
-}
-
 fn xrpc_required_param(request: &Request, key: &str) -> Result<String> {
     Ok(request.get_param(key).ok_or(XrpcError::BadRequest(format!(
         "require '{}' query parameter",
@@ -424,7 +378,7 @@ fn xrpc_get_handler(
             let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
             let did_doc = srv.atp_db.get_did_doc(&did)?;
             let collections: Vec<String> = srv.repo.collections(&did)?;
-            let desc = RepoDescribe {
+            let desc = com_atproto::repo::Describe {
                 name: did.to_string(), // TODO: handle?
                 did: did.to_string(),
                 didDoc: did_doc,
@@ -506,9 +460,9 @@ fn xrpc_get_repo_handler(srv: &Mutex<AtpService>, request: &Request) -> Result<V
 
 pub fn create_account(
     srv: &mut AtpService,
-    req: &AccountRequest,
+    req: &com_atproto::AccountRequest,
     create_did_plc: bool,
-) -> Result<AtpSession> {
+) -> Result<com_atproto::Session> {
     // check if account already exists (fast path, also confirmed by database schema)
     if srv.atp_db.account_exists(&req.handle, &req.email)? {
         Err(XrpcError::BadRequest(
@@ -520,7 +474,7 @@ pub fn create_account(
 
     let (did, did_doc) = if create_did_plc {
         // generate DID
-        let create_op = did::CreateOp::new(
+        let create_op = plc::CreateOp::new(
             req.handle.clone(),
             srv.config.public_url.clone(),
             &srv.pds_keypair,
@@ -576,7 +530,7 @@ fn xrpc_post_handler(
     match method {
         "com.atproto.account.create" => {
             // validate account request
-            let req: AccountRequest = rouille::input::json_input(request)
+            let req: com_atproto::AccountRequest = rouille::input::json_input(request)
                 .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
             // TODO: validate handle, email, recoverykey
             let mut srv = srv.lock().unwrap();
@@ -602,7 +556,7 @@ fn xrpc_post_handler(
             Ok(json!(sess))
         }
         "com.atproto.session.create" => {
-            let req: SessionRequest = rouille::input::json_input(request)
+            let req: com_atproto::SessionRequest = rouille::input::json_input(request)
                 .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
             let mut srv = srv.lock().unwrap();
             let keypair = srv.pds_keypair.clone();
@@ -628,7 +582,7 @@ fn xrpc_post_handler(
                 .resolve_did(&did)?
                 .expect("DID matches to a handle");
 
-            Ok(json!(AtpSession {
+            Ok(json!(com_atproto::Session {
                 did: did.to_string(),
                 name: handle,
                 accessJwt: jwt.to_string(),
@@ -653,7 +607,7 @@ fn xrpc_post_handler(
             Ok(json!({}))
         }
         "com.atproto.repo.batchWrite" => {
-            let batch: RepoBatchWriteBody = rouille::input::json_input(request)?;
+            let batch: com_atproto::repo::BatchWriteBody = rouille::input::json_input(request)?;
             // TODO: validate edits against schemas
             let did = Did::from_str(&batch.did)?;
             let mut srv = srv.lock().unwrap();
@@ -690,7 +644,7 @@ fn xrpc_post_handler(
         }
         "com.atproto.repo.createRecord" => {
             // TODO: validate edits against schemas
-            let create: RepoCreateRecord = rouille::input::json_input(request)?;
+            let create: com_atproto::repo::CreateRecord = rouille::input::json_input(request)?;
             let did = Did::from_str(&create.did)?;
             let collection = Nsid::from_str(&create.collection)?;
             let mut srv = srv.lock().unwrap();
@@ -707,7 +661,7 @@ fn xrpc_post_handler(
         }
         "com.atproto.repo.putRecord" => {
             // TODO: validate edits against schemas
-            let put: RepoPutRecord = rouille::input::json_input(request)?;
+            let put: com_atproto::repo::PutRecord = rouille::input::json_input(request)?;
             let did = Did::from_str(&put.did)?;
             let collection = Nsid::from_str(&put.collection)?;
             let tid = Tid::from_str(&put.rkey)?;
@@ -725,7 +679,7 @@ fn xrpc_post_handler(
             Ok(json!({}))
         }
         "com.atproto.repo.deleteRecord" => {
-            let delete: RepoDeleteRecord = rouille::input::json_input(request)?;
+            let delete: com_atproto::repo::DeleteRecord = rouille::input::json_input(request)?;
             let did = Did::from_str(&delete.did)?;
             let collection = Nsid::from_str(&delete.collection)?;
             let tid = Tid::from_str(&delete.rkey)?;
@@ -754,7 +708,7 @@ fn xrpc_post_handler(
         }
         // =========== app.bsky methods
         "app.bsky.actor.updateProfile" => {
-            let profile: ProfileRecord = rouille::input::json_input(request)?;
+            let profile: app_bsky::ProfileRecord = rouille::input::json_input(request)?;
             let mut srv = srv.lock().unwrap();
             let auth_did = &xrpc_check_auth_header(&mut srv, request, None)?;
             bsky_update_profile(&mut srv, auth_did, profile)?;
@@ -865,7 +819,7 @@ fn repo_view_handler(srv: &Mutex<AtpService>, did: &str, request: &Request) -> R
     let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
     let commit = srv.repo.get_commit(commit_cid)?;
     let collections: Vec<String> = srv.repo.collections(&did)?;
-    let desc = RepoDescribe {
+    let desc = com_atproto::repo::Describe {
         name: did.to_string(), // TODO
         did: did.to_string(),
         didDoc: did_doc,

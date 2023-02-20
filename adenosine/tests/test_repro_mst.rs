@@ -1,4 +1,4 @@
-use adenosine_pds::RepoStore;
+use adenosine::repo::RepoStore;
 use std::path::PathBuf;
 use std::str::FromStr;
 

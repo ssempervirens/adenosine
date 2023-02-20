@@ -15,33 +15,32 @@ repository = "https://gitlab.com/bnewbold/adenosine"
 
 [dependencies]
 # NOTE: could try 'rustls-tls' feature instead of default native TLS?
+anyhow = "1"
+async-trait = "0.1"
+base64 = "0.13"
+bs58 = "0.4"
+data-encoding = "2"
+futures = "0.3"
+ipfs-sqlite-block-store = "0.13"
+lazy_static = "1"
+libipld = { version = "0.14", features = ["dag-cbor", "derive"] }
+log = "0.4"
+multibase = "0.9"
+rand = "0.8"
+regex = "1"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
 serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
-base64 = "0.13"
-regex = "1"
-lazy_static = "1"
-data-encoding = "2"
-rand = "0.8"
+sha256 = "1"
 time = { version = "0.3", features = ["formatting"] }
+tokio = { version = "1", features = ["full"] }
+
+# crypto/auth stuff
 k256 = { version = "0.11", features = ["ecdsa"] }
 p256 = { version = "0.11", features = ["ecdsa"] }
-bs58 = "0.4"
-libipld = "0.14"
-ipfs-sqlite-block-store = "0.13"
-tokio = { version = "1", features = ["full"] }
-futures = "0.3"
-sha256 = "1"
-multibase = "0.9"
 ucan = "0.7.0-alpha.1"
-async-trait = "0.1"
 
 # for vendored iroh-car
-thiserror = "1.0"
 integer-encoding = { version = "3", features = ["tokio_async"] }
 multihash = "0.16"
-
-# uncertain about these...
-anyhow = "1"
-log = "0.4"
-env_logger = "0.7"
+thiserror = "1.0"

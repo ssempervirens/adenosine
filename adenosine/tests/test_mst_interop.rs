@@ -1,4 +1,4 @@
-use adenosine_pds::RepoStore;
+use adenosine::repo::RepoStore;
 use libipld::Cid;
 use std::collections::BTreeMap;
 use std::str::FromStr;
@@ -65,7 +65,7 @@ fn test_tricky_map() {
 fn test_trims_top() {
     // "trims top of tree on delete"
 
-    use adenosine_pds::mst::print_mst_keys;
+    use adenosine::mst::print_mst_keys;
     let mut repo = RepoStore::open_ephemeral().unwrap();
     let cid1 =
         Cid::from_str("bafyreie5cvv4h45feadgeuwhbcutmh6t2ceseocckahdoe6uat64zmz454").unwrap();
@@ -126,7 +126,7 @@ fn test_insertion() {
 fn test_higher_layers() {
     // "handles new layers that are two higher than existing"
 
-    use adenosine_pds::mst::print_mst_keys;
+    use adenosine::mst::print_mst_keys;
     let mut repo = RepoStore::open_ephemeral().unwrap();
     let cid1 =
         Cid::from_str("bafyreie5cvv4h45feadgeuwhbcutmh6t2ceseocckahdoe6uat64zmz454").unwrap();

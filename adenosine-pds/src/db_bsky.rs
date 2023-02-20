@@ -1,11 +1,9 @@
-use crate::models::*;
 /// Helper functions for doing database and repo operations relating to bluesky endpoints and
 /// records
-use crate::{
-    ipld_into_json_value, json_value_into_ipld, AtpDatabase, AtpService, Did, Result, Tid,
-    XrpcError,
-};
-use adenosine::identifiers::{AtUri, DidOrHost, Nsid};
+use crate::{AtpDatabase, AtpService, Result, XrpcError};
+use adenosine::app_bsky;
+use adenosine::identifiers::{AtUri, Did, DidOrHost, Nsid, Tid};
+use adenosine::ipld::{ipld_into_json_value, json_value_into_ipld};
 use adenosine::repo::Mutation;
 use anyhow::anyhow;
 use libipld::Cid;
@@ -61,7 +59,7 @@ pub fn bsky_mutate_db(db: &mut AtpDatabase, did: &Did, mutations: Vec<Mutation>)
 }
 
 // TODO: should probably return Result<Option<Profile>>?
-pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<Profile> {
+pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<app_bsky::Profile> {
     // first get the profile record
     let mut profile_cid: Option<Cid> = None;
     let commit_cid = match srv.repo.lookup_commit(did)? {
@@ -78,7 +76,7 @@ pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<Profile> {
     }
     let (display_name, description): (Option<String>, Option<String>) =
         if let Some(cid) = profile_cid {
-            let record: ProfileRecord =
+            let record: app_bsky::ProfileRecord =
                 serde_json::from_value(ipld_into_json_value(srv.repo.get_ipld(&cid)?))?;
             (Some(record.displayName), record.description)
         } else {
@@ -104,11 +102,11 @@ pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<Profile> {
         .conn
         .prepare_cached("SELECT COUNT(*) FROM bsky_follow WHERE subject_did = $1")?;
     let followers_count: u64 = stmt.query_row(params!(did.to_string()), |row| row.get(0))?;
-    let decl = DeclRef {
+    let decl = app_bsky::DeclRef {
         actorType: "app.bsky.system.actorUser".to_string(),
         cid: "bafyreid27zk7lbis4zw5fz4podbvbs4fc5ivwji3dmrwa6zggnj4bnd57u".to_string(),
     };
-    Ok(Profile {
+    Ok(app_bsky::Profile {
         did: did.to_string(),
         handle,
         creator: did.to_string(),
@@ -123,7 +121,11 @@ pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<Profile> {
     })
 }
 
-pub fn bsky_update_profile(srv: &mut AtpService, did: &Did, profile: ProfileRecord) -> Result<()> {
+pub fn bsky_update_profile(
+    srv: &mut AtpService,
+    did: &Did,
+    profile: app_bsky::ProfileRecord,
+) -> Result<()> {
     // get the profile record
     let mut profile_tid: Option<Tid> = None;
     let commit_cid = match srv.repo.lookup_commit(did)? {
@@ -175,7 +177,7 @@ fn feed_row(row: &rusqlite::Row) -> Result<FeedRow> {
     })
 }
 
-fn feed_row_to_item(srv: &mut AtpService, row: FeedRow) -> Result<FeedItem> {
+fn feed_row_to_item(srv: &mut AtpService, row: FeedRow) -> Result<app_bsky::FeedItem> {
     let record_ipld = srv.repo.get_ipld(&row.item_post_cid)?;
     let uri = format!(
         "at://{}/{}/{}",
@@ -198,10 +200,10 @@ fn feed_row_to_item(srv: &mut AtpService, row: FeedRow) -> Result<FeedItem> {
         .prepare_cached("SELECT COUNT(*) FROM bsky_post WHERE reply_to_parent_uri = $1")?;
     let reply_count: u64 = stmt.query_row(params!(uri), |row| row.get(0))?;
 
-    let feed_item = FeedItem {
+    let feed_item = app_bsky::FeedItem {
         uri,
         cid: row.item_post_cid.to_string(),
-        author: User {
+        author: app_bsky::User {
             did: row.item_did.to_string(),
             handle: row.item_handle,
             displayName: None, // TODO: fetch from profile (or cache)
@@ -219,8 +221,8 @@ fn feed_row_to_item(srv: &mut AtpService, row: FeedRow) -> Result<FeedItem> {
     Ok(feed_item)
 }
 
-pub fn bsky_get_timeline(srv: &mut AtpService, did: &Did) -> Result<GenericFeed> {
-    let mut feed: Vec<FeedItem> = vec![];
+pub fn bsky_get_timeline(srv: &mut AtpService, did: &Did) -> Result<app_bsky::GenericFeed> {
+    let mut feed: Vec<app_bsky::FeedItem> = vec![];
     // TODO: also handle reposts
     let rows = {
         let mut stmt = srv.atp_db
@@ -237,11 +239,11 @@ pub fn bsky_get_timeline(srv: &mut AtpService, did: &Did) -> Result<GenericFeed>
     for row in rows {
         feed.push(feed_row_to_item(srv, row)?);
     }
-    Ok(GenericFeed { feed })
+    Ok(app_bsky::GenericFeed { feed })
 }
 
-pub fn bsky_get_author_feed(srv: &mut AtpService, did: &Did) -> Result<GenericFeed> {
-    let mut feed: Vec<FeedItem> = vec![];
+pub fn bsky_get_author_feed(srv: &mut AtpService, did: &Did) -> Result<app_bsky::GenericFeed> {
+    let mut feed: Vec<app_bsky::FeedItem> = vec![];
     // TODO: also handle reposts
     let rows = {
         let mut stmt = srv.atp_db
@@ -258,7 +260,7 @@ pub fn bsky_get_author_feed(srv: &mut AtpService, did: &Did) -> Result<GenericFe
     for row in rows {
         feed.push(feed_row_to_item(srv, row)?);
     }
-    Ok(GenericFeed { feed })
+    Ok(app_bsky::GenericFeed { feed })
 }
 
 // TODO: this is a partial implementation
@@ -267,7 +269,7 @@ pub fn bsky_get_thread(
     srv: &mut AtpService,
     uri: &AtUri,
     _depth: Option<u64>,
-) -> Result<PostThread> {
+) -> Result<app_bsky::PostThread> {
     // parse the URI
     let did = match uri.repository {
         DidOrHost::Did(ref did_type, ref did_body) => {
@@ -283,7 +285,7 @@ pub fn bsky_get_thread(
         _ => Err(anyhow!("expected a record in uri: {}", uri))?,
     };
 
-    // post itself, as a FeedItem
+    // post itself, as a app_bsky::FeedItem
     let post_items = {
         let mut stmt = srv.atp_db
             .conn
@@ -320,7 +322,7 @@ pub fn bsky_get_thread(
     };
     for row in rows {
         let item = feed_row_to_item(srv, row)?;
-        children.push(ThreadItem {
+        children.push(app_bsky::ThreadItem {
             uri: item.uri,
             cid: item.cid,
             author: item.author,
@@ -339,7 +341,7 @@ pub fn bsky_get_thread(
         });
     }
 
-    let post = ThreadItem {
+    let post = app_bsky::ThreadItem {
         uri: post_item.uri,
         cid: post_item.cid,
         author: post_item.author,
@@ -354,19 +356,20 @@ pub fn bsky_get_thread(
         indexedAt: post_item.indexedAt,
         myState: None,
     };
-    Ok(PostThread { thread: post })
+    Ok(app_bsky::PostThread { thread: post })
 }
 
 #[test]
 fn test_bsky_profile() {
     use crate::{create_account, created_at_now};
+    use adenosine::com_atproto;
     use libipld::ipld;
 
     let post_nsid = Nsid::from_str("app.bsky.feed.post").unwrap();
     let follow_nsid = Nsid::from_str("app.bsky.graph.follow").unwrap();
 
     let mut srv = AtpService::new_ephemeral().unwrap();
-    let req = AccountRequest {
+    let req = com_atproto::AccountRequest {
         email: "test@bogus.com".to_string(),
         handle: "handle.test".to_string(),
         password: "bogus".to_string(),
@@ -384,7 +387,7 @@ fn test_bsky_profile() {
     assert_eq!(profile.followsCount, 0);
     assert_eq!(profile.postsCount, 0);
 
-    let record = ProfileRecord {
+    let record = app_bsky::ProfileRecord {
         displayName: "Test Name".to_string(),
         description: Some("short description".to_string()),
     };
@@ -393,7 +396,7 @@ fn test_bsky_profile() {
     assert_eq!(profile.displayName, Some(record.displayName));
     assert_eq!(profile.description, record.description);
 
-    let record = ProfileRecord {
+    let record = app_bsky::ProfileRecord {
         displayName: "New Test Name".to_string(),
         description: Some("longer description".to_string()),
     };
@@ -444,6 +447,7 @@ fn test_bsky_profile() {
 fn test_bsky_feeds() {
     // TODO: test that displayName comes through in feeds and timelines (it does not currently)
     use crate::{create_account, created_at_now};
+    use adenosine::com_atproto;
     use libipld::ipld;
 
     let post_nsid = Nsid::from_str("app.bsky.feed.post").unwrap();
@@ -453,7 +457,7 @@ fn test_bsky_feeds() {
 
     let mut srv = AtpService::new_ephemeral().unwrap();
     let alice_did = {
-        let req = AccountRequest {
+        let req = com_atproto::AccountRequest {
             email: "alice@bogus.com".to_string(),
             handle: "alice.test".to_string(),
             password: "bogus".to_string(),
@@ -464,7 +468,7 @@ fn test_bsky_feeds() {
         Did::from_str(&session.did).unwrap()
     };
     let bob_did = {
-        let req = AccountRequest {
+        let req = com_atproto::AccountRequest {
             email: "bob@bogus.com".to_string(),
             handle: "bob.test".to_string(),
             password: "bogus".to_string(),
@@ -475,7 +479,7 @@ fn test_bsky_feeds() {
         Did::from_str(&session.did).unwrap()
     };
     let carol_did = {
-        let req = AccountRequest {
+        let req = com_atproto::AccountRequest {
             email: "carol@bogus.com".to_string(),
             handle: "carol.test".to_string(),
             password: "bogus".to_string(),
@@ -672,13 +676,14 @@ fn test_bsky_feeds() {
 #[test]
 fn test_bsky_thread() {
     use crate::create_account;
+    use adenosine::com_atproto;
     use libipld::ipld;
 
     let post_nsid = Nsid::from_str("app.bsky.feed.post").unwrap();
 
     let mut srv = AtpService::new_ephemeral().unwrap();
     let alice_did = {
-        let req = AccountRequest {
+        let req = com_atproto::AccountRequest {
             email: "alice@bogus.com".to_string(),
             handle: "alice.test".to_string(),
             password: "bogus".to_string(),
@@ -689,7 +694,7 @@ fn test_bsky_thread() {
         Did::from_str(&session.did).unwrap()
     };
     let bob_did = {
-        let req = AccountRequest {
+        let req = com_atproto::AccountRequest {
             email: "bob@bogus.com".to_string(),
             handle: "bob.test".to_string(),
             password: "bogus".to_string(),
