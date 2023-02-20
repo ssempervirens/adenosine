@@ -1,3 +1,4 @@
+use adenosine::app_bsky;
 use adenosine::auth::parse_did_from_jwt;
 use adenosine::created_at_now;
 use adenosine::identifiers::*;
@@ -312,7 +313,7 @@ fn require_auth_did(opt: &Opt, xrpc_client: &mut XrpcClient) -> Result<Did> {
         xrpc_client.auth_login(handle, passwd)?;
     } else {
         return Err(anyhow!(
-            "command requires auth, but have neither token orhandle/password"
+            "command requires auth, but have neither token or handle/password"
         ));
     }
     xrpc_client.auth_did()
@@ -586,16 +587,47 @@ fn run(opt: Opt) -> Result<()> {
                 .map(|v| v.to_string())
                 .unwrap_or(require_auth_did(&opt, &mut xrpc_client)?.to_string());
             params.insert("author".to_string(), name);
-            xrpc_client.get(
+            let resp = xrpc_client.get(
                 &Nsid::from_str("app.bsky.feed.getAuthorFeed")?,
                 Some(params),
-            )?
+            )?;
+            let resp = resp.ok_or(anyhow!("expected resp from getAuthorFeed"))?;
+            if atty::is(atty::Stream::Stdout) {
+                for val in resp["feed"]
+                    .as_array()
+                    .ok_or(anyhow!("expected feed from getAuthorFeed"))?
+                    .iter()
+                {
+                    let val: serde_json::Value = val.clone();
+                    let fi: app_bsky::FeedPostView = serde_json::from_value(val)?;
+                    pretty::pp_post_view(&fi.post)?;
+                }
+                None
+            } else {
+                Some(resp)
+            }
         }
         Command::Bsky {
             cmd: BskyCommand::Timeline,
         } => {
             require_auth_did(&opt, &mut xrpc_client)?;
-            xrpc_client.get(&Nsid::from_str("app.bsky.feed.getTimeline")?, None)?
+            let resp = xrpc_client.get(&Nsid::from_str("app.bsky.feed.getTimeline")?, None)?;
+            let resp = resp.ok_or(anyhow!("expected resp from getTimeline"))?;
+            if atty::is(atty::Stream::Stdout) {
+                for val in resp["feed"]
+                    .as_array()
+                    .ok_or(anyhow!("expected feed from getTimeline"))?
+                    .iter()
+                {
+                    let val: serde_json::Value = val.clone();
+                    //print_result_json(Some(val.clone()))?;
+                    let fi: app_bsky::FeedPostView = serde_json::from_value(val)?;
+                    pretty::pp_post_view(&fi.post)?;
+                }
+                None
+            } else {
+                Some(resp)
+            }
         }
         Command::Bsky {
             cmd: BskyCommand::Notifications,

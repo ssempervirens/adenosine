@@ -6,6 +6,8 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::str::FromStr;
 
+pub mod pretty;
+
 /// Represents fields/content specified on the command line.
 ///
 /// Sort of like HTTPie. Query parameters are '==', body values (JSON) are '='. Only single-level
