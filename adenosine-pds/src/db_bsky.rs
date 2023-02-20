@@ -68,7 +68,7 @@ pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<app_bsky::Pro
     };
     let last_commit = srv.repo.get_commit(&commit_cid)?;
     let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
-    let prefix = "/app.bsky.actor.profile/";
+    let prefix = "app.bsky.actor.profile/";
     for (mst_key, cid) in full_map.iter() {
         if mst_key.starts_with(prefix) {
             profile_cid = Some(*cid);
@@ -134,10 +134,10 @@ pub fn bsky_update_profile(
     };
     let last_commit = srv.repo.get_commit(&commit_cid)?;
     let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
-    let prefix = "/app.bsky.actor.profile/";
+    let prefix = "app.bsky.actor.profile/";
     for (mst_key, _cid) in full_map.iter() {
         if mst_key.starts_with(prefix) {
-            profile_tid = Some(Tid::from_str(mst_key.split('/').nth(2).unwrap())?);
+            profile_tid = Some(Tid::from_str(mst_key.split('/').nth(1).unwrap())?);
         }
     }
     let profile_tid: Tid = profile_tid.unwrap_or(srv.tid_gen.next_tid());
@@ -532,12 +532,7 @@ fn test_bsky_feeds() {
     bsky_mutate_db(&mut srv.atp_db, &alice_did, mutations).unwrap();
 
     // bob follows alice, likes first post, reposts second, replies third
-    let alice_post3_uri = format!(
-        "at://{}/{}/{}",
-        alice_did,
-        post_nsid,
-        alice_post3_tid
-    );
+    let alice_post3_uri = format!("at://{}/{}/{}", alice_did, post_nsid, alice_post3_tid);
     let mutations = vec![
         Mutation::Create(
             follow_nsid.clone(),
@@ -593,12 +588,7 @@ fn test_bsky_feeds() {
 
     assert_eq!(
         alice_feed.feed[2].uri,
-        format!(
-            "at://{}/{}/{}",
-            alice_did,
-            post_nsid,
-            alice_post1_tid
-        )
+        format!("at://{}/{}/{}", alice_did, post_nsid, alice_post1_tid)
     );
     // TODO: CID
     assert_eq!(alice_feed.feed[2].author.did, alice_did.to_string());
@@ -633,12 +623,7 @@ fn test_bsky_feeds() {
     assert_eq!(bob_timeline.feed.len(), 3);
     assert_eq!(
         bob_timeline.feed[2].uri,
-        format!(
-            "at://{}/{}/{}",
-            alice_did,
-            post_nsid,
-            alice_post1_tid
-        )
+        format!("at://{}/{}/{}", alice_did, post_nsid, alice_post1_tid)
     );
     // TODO: CID
     assert_eq!(bob_timeline.feed[2].author.did, alice_did.to_string());
@@ -716,12 +701,7 @@ fn test_bsky_thread() {
         .mutate_repo(&alice_did, &mutations, &srv.pds_keypair)
         .unwrap();
     bsky_mutate_db(&mut srv.atp_db, &alice_did, mutations).unwrap();
-    let alice_post1_uri = format!(
-        "at://{}/{}/{}",
-        alice_did,
-        post_nsid,
-        alice_post1_tid
-    );
+    let alice_post1_uri = format!("at://{}/{}/{}", alice_did, post_nsid, alice_post1_tid);
 
     // bob likes and replies first post
     let bob_post1_tid = srv.tid_gen.next_tid();
@@ -734,12 +714,7 @@ fn test_bsky_thread() {
         .mutate_repo(&bob_did, &mutations, &srv.pds_keypair)
         .unwrap();
     bsky_mutate_db(&mut srv.atp_db, &bob_did, mutations).unwrap();
-    let bob_post1_uri = format!(
-        "at://{}/{}/{}",
-        bob_did,
-        post_nsid,
-        bob_post1_tid
-    );
+    let bob_post1_uri = format!("at://{}/{}/{}", bob_did, post_nsid, bob_post1_tid);
 
     // alice replies to bob reply
     let alice_post2_tid = srv.tid_gen.next_tid();
@@ -752,12 +727,7 @@ fn test_bsky_thread() {
         .mutate_repo(&alice_did, &mutations, &srv.pds_keypair)
         .unwrap();
     bsky_mutate_db(&mut srv.atp_db, &alice_did, mutations).unwrap();
-    let _alice_post2_uri = format!(
-        "at://{}/{}/{}",
-        alice_did,
-        post_nsid,
-        alice_post2_tid
-    );
+    let _alice_post2_uri = format!("at://{}/{}/{}", alice_did, post_nsid, alice_post2_tid);
 
     // get thread from bob's post
     // TODO: should have both parent and children

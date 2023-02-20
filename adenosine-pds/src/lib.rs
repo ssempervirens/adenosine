@@ -307,7 +307,7 @@ fn xrpc_get_handler(
             let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;
             let rkey = Tid::from_str(&xrpc_required_param(request, "rkey")?)?;
             let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
-            let key = format!("/{collection}/{rkey}");
+            let key = format!("{collection}/{rkey}");
             match srv.repo.get_atp_record(&did, &collection, &rkey) {
                 // TODO: format as JSON, not text debug
                 Ok(Some(ipld)) => Ok(ipld_into_json_value(ipld)),
@@ -336,7 +336,7 @@ fn xrpc_get_handler(
             let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
             let last_commit = srv.repo.get_commit(commit_cid)?;
             let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
-            let prefix = format!("/{collection}/");
+            let prefix = format!("{collection}/");
             for (mst_key, cid) in full_map.iter() {
                 //debug!("{}", mst_key);
                 if mst_key.starts_with(&prefix) {
@@ -844,7 +844,7 @@ fn collection_view_handler(
     let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
     let last_commit = srv.repo.get_commit(commit_cid)?;
     let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
-    let prefix = format!("/{collection}/");
+    let prefix = format!("{collection}/");
     for (mst_key, cid) in full_map.iter() {
         debug!("{}", mst_key);
         if mst_key.starts_with(&prefix) {
@@ -880,7 +880,7 @@ fn record_view_handler(
     let rkey = Tid::from_str(tid)?;
 
     let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
-    let key = format!("/{collection}/{rkey}");
+    let key = format!("{collection}/{rkey}");
     let record = match srv.repo.get_atp_record(&did, &collection, &rkey) {
         Ok(Some(ipld)) => ipld_into_json_value(ipld),
         Ok(None) => Err(anyhow!(XrpcError::NotFound(format!(

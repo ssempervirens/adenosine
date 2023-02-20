@@ -6,13 +6,16 @@
 Refactored common library code into `adenosine` crate. Will put common types,
 helpers, and probably client code and generated Lexicon code there.
 
-## Changed
+## Added
+
+- mst: interop tests with upstream `atproto` (Typescript) repository
+
+## Fixed
 
 - mst: include "empty" intermediate nodes between layers (following upstream
   behavior)
-
-## Added
-- mst: interop tests with upstream `atproto` (Typescript) repository
+- repo: MST keys should not have leading `/` before collection NSID (following
+  upstream behavior)
 
 ## [0.2.0] - 2022-12-19
 
