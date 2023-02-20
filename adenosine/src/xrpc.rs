@@ -1,11 +1,12 @@
-use crate::identifiers::Nsid;
+use crate::identifiers::{Did, Nsid};
+use crate::auth::parse_did_from_jwt;
 use anyhow::anyhow;
 pub use anyhow::Result;
 use reqwest::header;
-use serde_json::Value;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::Duration;
+use serde_json::{json, Value};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -30,26 +31,64 @@ impl FromStr for XrpcMethod {
 pub struct XrpcClient {
     http_client: reqwest::blocking::Client,
     host: String,
+    auth_token: Option<String>,
+    refresh_token: Option<String>,
 }
 
 impl XrpcClient {
     pub fn new(host: String, auth_token: Option<String>) -> Result<Self> {
-        let mut headers = header::HeaderMap::new();
-        if let Some(token) = &auth_token {
-            let mut auth_value = header::HeaderValue::from_str(&format!("Bearer {token}"))?;
-            auth_value.set_sensitive(true);
-            headers.insert(header::AUTHORIZATION, auth_value);
-        };
 
         let http_client = reqwest::blocking::Client::builder()
-            .default_headers(headers)
             .user_agent(APP_USER_AGENT)
             .timeout(Duration::from_secs(30))
             //.danger_accept_invalid_certs(true)
             .build()
             .expect("ERROR :: Could not build reqwest client");
 
-        Ok(XrpcClient { http_client, host })
+        Ok(XrpcClient { http_client, host, auth_token: auth_token.clone(), refresh_token: auth_token })
+    }
+
+    fn auth_headers(&self) -> reqwest::header::HeaderMap {
+        let mut headers = header::HeaderMap::new();
+        if let Some(token) = &self.auth_token {
+            let mut auth_value = header::HeaderValue::from_str(&format!("Bearer {token}")).expect("header formatting");
+            auth_value.set_sensitive(true);
+            headers.insert(header::AUTHORIZATION, auth_value);
+        };
+        headers
+    }
+
+    /// Creates a new session, and updates current client auth tokens with the result
+    pub fn auth_login(&mut self, handle: &str, password: &str) -> Result <()> {
+        let resp = self.post(
+            &Nsid::from_str("com.atproto.session.create")?,
+            None,
+            Some(json!({
+                "handle": handle,
+                "password": password,
+            })))?;
+        let resp = resp.ok_or(anyhow!("missing session auth info"))?;
+        self.auth_token = resp["accessJwt"].as_str().map(|s| s.to_string());
+        self.refresh_token = resp["refreshJwt"].as_str().map(|s| s.to_string());
+        Ok(())
+    }
+
+    /// Uses refresh token to update auth token
+    pub fn auth_refresh(&mut self) -> Result<()> {
+        self.auth_token = self.refresh_token.clone();
+        let resp = self.post(&Nsid::from_str("com.atproto.session.refresh")?, None, None)?;
+        let resp = resp.ok_or(anyhow!("missing session auth info"))?;
+        self.auth_token = resp["accessJwt"].as_str().map(|s| s.to_string());
+        self.refresh_token = resp["refreshJwt"].as_str().map(|s| s.to_string());
+        Ok(())
+    }
+
+    pub fn auth_did(&self) -> Result<Did> {
+        if let Some(token) = &self.auth_token {
+            return Did::from_str(&parse_did_from_jwt(&token)?)
+        } else {
+            Err(anyhow!("no auth token configured"))
+        }
     }
 
     pub fn get(
@@ -62,6 +101,7 @@ impl XrpcClient {
         let res = self
             .http_client
             .get(format!("{}/xrpc/{nsid}", self.host))
+            .headers(self.auth_headers())
             .query(&params)
             .send()?;
         // TODO: refactor this error handling stuff into single method
@@ -92,6 +132,7 @@ impl XrpcClient {
         let res = self
             .http_client
             .get(format!("{}/xrpc/{}", self.host, nsid))
+            .headers(self.auth_headers())
             .query(&params)
             .send()?;
         if res.status() == 400 {
@@ -127,6 +168,7 @@ impl XrpcClient {
         let mut req = self
             .http_client
             .post(format!("{}/xrpc/{}", self.host, nsid))
+            .headers(self.auth_headers())
             .query(&params);
         req = if let Some(b) = body {
             req.json(&b)
@@ -167,6 +209,7 @@ impl XrpcClient {
         let res = self
             .http_client
             .post(format!("{}/xrpc/{}", self.host, nsid))
+            .headers(self.auth_headers())
             .query(&params)
             .header(reqwest::header::CONTENT_TYPE, "application/cbor")
             .body(buf)
@@ -181,6 +224,4 @@ impl XrpcClient {
         let res = res.error_for_status()?;
         Ok(res.json()?)
     }
-
-    //  reqwest::blocking::Body
 }
