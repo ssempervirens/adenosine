@@ -474,13 +474,13 @@ fn run(opt: Opt) -> Result<()> {
             ref nsid,
             ref fields,
         } => {
-            update_params_from_fields(&fields, &mut params);
+            update_params_from_fields(fields, &mut params);
             let body = value_from_fields(fields.clone());
             match method {
-                XrpcMethod::Get => xrpc_client.get(&nsid, Some(params))?,
+                XrpcMethod::Get => xrpc_client.get(nsid, Some(params))?,
                 XrpcMethod::Post => {
                     require_auth_did(&opt, &mut xrpc_client)?;
-                    xrpc_client.post(&nsid, Some(params), Some(body))?
+                    xrpc_client.post(nsid, Some(params), Some(body))?
                 }
             }
         }
@@ -696,7 +696,7 @@ fn run(opt: Opt) -> Result<()> {
                 .as_ref()
                 .map(|v| v.to_string())
                 .unwrap_or(require_auth_did(&opt, &mut xrpc_client)?.to_string());
-            params.insert("actor".to_string(), name.to_string());
+            params.insert("actor".to_string(), name);
             xrpc_client.get(&Nsid::from_str("app.bsky.actor.getProfile")?, Some(params))?
         }
         Command::Bsky {

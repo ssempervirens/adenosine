@@ -1,12 +1,12 @@
-use crate::identifiers::{Did, Nsid};
 use crate::auth::parse_did_from_jwt;
+use crate::identifiers::{Did, Nsid};
 use anyhow::anyhow;
 pub use anyhow::Result;
 use reqwest::header;
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::Duration;
-use serde_json::{json, Value};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -37,7 +37,6 @@ pub struct XrpcClient {
 
 impl XrpcClient {
     pub fn new(host: String, auth_token: Option<String>) -> Result<Self> {
-
         let http_client = reqwest::blocking::Client::builder()
             .user_agent(APP_USER_AGENT)
             .timeout(Duration::from_secs(30))
@@ -45,13 +44,19 @@ impl XrpcClient {
             .build()
             .expect("ERROR :: Could not build reqwest client");
 
-        Ok(XrpcClient { http_client, host, auth_token: auth_token.clone(), refresh_token: auth_token })
+        Ok(XrpcClient {
+            http_client,
+            host,
+            auth_token: auth_token.clone(),
+            refresh_token: auth_token,
+        })
     }
 
     fn auth_headers(&self) -> reqwest::header::HeaderMap {
         let mut headers = header::HeaderMap::new();
         if let Some(token) = &self.auth_token {
-            let mut auth_value = header::HeaderValue::from_str(&format!("Bearer {token}")).expect("header formatting");
+            let mut auth_value = header::HeaderValue::from_str(&format!("Bearer {token}"))
+                .expect("header formatting");
             auth_value.set_sensitive(true);
             headers.insert(header::AUTHORIZATION, auth_value);
         };
@@ -59,14 +64,15 @@ impl XrpcClient {
     }
 
     /// Creates a new session, and updates current client auth tokens with the result
-    pub fn auth_login(&mut self, handle: &str, password: &str) -> Result <()> {
+    pub fn auth_login(&mut self, handle: &str, password: &str) -> Result<()> {
         let resp = self.post(
             &Nsid::from_str("com.atproto.session.create")?,
             None,
             Some(json!({
                 "handle": handle,
                 "password": password,
-            })))?;
+            })),
+        )?;
         let resp = resp.ok_or(anyhow!("missing session auth info"))?;
         self.auth_token = resp["accessJwt"].as_str().map(|s| s.to_string());
         self.refresh_token = resp["refreshJwt"].as_str().map(|s| s.to_string());
@@ -85,7 +91,7 @@ impl XrpcClient {
 
     pub fn auth_did(&self) -> Result<Did> {
         if let Some(token) = &self.auth_token {
-            return Did::from_str(&parse_did_from_jwt(&token)?)
+            Did::from_str(&parse_did_from_jwt(token)?)
         } else {
             Err(anyhow!("no auth token configured"))
         }
