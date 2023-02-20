@@ -306,7 +306,7 @@ fn print_result_json(result: Option<Value>) -> Result<()> {
 /// Returns DID passed from session token if auth was successful, otherwise an Error.
 fn require_auth_did(opt: &Opt, xrpc_client: &mut XrpcClient) -> Result<Did> {
     if opt.auth_token.is_some() {
-        // TODO: currently clobbers session
+        // TODO: currently would session (old refresh gets deleted)
         //xrpc_client.auth_refresh()?;
     } else if let (Some(handle), Some(passwd)) = (&opt.auth_handle, &opt.auth_password) {
         xrpc_client.auth_login(handle, passwd)?;
@@ -341,11 +341,11 @@ fn run(opt: Opt) -> Result<()> {
             // TODO: account username, did, etc
             None
         }
-        Command::Describe { name } => {
+        Command::Describe { ref name } => {
             let name = name
+                .as_ref()
                 .map(|v| v.to_string())
-                .or(jwt_did)
-                .ok_or(anyhow!("expected a name, or self via auth token"))?;
+                .unwrap_or(require_auth_did(&opt, &mut xrpc_client)?.to_string());
             params.insert("user".to_string(), name);
             xrpc_client.get(&Nsid::from_str("com.atproto.repo.describe")?, Some(params))?
         }
@@ -579,12 +579,12 @@ fn run(opt: Opt) -> Result<()> {
             )?
         }
         Command::Bsky {
-            cmd: BskyCommand::Feed { name },
+            cmd: BskyCommand::Feed { ref name },
         } => {
-            // TODO: not expect here
             let name = name
+                .as_ref()
                 .map(|v| v.to_string())
-                .unwrap_or(jwt_did.expect("feed name or logged in"));
+                .unwrap_or(require_auth_did(&opt, &mut xrpc_client)?.to_string());
             params.insert("author".to_string(), name);
             xrpc_client.get(
                 &Nsid::from_str("app.bsky.feed.getAuthorFeed")?,
@@ -601,7 +601,7 @@ fn run(opt: Opt) -> Result<()> {
             cmd: BskyCommand::Notifications,
         } => {
             require_auth_did(&opt, &mut xrpc_client)?;
-            xrpc_client.get(&Nsid::from_str("app.bsky.notifications.get")?, None)?
+            xrpc_client.get(&Nsid::from_str("app.bsky.notification.list")?, None)?
         }
         Command::Bsky {
             cmd: BskyCommand::Post { ref text },
@@ -640,15 +640,33 @@ fn run(opt: Opt) -> Result<()> {
         Command::Bsky {
             cmd: BskyCommand::Like { ref uri },
         } => {
-            require_auth_did(&opt, &mut xrpc_client)?;
+            let did = require_auth_did(&opt, &mut xrpc_client)?;
+            params.insert("user".to_string(), uri.repository.to_string());
+            params.insert(
+                "collection".to_string(),
+                uri.collection
+                    .clone()
+                    .ok_or(anyhow!("collection required"))?,
+            );
+            params.insert(
+                "rkey".to_string(),
+                uri.record.clone().ok_or(anyhow!("record key required"))?,
+            );
+            let existing =
+                xrpc_client.get(&Nsid::from_str("com.atproto.repo.getRecord")?, Some(params))?;
+            let existing = existing.ok_or(anyhow!("expected record in reponse"))?;
+            let cid = existing["cid"]
+                .as_str()
+                .ok_or(anyhow!("expected 'cid' in record response"))?;
             xrpc_client.post(
                 &Nsid::from_str("com.atproto.repo.createRecord")?,
                 None,
                 Some(json!({
-                    "did": jwt_did.ok_or(anyhow!("need auth token"))?,
-                    "collection": "app.bsky.feed.like",
+                    "did": did,
+                    "collection": "app.bsky.feed.vote",
                     "record": {
-                        "subject": { "uri": uri.to_string(), "cid": "TODO" },
+                        "subject": { "uri": uri.to_string(), "cid": cid },
+                        "direction": "up",
                         "createdAt": created_at_now(),
                     },
                 })),
@@ -657,12 +675,12 @@ fn run(opt: Opt) -> Result<()> {
         Command::Bsky {
             cmd: BskyCommand::Follow { ref uri },
         } => {
-            require_auth_did(&opt, &mut xrpc_client)?;
+            let did = require_auth_did(&opt, &mut xrpc_client)?;
             xrpc_client.post(
                 &Nsid::from_str("com.atproto.repo.createRecord")?,
                 None,
                 Some(json!({
-                    "did": jwt_did.ok_or(anyhow!("need auth token"))?,
+                    "did": did,
                     "collection": "app.bsky.graph.follow",
                     "record": {
                         "subject": { "did": uri.to_string() },
@@ -672,13 +690,13 @@ fn run(opt: Opt) -> Result<()> {
             )?
         }
         Command::Bsky {
-            cmd: BskyCommand::Profile { name },
+            cmd: BskyCommand::Profile { ref name },
         } => {
             let name = name
+                .as_ref()
                 .map(|v| v.to_string())
-                .or(jwt_did)
-                .ok_or(anyhow!("expected a name, or self via auth token"))?;
-            params.insert("actor".to_string(), name);
+                .unwrap_or(require_auth_did(&opt, &mut xrpc_client)?.to_string());
+            params.insert("actor".to_string(), name.to_string());
             xrpc_client.get(&Nsid::from_str("app.bsky.actor.getProfile")?, Some(params))?
         }
         Command::Bsky {
