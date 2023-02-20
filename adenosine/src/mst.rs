@@ -110,7 +110,7 @@ pub fn dump_mst_keys(db_path: &PathBuf) -> Result<()> {
     // print all the aliases
     for (alias, commit_cid) in all_aliases.iter() {
         let did = String::from_utf8_lossy(alias);
-        println!("{} -> {}", did, commit_cid);
+        println!("{did} -> {commit_cid}");
     }
 
     let (did, commit_cid) = all_aliases[0].clone();
@@ -146,7 +146,7 @@ pub fn dump_mst_keys(db_path: &PathBuf) -> Result<()> {
     debug!("MST root node: {:?}", mst_node);
     debug!("============");
 
-    println!("{}", did);
+    println!("{did}");
     print_mst_keys(&mut db, &root.data)?;
     Ok(())
 }
@@ -389,7 +389,7 @@ fn test_mst_node_cbor() {
         }],
     };
     let block = Block::<DefaultParams>::encode(DagCborCodec, Code::Sha2_256, &node).unwrap();
-    println!("{:?}", block);
+    println!("{block:?}");
     //assert_eq!(1, 2);
     let cid = *block.cid();
     assert_eq!(

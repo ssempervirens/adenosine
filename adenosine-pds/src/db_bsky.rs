@@ -273,7 +273,7 @@ pub fn bsky_get_thread(
     // parse the URI
     let did = match uri.repository {
         DidOrHost::Did(ref did_type, ref did_body) => {
-            Did::from_str(&format!("did:{}:{}", did_type, did_body))?
+            Did::from_str(&format!("did:{did_type}:{did_body}"))?
         }
         _ => Err(anyhow!("expected a DID, not handle, in uri: {}", uri))?,
     };
@@ -412,7 +412,7 @@ fn test_bsky_profile() {
             ipld!({"subject": {"did": session.did}, "createdAt": created_at_now()}),
         ),
         Mutation::Create(
-            follow_nsid.clone(),
+            follow_nsid,
             srv.tid_gen.next_tid(),
             ipld!({"subject": {"did": "did:web:external.domain"}, "createdAt": created_at_now()}),
         ),
@@ -427,7 +427,7 @@ fn test_bsky_profile() {
             ipld!({"text": "second post"}),
         ),
         Mutation::Create(
-            post_nsid.clone(),
+            post_nsid,
             srv.tid_gen.next_tid(),
             ipld!({"text": "third post"}),
         ),
@@ -534,9 +534,9 @@ fn test_bsky_feeds() {
     // bob follows alice, likes first post, reposts second, replies third
     let alice_post3_uri = format!(
         "at://{}/{}/{}",
-        alice_did.to_string(),
-        post_nsid.to_string(),
-        alice_post3_tid.to_string()
+        alice_did,
+        post_nsid,
+        alice_post3_tid
     );
     let mutations = vec![
         Mutation::Create(
@@ -545,19 +545,19 @@ fn test_bsky_feeds() {
             ipld!({"subject": {"did": alice_did.to_string()}, "createdAt": created_at_now()}),
         ),
         Mutation::Create(
-            like_nsid.clone(),
+            like_nsid,
             srv.tid_gen.next_tid(),
-            ipld!({"subject": {"uri": format!("at://{}/{}/{}", alice_did.to_string(), post_nsid.to_string(), alice_post1_tid.to_string())}, "createdAt": created_at_now()}),
+            ipld!({"subject": {"uri": format!("at://{}/{}/{}", alice_did, post_nsid, alice_post1_tid)}, "createdAt": created_at_now()}),
         ),
         Mutation::Create(
-            repost_nsid.clone(),
+            repost_nsid,
             srv.tid_gen.next_tid(),
-            ipld!({"subject": {"uri": format!("at://{}/{}/{}", alice_did.to_string(), post_nsid.to_string(), alice_post2_tid.to_string())}, "createdAt": created_at_now()}),
+            ipld!({"subject": {"uri": format!("at://{}/{}/{}", alice_did, post_nsid, alice_post2_tid)}, "createdAt": created_at_now()}),
         ),
         Mutation::Create(
             post_nsid.clone(),
             srv.tid_gen.next_tid(),
-            ipld!({"text": "bob comment on alice post3", "reply": {"parent": {"uri": alice_post3_uri.clone()}, "root": {"uri": alice_post3_uri.clone()}}}),
+            ipld!({"text": "bob comment on alice post3", "reply": {"parent": {"uri": alice_post3_uri.clone()}, "root": {"uri": alice_post3_uri}}}),
         ),
     ];
     srv.repo
@@ -567,7 +567,7 @@ fn test_bsky_feeds() {
 
     // carol follows bob
     let mutations = vec![Mutation::Create(
-        follow_nsid.clone(),
+        follow_nsid,
         srv.tid_gen.next_tid(),
         ipld!({"subject": {"did": bob_did.to_string()}, "createdAt": created_at_now()}),
     )];
@@ -584,7 +584,7 @@ fn test_bsky_feeds() {
 
     // test alice timeline: still empty (?)
     let alice_timeline = bsky_get_timeline(&mut srv, &alice_did).unwrap();
-    println!("{:?}", alice_timeline);
+    println!("{alice_timeline:?}");
     assert!(alice_timeline.feed.is_empty());
 
     // test alice feed: should have 3 posts, with correct counts
@@ -595,9 +595,9 @@ fn test_bsky_feeds() {
         alice_feed.feed[2].uri,
         format!(
             "at://{}/{}/{}",
-            alice_did.to_string(),
-            post_nsid.to_string(),
-            alice_post1_tid.to_string()
+            alice_did,
+            post_nsid,
+            alice_post1_tid
         )
     );
     // TODO: CID
@@ -628,16 +628,16 @@ fn test_bsky_feeds() {
     let bob_timeline = bsky_get_timeline(&mut srv, &bob_did).unwrap();
     println!("BOB TIMELINE ======");
     for item in bob_timeline.feed.iter() {
-        println!("{:?}", item);
+        println!("{item:?}");
     }
     assert_eq!(bob_timeline.feed.len(), 3);
     assert_eq!(
         bob_timeline.feed[2].uri,
         format!(
             "at://{}/{}/{}",
-            alice_did.to_string(),
-            post_nsid.to_string(),
-            alice_post1_tid.to_string()
+            alice_did,
+            post_nsid,
+            alice_post1_tid
         )
     );
     // TODO: CID
@@ -718,9 +718,9 @@ fn test_bsky_thread() {
     bsky_mutate_db(&mut srv.atp_db, &alice_did, mutations).unwrap();
     let alice_post1_uri = format!(
         "at://{}/{}/{}",
-        alice_did.to_string(),
-        post_nsid.to_string(),
-        alice_post1_tid.to_string()
+        alice_did,
+        post_nsid,
+        alice_post1_tid
     );
 
     // bob likes and replies first post
@@ -736,9 +736,9 @@ fn test_bsky_thread() {
     bsky_mutate_db(&mut srv.atp_db, &bob_did, mutations).unwrap();
     let bob_post1_uri = format!(
         "at://{}/{}/{}",
-        bob_did.to_string(),
-        post_nsid.to_string(),
-        bob_post1_tid.to_string()
+        bob_did,
+        post_nsid,
+        bob_post1_tid
     );
 
     // alice replies to bob reply
@@ -746,7 +746,7 @@ fn test_bsky_thread() {
     let mutations = vec![Mutation::Create(
         post_nsid.clone(),
         alice_post2_tid.clone(),
-        ipld!({"text": "alice second post, replying to bob comment", "reply": {"parent": {"uri": bob_post1_uri.clone()}, "root": {"uri": alice_post1_uri.clone()}}}),
+        ipld!({"text": "alice second post, replying to bob comment", "reply": {"parent": {"uri": bob_post1_uri.clone()}, "root": {"uri": alice_post1_uri}}}),
     )];
     srv.repo
         .mutate_repo(&alice_did, &mutations, &srv.pds_keypair)
@@ -754,9 +754,9 @@ fn test_bsky_thread() {
     bsky_mutate_db(&mut srv.atp_db, &alice_did, mutations).unwrap();
     let _alice_post2_uri = format!(
         "at://{}/{}/{}",
-        alice_did.to_string(),
-        post_nsid.to_string(),
-        alice_post2_tid.to_string()
+        alice_did,
+        post_nsid,
+        alice_post2_tid
     );
 
     // get thread from bob's post

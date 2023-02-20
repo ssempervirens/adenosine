@@ -40,7 +40,7 @@ impl fmt::Display for XrpcError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::BadRequest(msg) | Self::NotFound(msg) | Self::Forbidden(msg) => {
-                write!(f, "{}", msg)
+                write!(f, "{msg}")
             }
             Self::MutexPoisoned => write!(f, "service mutex poisoned"),
         }
@@ -255,8 +255,7 @@ impl AtpService {
 
 fn xrpc_required_param(request: &Request, key: &str) -> Result<String> {
     Ok(request.get_param(key).ok_or(XrpcError::BadRequest(format!(
-        "require '{}' query parameter",
-        key
+        "require '{key}' query parameter"
     )))?)
 }
 
@@ -308,13 +307,12 @@ fn xrpc_get_handler(
             let collection = Nsid::from_str(&xrpc_required_param(request, "collection")?)?;
             let rkey = Tid::from_str(&xrpc_required_param(request, "rkey")?)?;
             let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
-            let key = format!("/{}/{}", collection, rkey);
+            let key = format!("/{collection}/{rkey}");
             match srv.repo.get_atp_record(&did, &collection, &rkey) {
                 // TODO: format as JSON, not text debug
                 Ok(Some(ipld)) => Ok(ipld_into_json_value(ipld)),
                 Ok(None) => Err(anyhow!(XrpcError::NotFound(format!(
-                    "could not find record: {}",
-                    key
+                    "could not find record: {key}"
                 )))),
                 Err(e) => Err(e),
             }
@@ -325,7 +323,7 @@ fn xrpc_get_handler(
             srv.repo
                 .lookup_commit(&did)?
                 .map(|v| json!({ "root": v.to_string() }))
-                .ok_or(XrpcError::NotFound(format!("no repository found for DID: {}", did)).into())
+                .ok_or(XrpcError::NotFound(format!("no repository found for DID: {did}")).into())
         }
         "com.atproto.repo.listRecords" => {
             // TODO: limit, before, after, tid, reverse
@@ -338,13 +336,13 @@ fn xrpc_get_handler(
             let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
             let last_commit = srv.repo.get_commit(commit_cid)?;
             let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
-            let prefix = format!("/{}/", collection);
+            let prefix = format!("/{collection}/");
             for (mst_key, cid) in full_map.iter() {
                 //debug!("{}", mst_key);
                 if mst_key.starts_with(&prefix) {
                     let record = srv.repo.get_ipld(cid)?;
                     record_list.push(json!({
-                        "uri": format!("at://{}{}", did, mst_key),
+                        "uri": format!("at://{did}{mst_key}"),
                         "cid": cid.to_string(),
                         "value": ipld_into_json_value(record),
                     }));
@@ -367,8 +365,7 @@ fn xrpc_get_handler(
             match srv.atp_db.resolve_handle(&handle)? {
                 Some(did) => Ok(json!({"did": did.to_string()})),
                 None => Err(XrpcError::NotFound(format!(
-                    "could not resolve handle internally: {}",
-                    handle
+                    "could not resolve handle internally: {handle}"
                 )))?,
             }
         }
@@ -444,8 +441,7 @@ fn xrpc_get_handler(
             Ok(json!({"notifications": []}))
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
-            "XRPC endpoint handler not found: {}",
-            method
+            "XRPC endpoint handler not found: {method}"
         )))),
     }
 }
@@ -531,15 +527,14 @@ fn xrpc_post_handler(
         "com.atproto.account.create" => {
             // validate account request
             let req: com_atproto::AccountRequest = rouille::input::json_input(request)
-                .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
+                .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {e}")))?;
             // TODO: validate handle, email, recoverykey
             let mut srv = srv.lock().unwrap();
             if let Some(ref domain) = srv.config.registration_domain {
                 // TODO: better matching, should not allow arbitrary sub-domains
                 if !req.handle.ends_with(domain) {
                     Err(XrpcError::BadRequest(format!(
-                        "handle is not under registration domain ({})",
-                        domain
+                        "handle is not under registration domain ({domain})"
                     )))?;
                 }
             } else {
@@ -557,7 +552,7 @@ fn xrpc_post_handler(
         }
         "com.atproto.session.create" => {
             let req: com_atproto::SessionRequest = rouille::input::json_input(request)
-                .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {}", e)))?;
+                .map_err(|e| XrpcError::BadRequest(format!("failed to parse JSON body: {e}")))?;
             let mut srv = srv.lock().unwrap();
             let keypair = srv.pds_keypair.clone();
             Ok(json!(srv.atp_db.create_session(
@@ -721,8 +716,7 @@ fn xrpc_post_handler(
             Ok(json!({}))
         }
         _ => Err(anyhow!(XrpcError::NotFound(format!(
-            "XRPC endpoint handler not found: {}",
-            method
+            "XRPC endpoint handler not found: {method}"
         )))),
     }
 }
@@ -773,8 +767,7 @@ fn account_view_handler(
         .atp_db
         .resolve_handle(handle)?
         .ok_or(XrpcError::NotFound(format!(
-            "no DID found for handle: {}",
-            handle
+            "no DID found for handle: {handle}"
         )))?;
 
     Ok(AccountView {
@@ -799,7 +792,7 @@ fn thread_view_handler(
     let did = srv.atp_db.resolve_handle(handle)?.unwrap();
 
     // TODO: could construct URI directly
-    let uri = AtUri::from_str(&format!("at://{}/{}/{}", did, collection, tid))?;
+    let uri = AtUri::from_str(&format!("at://{did}/{collection}/{tid}"))?;
     Ok(ThreadView {
         domain: host.to_string(),
         did,
@@ -851,13 +844,13 @@ fn collection_view_handler(
     let commit_cid = &srv.repo.lookup_commit(&did)?.unwrap();
     let last_commit = srv.repo.get_commit(commit_cid)?;
     let full_map = srv.repo.mst_to_map(&last_commit.mst_cid)?;
-    let prefix = format!("/{}/", collection);
+    let prefix = format!("/{collection}/");
     for (mst_key, cid) in full_map.iter() {
         debug!("{}", mst_key);
         if mst_key.starts_with(&prefix) {
             let record = srv.repo.get_ipld(cid)?;
             record_list.push(json!({
-                "uri": format!("at://{}{}", did, mst_key),
+                "uri": format!("at://{did}{mst_key}"),
                 "tid": mst_key.split('/').nth(2).unwrap(),
                 "cid": cid,
                 "value": ipld_into_json_value(record),
@@ -887,12 +880,11 @@ fn record_view_handler(
     let rkey = Tid::from_str(tid)?;
 
     let mut srv = srv.lock().or(Err(XrpcError::MutexPoisoned))?;
-    let key = format!("/{}/{}", collection, rkey);
+    let key = format!("/{collection}/{rkey}");
     let record = match srv.repo.get_atp_record(&did, &collection, &rkey) {
         Ok(Some(ipld)) => ipld_into_json_value(ipld),
         Ok(None) => Err(anyhow!(XrpcError::NotFound(format!(
-            "could not find record: {}",
-            key
+            "could not find record: {key}"
         ))))?,
         Err(e) => Err(e)?,
     };

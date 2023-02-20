@@ -294,7 +294,7 @@ fn test_debug_did_plc() {
     let _did_plc = "did:plc:cg2dfxdh5voabmdjzw2abw3s";
 
     let digest_bytes: Vec<u8> = data_encoding::HEXLOWER
-        .decode(&sha256::digest(op_bytes).as_bytes())
+        .decode(sha256::digest(op_bytes).as_bytes())
         .expect("SHA-256 digest is always hex string");
     let digest_b32 = data_encoding::BASE32_NOPAD
         .encode(&digest_bytes)
@@ -350,7 +350,7 @@ fn test_self_verify() {
         &keypair,
         None,
     );
-    println!("{:?}", op);
+    println!("{op:?}");
     op.verify_self().unwrap();
 }
 
@@ -363,6 +363,6 @@ fn test_known_key() {
         &keypair,
         None,
     );
-    println!("{:?}", op);
+    println!("{op:?}");
     op.verify_self().unwrap();
 }

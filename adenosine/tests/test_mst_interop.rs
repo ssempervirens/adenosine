@@ -16,25 +16,25 @@ fn test_known_maps() {
     );
 
     let mut trivial_map: BTreeMap<String, Cid> = Default::default();
-    trivial_map.insert("asdf".to_string(), cid1.clone());
+    trivial_map.insert("asdf".to_string(), cid1);
     assert_eq!(
         repo.mst_from_map(&trivial_map).unwrap().to_string(),
         "bafyreidaftbr35xhh4lzmv5jcoeufqjh75ohzmz6u56v7n2ippbtxdgqqe"
     );
 
     let mut singlelayer2_map: BTreeMap<String, Cid> = Default::default();
-    singlelayer2_map.insert("com.example.record/9ba1c7247ede".to_string(), cid1.clone());
+    singlelayer2_map.insert("com.example.record/9ba1c7247ede".to_string(), cid1);
     assert_eq!(
         repo.mst_from_map(&singlelayer2_map).unwrap().to_string(),
         "bafyreid4g5smj6ukhrjasebt6myj7wmtm2eijouteoyueoqgoh6vm5jkae"
     );
 
     let mut simple_map: BTreeMap<String, Cid> = Default::default();
-    simple_map.insert("asdf".to_string(), cid1.clone());
-    simple_map.insert("88bfafc7".to_string(), cid1.clone());
-    simple_map.insert("2a92d355".to_string(), cid1.clone());
-    simple_map.insert("app.bsky.feed.post/454397e440ec".to_string(), cid1.clone());
-    simple_map.insert("app.bsky.feed.post/9adeb165882c".to_string(), cid1.clone());
+    simple_map.insert("asdf".to_string(), cid1);
+    simple_map.insert("88bfafc7".to_string(), cid1);
+    simple_map.insert("2a92d355".to_string(), cid1);
+    simple_map.insert("app.bsky.feed.post/454397e440ec".to_string(), cid1);
+    simple_map.insert("app.bsky.feed.post/9adeb165882c".to_string(), cid1);
     assert_eq!(
         repo.mst_from_map(&simple_map).unwrap().to_string(),
         "bafyreiecb33zh7r2sc3k2wthm6exwzfktof63kmajeildktqc25xj6qzx4"
@@ -50,11 +50,11 @@ fn test_tricky_map() {
         Cid::from_str("bafyreie5cvv4h45feadgeuwhbcutmh6t2ceseocckahdoe6uat64zmz454").unwrap();
 
     let mut tricky_map: BTreeMap<String, Cid> = Default::default();
-    tricky_map.insert("".to_string(), cid1.clone());
-    tricky_map.insert("jalapeño".to_string(), cid1.clone());
-    tricky_map.insert("coöperative".to_string(), cid1.clone());
-    tricky_map.insert("coüperative".to_string(), cid1.clone());
-    tricky_map.insert("abc\x00".to_string(), cid1.clone());
+    tricky_map.insert("".to_string(), cid1);
+    tricky_map.insert("jalapeño".to_string(), cid1);
+    tricky_map.insert("coöperative".to_string(), cid1);
+    tricky_map.insert("coüperative".to_string(), cid1);
+    tricky_map.insert("abc\x00".to_string(), cid1);
     assert_eq!(
         repo.mst_from_map(&tricky_map).unwrap().to_string(),
         "bafyreiecb33zh7r2sc3k2wthm6exwzfktof63kmajeildktqc25xj6qzx4"
@@ -74,12 +74,12 @@ fn test_trims_top() {
 
     // NOTE: this test doesn't do much in this case of rust implementation
     let mut trim_map: BTreeMap<String, Cid> = Default::default();
-    trim_map.insert("com.example.record/40c73105b48f".to_string(), cid1.clone()); // level 0
-    trim_map.insert("com.example.record/e99bf3ced34b".to_string(), cid1.clone()); // level 0
-    trim_map.insert("com.example.record/893e6c08b450".to_string(), cid1.clone()); // level 0
-    trim_map.insert("com.example.record/9cd8b6c0cc02".to_string(), cid1.clone()); // level 0
-    trim_map.insert("com.example.record/cbe72d33d12a".to_string(), cid1.clone()); // level 0
-    trim_map.insert("com.example.record/a15e33ba0f6c".to_string(), cid1.clone()); // level 1
+    trim_map.insert("com.example.record/40c73105b48f".to_string(), cid1); // level 0
+    trim_map.insert("com.example.record/e99bf3ced34b".to_string(), cid1); // level 0
+    trim_map.insert("com.example.record/893e6c08b450".to_string(), cid1); // level 0
+    trim_map.insert("com.example.record/9cd8b6c0cc02".to_string(), cid1); // level 0
+    trim_map.insert("com.example.record/cbe72d33d12a".to_string(), cid1); // level 0
+    trim_map.insert("com.example.record/a15e33ba0f6c".to_string(), cid1); // level 1
     let trim_before_cid = repo.mst_from_map(&trim_map).unwrap();
     print_mst_keys(&mut repo.db, &trim_before_cid).unwrap();
     assert_eq!(trim_before_cid.to_string(), l1root);
@@ -103,21 +103,21 @@ fn test_insertion() {
 
     // TODO: actual mutation instead of rebuild from scratch
     let mut insertion_map: BTreeMap<String, Cid> = Default::default();
-    insertion_map.insert("com.example.record/403e2aeebfdb".to_string(), cid1.clone()); // A; level 0
-    insertion_map.insert("com.example.record/40c73105b48f".to_string(), cid1.clone()); // B; level 0
-    insertion_map.insert("com.example.record/645787eb4316".to_string(), cid1.clone()); // C; level 0
-    insertion_map.insert("com.example.record/7ca4e61d6fbc".to_string(), cid1.clone()); // D; level 1
-    insertion_map.insert("com.example.record/893e6c08b450".to_string(), cid1.clone()); // E; level 0
-    insertion_map.insert("com.example.record/9cd8b6c0cc02".to_string(), cid1.clone()); // G; level 0
-    insertion_map.insert("com.example.record/cbe72d33d12a".to_string(), cid1.clone()); // H; level 0
-    insertion_map.insert("com.example.record/dbea731be795".to_string(), cid1.clone()); // I; level 1
-    insertion_map.insert("com.example.record/e2ef555433f2".to_string(), cid1.clone()); // J; level 0
-    insertion_map.insert("com.example.record/e99bf3ced34b".to_string(), cid1.clone()); // K; level 0
-    insertion_map.insert("com.example.record/f728ba61e4b6".to_string(), cid1.clone()); // L; level 0
+    insertion_map.insert("com.example.record/403e2aeebfdb".to_string(), cid1); // A; level 0
+    insertion_map.insert("com.example.record/40c73105b48f".to_string(), cid1); // B; level 0
+    insertion_map.insert("com.example.record/645787eb4316".to_string(), cid1); // C; level 0
+    insertion_map.insert("com.example.record/7ca4e61d6fbc".to_string(), cid1); // D; level 1
+    insertion_map.insert("com.example.record/893e6c08b450".to_string(), cid1); // E; level 0
+    insertion_map.insert("com.example.record/9cd8b6c0cc02".to_string(), cid1); // G; level 0
+    insertion_map.insert("com.example.record/cbe72d33d12a".to_string(), cid1); // H; level 0
+    insertion_map.insert("com.example.record/dbea731be795".to_string(), cid1); // I; level 1
+    insertion_map.insert("com.example.record/e2ef555433f2".to_string(), cid1); // J; level 0
+    insertion_map.insert("com.example.record/e99bf3ced34b".to_string(), cid1); // K; level 0
+    insertion_map.insert("com.example.record/f728ba61e4b6".to_string(), cid1); // L; level 0
     let insertion_before_cid = repo.mst_from_map(&insertion_map).unwrap();
     assert_eq!(insertion_before_cid.to_string(), l1root);
 
-    insertion_map.insert("com.example.record/9ba1c7247ede".to_string(), cid1.clone());
+    insertion_map.insert("com.example.record/9ba1c7247ede".to_string(), cid1);
     let insertion_after_cid = repo.mst_from_map(&insertion_map).unwrap();
     assert_eq!(insertion_after_cid.to_string(), l2root);
 }
@@ -136,17 +136,17 @@ fn test_higher_layers() {
 
     // TODO: actual mutation instead of rebuild from scratch
     let mut higher_map: BTreeMap<String, Cid> = Default::default();
-    higher_map.insert("com.example.record/403e2aeebfdb".to_string(), cid1.clone()); // A; level 0
-    higher_map.insert("com.example.record/cbe72d33d12a".to_string(), cid1.clone()); // C; level 0
+    higher_map.insert("com.example.record/403e2aeebfdb".to_string(), cid1); // A; level 0
+    higher_map.insert("com.example.record/cbe72d33d12a".to_string(), cid1); // C; level 0
     let higher_before_cid = repo.mst_from_map(&higher_map).unwrap();
     assert_eq!(higher_before_cid.to_string(), l0root);
 
-    higher_map.insert("com.example.record/9ba1c7247ede".to_string(), cid1.clone()); // B; level 2
+    higher_map.insert("com.example.record/9ba1c7247ede".to_string(), cid1); // B; level 2
     let higher_after_cid = repo.mst_from_map(&higher_map).unwrap();
     print_mst_keys(&mut repo.db, &higher_after_cid).unwrap();
     assert_eq!(higher_after_cid.to_string(), l2root);
 
-    higher_map.insert("com.example.record/fae7a851fbeb".to_string(), cid1.clone()); // D; level 1
+    higher_map.insert("com.example.record/fae7a851fbeb".to_string(), cid1); // D; level 1
     let higher_after_cid = repo.mst_from_map(&higher_map).unwrap();
     assert_eq!(higher_after_cid.to_string(), l2root2);
 }

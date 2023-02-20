@@ -235,7 +235,7 @@ fn main() -> Result<()> {
         4..=std::i8::MAX => "trace",
     };
     // hyper logging is very verbose, so crank that down even if everything else is more verbose
-    let log_filter = format!("{},hyper=error", log_level);
+    let log_filter = format!("{log_level},hyper=error");
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(log_filter))
         .format_timestamp(None)
         .init();
@@ -266,7 +266,7 @@ fn main() -> Result<()> {
             ColorChoice::Never
         });
         color_stderr.set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_bold(true))?;
-        eprintln!("Error: {:?}", err);
+        eprintln!("Error: {err:?}");
         color_stderr.set_color(&ColorSpec::new())?;
         std::process::exit(1);
     }

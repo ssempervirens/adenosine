@@ -196,7 +196,7 @@ impl RepoStore {
         } else {
             return Ok(None);
         };
-        let record_key = format!("/{}/{}", collection, tid);
+        let record_key = format!("/{collection}/{tid}");
         self.get_mst_record_by_key(&commit.mst_cid, &record_key)
     }
 
@@ -244,14 +244,14 @@ impl RepoStore {
             match m {
                 Mutation::Create(collection, tid, val) => {
                     let cid = self.put_ipld(val)?;
-                    cid_map.insert(format!("/{}/{}", collection, tid), cid);
+                    cid_map.insert(format!("/{collection}/{tid}"), cid);
                 }
                 Mutation::Update(collection, tid, val) => {
                     let cid = self.put_ipld(val)?;
-                    cid_map.insert(format!("/{}/{}", collection, tid), cid);
+                    cid_map.insert(format!("/{collection}/{tid}"), cid);
                 }
                 Mutation::Delete(collection, tid) => {
-                    cid_map.remove(&format!("/{}/{}", collection, tid));
+                    cid_map.remove(&format!("/{collection}/{tid}"));
                 }
             }
         }
@@ -378,16 +378,10 @@ fn test_repo_mst() {
         .unwrap()
         .is_none());
 
-    map.insert("/blobs/1".to_string(), blob_cid.clone());
-    map.insert("/blobs/2".to_string(), blob_cid.clone());
-    map.insert(
-        "/test.records/44444444444444".to_string(),
-        record_cid.clone(),
-    );
-    map.insert(
-        "/test.records/22222222222222".to_string(),
-        record_cid.clone(),
-    );
+    map.insert("/blobs/1".to_string(), blob_cid);
+    map.insert("/blobs/2".to_string(), blob_cid);
+    map.insert("/test.records/44444444444444".to_string(), record_cid);
+    map.insert("/test.records/22222222222222".to_string(), record_cid);
     let simple_map_cid = repo.mst_from_map(&map).unwrap();
     assert_eq!(map, repo.mst_to_map(&simple_map_cid).unwrap());
 
@@ -423,15 +417,9 @@ fn test_repo_mst() {
         )
         .unwrap()
         .is_none());
-    assert_eq!(
-        Some(simple_commit_cid.clone()),
-        repo.lookup_commit(&did).unwrap()
-    );
+    assert_eq!(Some(simple_commit_cid), repo.lookup_commit(&did).unwrap());
 
-    map.insert(
-        "/test.records/33333333333333".to_string(),
-        record_cid.clone(),
-    );
+    map.insert("/test.records/33333333333333".to_string(), record_cid);
     let simple3_map_cid = repo.mst_from_map(&map).unwrap();
     let simple3_root_cid = repo
         .write_root(meta_cid, Some(simple_commit_cid), simple3_map_cid)
@@ -459,8 +447,5 @@ fn test_repo_mst() {
     assert_eq!(commit.did, did);
     assert_eq!(commit.prev, Some(simple_commit_cid));
     assert_eq!(commit.mst_cid, simple3_map_cid);
-    assert_eq!(
-        Some(simple3_commit_cid.clone()),
-        repo.lookup_commit(&did).unwrap()
-    );
+    assert_eq!(Some(simple3_commit_cid), repo.lookup_commit(&did).unwrap());
 }

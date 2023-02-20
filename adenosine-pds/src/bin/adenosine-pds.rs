@@ -148,7 +148,7 @@ fn main() -> Result<()> {
     };
 
     // hyper logging is very verbose, so crank that down even if everything else is more verbose
-    let cli_filter = format!("{},hyper=error", log_level);
+    let cli_filter = format!("{log_level},hyper=error");
     // defer to env var config, fallback to CLI settings
     let log_filter = std::env::var("RUST_LOG").unwrap_or(cli_filter);
     pretty_env_logger::formatted_timed_builder()
@@ -174,12 +174,12 @@ fn main() -> Result<()> {
                 Some(v) => Some(v),
             };
             let public_url = match public_url {
-                None => format!("http://localhost:{}", port),
-                Some(v) if v.is_empty() => format!("http://localhost:{}", port),
+                None => format!("http://localhost:{port}"),
+                Some(v) if v.is_empty() => format!("http://localhost:{port}"),
                 Some(v) => v,
             };
             let config = AtpServiceConfig {
-                listen_host_port: format!("localhost:{}", port),
+                listen_host_port: format!("localhost:{port}"),
                 public_url,
                 registration_domain,
                 invite_code,
@@ -218,7 +218,7 @@ fn main() -> Result<()> {
                 recoveryKey: recovery_key,
             };
             let config = AtpServiceConfig {
-                public_url: public_url.unwrap_or(format!("https://{}", handle)),
+                public_url: public_url.unwrap_or(format!("https://{handle}")),
                 ..Default::default()
             };
             let keypair = KeyPair::from_hex(&pds_secret_key)?;

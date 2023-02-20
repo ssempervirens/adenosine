@@ -36,7 +36,7 @@ impl XrpcClient {
     pub fn new(host: String, auth_token: Option<String>) -> Result<Self> {
         let mut headers = header::HeaderMap::new();
         if let Some(token) = &auth_token {
-            let mut auth_value = header::HeaderValue::from_str(&format!("Bearer {}", token))?;
+            let mut auth_value = header::HeaderValue::from_str(&format!("Bearer {token}"))?;
             auth_value.set_sensitive(true);
             headers.insert(header::AUTHORIZATION, auth_value);
         };
@@ -61,7 +61,7 @@ impl XrpcClient {
         let params: HashMap<String, String> = params.unwrap_or_default();
         let res = self
             .http_client
-            .get(format!("{}/xrpc/{}", self.host, nsid))
+            .get(format!("{}/xrpc/{nsid}", self.host))
             .query(&params)
             .send()?;
         // TODO: refactor this error handling stuff into single method

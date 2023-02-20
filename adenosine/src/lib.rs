@@ -32,7 +32,7 @@ pub fn created_at_now() -> String {
 fn test_created_at_now() {
     // eg: 2022-11-22T09:20:44.123Z
     let ts = created_at_now();
-    println!("{}", ts);
+    println!("{ts}");
     assert_eq!(&ts[4..5], "-");
     assert_eq!(&ts[7..8], "-");
     assert_eq!(&ts[10..11], "T");

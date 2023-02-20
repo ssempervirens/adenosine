@@ -40,8 +40,8 @@ impl FromStr for DidOrHost {
 impl fmt::Display for DidOrHost {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Host(v) => write!(f, "{}", v),
-            Self::Did(m, v) => write!(f, "did:{}:{}", m, v),
+            Self::Host(v) => write!(f, "{v}"),
+            Self::Did(m, v) => write!(f, "did:{m}:{v}"),
         }
     }
 }
@@ -101,13 +101,13 @@ impl fmt::Display for AtUri {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "at://{}", self.repository)?;
         if let Some(ref c) = self.collection {
-            write!(f, "/{}", c)?;
+            write!(f, "/{c}")?;
         };
         if let Some(ref r) = self.record {
-            write!(f, "/{}", r)?;
+            write!(f, "/{r}")?;
         };
         if let Some(ref v) = self.fragment {
-            write!(f, "#{}", v)?;
+            write!(f, "#{v}")?;
         };
         Ok(())
     }
@@ -402,13 +402,13 @@ fn test_ticker() {
     let mut prev = ticker.next_tid();
     let mut next = ticker.next_tid();
     for _ in [0..100] {
-        println!("{} >? {}", next, prev);
+        println!("{next} >? {prev}");
         assert!(next > prev);
         prev = next;
         next = ticker.next_tid();
     }
-    println!("{}", prev);
-    assert_eq!(prev, Tid::from_str(&prev.to_string()).unwrap());
+    println!("{prev}");
+    assert_eq!(prev, Tid::from_str(&prev).unwrap());
     assert_eq!(next[13..16], prev[13..16]);
 
     let mut other_ticker = Ticker::new();
