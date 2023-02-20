@@ -4,16 +4,16 @@
 {% block main %}
 
 {% if post.parent.is_some() %}
-  {% call macro::feed_item(post.parent.as_ref().unwrap()) %}
+  {% call macro::feed_item(post.parent.as_ref().unwrap().post) %}
   <center><i>---</i></center>
 {% endif %}
 
-{% call macro::feed_item(post) %}
+{% call macro::feed_item(post.post) %}
 
 {% if post.replies.is_some() && post.replies.as_ref().unwrap().len() > 0 %}
   <center><i>--- replies ---</i></center>
   {% for item in post.replies.as_ref().unwrap() %}
-    {% call macro::feed_item(item) %}
+    {% call macro::feed_item(item.post) %}
   {% endfor %}
 {% endif %}
 

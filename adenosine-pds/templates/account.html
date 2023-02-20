@@ -32,7 +32,7 @@
 {% endif %}
 
 {% for item in feed %}
-  {% call macro::feed_item(item) %}
+  {% call macro::feed_item(item.post) %}
 {% endfor %}
 
 

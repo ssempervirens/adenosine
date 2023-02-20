@@ -59,7 +59,7 @@ pub fn bsky_mutate_db(db: &mut AtpDatabase, did: &Did, mutations: Vec<Mutation>)
 }
 
 // TODO: should probably return Result<Option<Profile>>?
-pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<app_bsky::Profile> {
+pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<app_bsky::ProfileView> {
     // first get the profile record
     let mut profile_cid: Option<Cid> = None;
     let commit_cid = match srv.repo.lookup_commit(did)? {
@@ -106,7 +106,7 @@ pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<app_bsky::Pro
         actorType: "app.bsky.system.actorUser".to_string(),
         cid: "bafyreid27zk7lbis4zw5fz4podbvbs4fc5ivwji3dmrwa6zggnj4bnd57u".to_string(),
     };
-    Ok(app_bsky::Profile {
+    Ok(app_bsky::ProfileView {
         did: did.to_string(),
         handle,
         creator: did.to_string(),
@@ -117,7 +117,7 @@ pub fn bsky_get_profile(srv: &mut AtpService, did: &Did) -> Result<app_bsky::Pro
         followsCount: follows_count,
         postsCount: post_count,
         membersCount: 0,
-        myState: json!({}),
+        viewer: json!({}),
     })
 }
 
@@ -177,8 +177,9 @@ fn feed_row(row: &rusqlite::Row) -> Result<FeedRow> {
     })
 }
 
-fn feed_row_to_item(srv: &mut AtpService, row: FeedRow) -> Result<app_bsky::FeedItem> {
+fn feed_row_to_item(srv: &mut AtpService, row: FeedRow) -> Result<app_bsky::FeedPostView> {
     let record_ipld = srv.repo.get_ipld(&row.item_post_cid)?;
+    let post_record: app_bsky::Post = serde_json::from_value(ipld_into_json_value(record_ipld))?;
     let uri = format!(
         "at://{}/{}/{}",
         row.item_did, "app.bsky.feed.post", row.item_post_tid
@@ -200,29 +201,42 @@ fn feed_row_to_item(srv: &mut AtpService, row: FeedRow) -> Result<app_bsky::Feed
         .prepare_cached("SELECT COUNT(*) FROM bsky_post WHERE reply_to_parent_uri = $1")?;
     let reply_count: u64 = stmt.query_row(params!(uri), |row| row.get(0))?;
 
-    let feed_item = app_bsky::FeedItem {
-        uri,
-        cid: row.item_post_cid.to_string(),
-        author: app_bsky::User {
-            did: row.item_did.to_string(),
-            handle: row.item_handle,
-            displayName: None, // TODO: fetch from profile (or cache)
+    let decl = app_bsky::DeclRef {
+        actorType: "app.bsky.system.actorUser".to_string(),
+        cid: "bafyreid27zk7lbis4zw5fz4podbvbs4fc5ivwji3dmrwa6zggnj4bnd57u".to_string(),
+    };
+    let feed_item = app_bsky::FeedPostView {
+        post: app_bsky::PostView {
+            uri,
+            cid: row.item_post_cid.to_string(),
+            author: app_bsky::UserView {
+                did: row.item_did.to_string(),
+                handle: row.item_handle,
+                declaration: decl,
+                // TODO:
+                displayName: None,
+                avatar: None,
+                viewer: None,
+            },
+            repostedBy: None,
+            record: post_record,
+            embed: None,
+            replyCount: reply_count,
+            repostCount: repost_count,
+            upvoteCount: like_count,
+            downvoteCount: 0,
+            indexedAt: row.indexed_at,
+            viewer: None,
         },
-        repostedBy: None,
-        record: ipld_into_json_value(record_ipld),
-        embed: None,
-        replyCount: reply_count,
-        repostCount: repost_count,
-        upvoteCount: like_count,
-        downvoteCount: 0,
-        indexedAt: row.indexed_at,
-        myState: None,
+        // TODO:
+        reason: None,
+        reply: None,
     };
     Ok(feed_item)
 }
 
 pub fn bsky_get_timeline(srv: &mut AtpService, did: &Did) -> Result<app_bsky::GenericFeed> {
-    let mut feed: Vec<app_bsky::FeedItem> = vec![];
+    let mut feed: Vec<app_bsky::FeedPostView> = vec![];
     // TODO: also handle reposts
     let rows = {
         let mut stmt = srv.atp_db
@@ -243,7 +257,7 @@ pub fn bsky_get_timeline(srv: &mut AtpService, did: &Did) -> Result<app_bsky::Ge
 }
 
 pub fn bsky_get_author_feed(srv: &mut AtpService, did: &Did) -> Result<app_bsky::GenericFeed> {
-    let mut feed: Vec<app_bsky::FeedItem> = vec![];
+    let mut feed: Vec<app_bsky::FeedPostView> = vec![];
     // TODO: also handle reposts
     let rows = {
         let mut stmt = srv.atp_db
@@ -285,7 +299,7 @@ pub fn bsky_get_thread(
         _ => Err(anyhow!("expected a record in uri: {}", uri))?,
     };
 
-    // post itself, as a app_bsky::FeedItem
+    // post itself, as a app_bsky::FeedPostView
     let post_items = {
         let mut stmt = srv.atp_db
             .conn
@@ -321,40 +335,47 @@ pub fn bsky_get_thread(
         rows
     };
     for row in rows {
-        let item = feed_row_to_item(srv, row)?;
-        children.push(app_bsky::ThreadItem {
-            uri: item.uri,
-            cid: item.cid,
-            author: item.author,
-            record: item.record,
-            embed: item.embed,
+        let item = feed_row_to_item(srv, row)?.post;
+        children.push(app_bsky::ThreadPostView {
+            post: app_bsky::PostView {
+                uri: item.uri,
+                cid: item.cid,
+                author: item.author,
+                record: item.record,
+                embed: item.embed,
+                repostedBy: None,
+                replyCount: item.replyCount,
+                upvoteCount: item.upvoteCount,
+                downvoteCount: 0,
+                repostCount: item.repostCount,
+                indexedAt: item.indexedAt,
+                viewer: None,
+            },
             // don't want a loop here
             parent: None,
-            replyCount: item.replyCount,
             // only going to depth of one here
             replies: None,
-            upvoteCount: item.upvoteCount,
-            downvoteCount: 0,
-            repostCount: item.repostCount,
-            indexedAt: item.indexedAt,
-            myState: None,
         });
     }
 
-    let post = app_bsky::ThreadItem {
-        uri: post_item.uri,
-        cid: post_item.cid,
-        author: post_item.author,
-        record: post_item.record,
-        embed: post_item.embed,
+    let pip = post_item.post;
+    let post = app_bsky::ThreadPostView {
+        post: app_bsky::PostView {
+            uri: pip.uri,
+            cid: pip.cid,
+            author: pip.author,
+            record: pip.record,
+            embed: pip.embed,
+            repostedBy: None,
+            replyCount: pip.replyCount,
+            upvoteCount: pip.upvoteCount,
+            downvoteCount: 0,
+            repostCount: pip.repostCount,
+            indexedAt: pip.indexedAt,
+            viewer: None,
+        },
         parent,
-        replyCount: post_item.replyCount,
         replies: Some(children),
-        upvoteCount: post_item.upvoteCount,
-        downvoteCount: 0,
-        repostCount: post_item.repostCount,
-        indexedAt: post_item.indexedAt,
-        myState: None,
     };
     Ok(app_bsky::PostThread { thread: post })
 }
@@ -587,32 +608,29 @@ fn test_bsky_feeds() {
     assert_eq!(alice_feed.feed.len(), 3);
 
     assert_eq!(
-        alice_feed.feed[2].uri,
+        alice_feed.feed[2].post.uri,
         format!("at://{}/{}/{}", alice_did, post_nsid, alice_post1_tid)
     );
     // TODO: CID
-    assert_eq!(alice_feed.feed[2].author.did, alice_did.to_string());
-    assert_eq!(alice_feed.feed[2].author.handle, "alice.test");
-    assert_eq!(alice_feed.feed[2].repostedBy, None);
-    assert_eq!(
-        alice_feed.feed[2].record["text"].as_str().unwrap(),
-        "alice first post"
-    );
-    assert_eq!(alice_feed.feed[2].embed, None);
-    assert_eq!(alice_feed.feed[2].replyCount, 0);
-    assert_eq!(alice_feed.feed[2].repostCount, 0);
-    assert_eq!(alice_feed.feed[2].upvoteCount, 1);
-    assert_eq!(alice_feed.feed[2].downvoteCount, 0);
+    assert_eq!(alice_feed.feed[2].post.author.did, alice_did.to_string());
+    assert_eq!(alice_feed.feed[2].post.author.handle, "alice.test");
+    assert_eq!(alice_feed.feed[2].post.repostedBy, None);
+    assert_eq!(alice_feed.feed[2].post.record.text, "alice first post");
+    assert_eq!(alice_feed.feed[2].post.embed, None);
+    assert_eq!(alice_feed.feed[2].post.replyCount, 0);
+    assert_eq!(alice_feed.feed[2].post.repostCount, 0);
+    assert_eq!(alice_feed.feed[2].post.upvoteCount, 1);
+    assert_eq!(alice_feed.feed[2].post.downvoteCount, 0);
 
-    assert_eq!(alice_feed.feed[1].author.did, alice_did.to_string());
-    assert_eq!(alice_feed.feed[1].replyCount, 0);
-    assert_eq!(alice_feed.feed[1].repostCount, 1);
-    assert_eq!(alice_feed.feed[1].upvoteCount, 0);
+    assert_eq!(alice_feed.feed[1].post.author.did, alice_did.to_string());
+    assert_eq!(alice_feed.feed[1].post.replyCount, 0);
+    assert_eq!(alice_feed.feed[1].post.repostCount, 1);
+    assert_eq!(alice_feed.feed[1].post.upvoteCount, 0);
 
-    assert_eq!(alice_feed.feed[0].author.did, alice_did.to_string());
-    assert_eq!(alice_feed.feed[0].replyCount, 1);
-    assert_eq!(alice_feed.feed[0].repostCount, 0);
-    assert_eq!(alice_feed.feed[0].upvoteCount, 0);
+    assert_eq!(alice_feed.feed[0].post.author.did, alice_did.to_string());
+    assert_eq!(alice_feed.feed[0].post.replyCount, 1);
+    assert_eq!(alice_feed.feed[0].post.repostCount, 0);
+    assert_eq!(alice_feed.feed[0].post.upvoteCount, 0);
 
     // test bob timeline: should include alice posts
     let bob_timeline = bsky_get_timeline(&mut srv, &bob_did).unwrap();
@@ -622,12 +640,12 @@ fn test_bsky_feeds() {
     }
     assert_eq!(bob_timeline.feed.len(), 3);
     assert_eq!(
-        bob_timeline.feed[2].uri,
+        bob_timeline.feed[2].post.uri,
         format!("at://{}/{}/{}", alice_did, post_nsid, alice_post1_tid)
     );
     // TODO: CID
-    assert_eq!(bob_timeline.feed[2].author.did, alice_did.to_string());
-    assert_eq!(bob_timeline.feed[2].author.handle, "alice.test");
+    assert_eq!(bob_timeline.feed[2].post.author.did, alice_did.to_string());
+    assert_eq!(bob_timeline.feed[2].post.author.handle, "alice.test");
 
     // test bob feed: should include repost and reply
     let bob_feed = bsky_get_author_feed(&mut srv, &bob_did).unwrap();
@@ -644,8 +662,8 @@ fn test_bsky_feeds() {
     // TODO: "is a repost" (check record?)
     */
 
-    assert_eq!(bob_feed.feed[0].author.did, bob_did.to_string());
-    assert_eq!(bob_feed.feed[0].author.handle, "bob.test");
+    assert_eq!(bob_feed.feed[0].post.author.did, bob_did.to_string());
+    assert_eq!(bob_feed.feed[0].post.author.handle, "bob.test");
 
     // test carol timeline: should include bob's repost and reply
     let carol_timeline = bsky_get_timeline(&mut srv, &carol_did).unwrap();
@@ -734,15 +752,15 @@ fn test_bsky_thread() {
     let post = bsky_get_thread(&mut srv, &AtUri::from_str(&bob_post1_uri).unwrap(), None)
         .unwrap()
         .thread;
-    assert_eq!(post.author.did, bob_did.to_string());
-    assert_eq!(post.author.handle, "bob.test".to_string());
-    assert_eq!(post.embed, None);
-    assert_eq!(post.replyCount, 1);
-    assert_eq!(post.repostCount, 0);
-    assert_eq!(post.upvoteCount, 0);
+    assert_eq!(post.post.author.did, bob_did.to_string());
+    assert_eq!(post.post.author.handle, "bob.test".to_string());
+    assert_eq!(post.post.embed, None);
+    assert_eq!(post.post.replyCount, 1);
+    assert_eq!(post.post.repostCount, 0);
+    assert_eq!(post.post.upvoteCount, 0);
     assert_eq!(post.replies.as_ref().unwrap().len(), 1);
 
     let post_replies = post.replies.unwrap();
-    assert_eq!(post_replies[0].author.did, alice_did.to_string());
+    assert_eq!(post_replies[0].post.author.did, alice_did.to_string());
     // TODO: root URI, etc
 }

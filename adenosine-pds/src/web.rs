@@ -29,8 +29,8 @@ pub struct AboutView {
 pub struct AccountView {
     pub domain: String,
     pub did: Did,
-    pub profile: app_bsky::Profile,
-    pub feed: Vec<app_bsky::FeedItem>,
+    pub profile: app_bsky::ProfileView,
+    pub feed: Vec<app_bsky::FeedPostView>,
 }
 
 #[derive(Template)]
@@ -40,7 +40,7 @@ pub struct ThreadView {
     pub did: Did,
     pub collection: Nsid,
     pub tid: Tid,
-    pub post: app_bsky::ThreadItem,
+    pub post: app_bsky::ThreadPostView,
 }
 
 #[derive(Template)]

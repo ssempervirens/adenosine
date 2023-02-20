@@ -8,6 +8,12 @@ pub struct Subject {
     pub cid: Option<String>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct StrongRef {
+    pub uri: String,
+    pub cid: String,
+}
+
 /// Generic over Re-post and Like
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
@@ -55,7 +61,7 @@ pub struct DeclRef {
 
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
-pub struct Profile {
+pub struct ProfileView {
     pub did: String,
     pub declaration: DeclRef,
     pub handle: String,
@@ -67,13 +73,14 @@ pub struct Profile {
     pub followsCount: u64,
     pub membersCount: u64,
     pub postsCount: u64,
-    pub myState: serde_json::Value,
+    pub viewer: serde_json::Value,
 }
 
+/// for Timeline or AuthorFeed
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct GenericFeed {
-    pub feed: Vec<FeedItem>,
+    pub feed: Vec<FeedPostView>,
 }
 
 #[allow(non_snake_case)]
@@ -86,20 +93,48 @@ pub struct User {
 
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
-pub struct FeedItem {
+pub struct UserView {
+    pub did: String,
+    pub handle: String,
+    pub declaration: DeclRef,
+    pub displayName: Option<String>,
+    pub avatar: Option<String>,
+    pub viewer: Option<Value>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct PostView {
     pub uri: String,
     pub cid: String,
-    pub author: User,
-    pub repostedBy: Option<User>,
-    pub record: Value,
-    //pub embed?: RecordEmbed | ExternalEmbed | UnknownEmbed,
-    pub embed: Option<Value>,
+    pub author: UserView,
+    pub repostedBy: Option<UserView>,
+    pub record: Post,
+    pub embed: Option<PostEmbedView>,
     pub replyCount: u64,
     pub repostCount: u64,
     pub upvoteCount: u64,
     pub downvoteCount: u64,
     pub indexedAt: String,
-    pub myState: Option<Value>,
+    pub viewer: Option<Value>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct ThreadPostView {
+    pub post: PostView,
+    // TODO: 'parent' and 'replies' should allow "NotFoundPost" for references that point to an
+    // unknown URI
+    pub parent: Option<Box<ThreadPostView>>,
+    pub replies: Option<Vec<ThreadPostView>>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct FeedPostView {
+    pub post: PostView,
+    pub reply: Option<PostReply>,
+    pub reason: Option<Value>,
 }
 
 #[allow(non_snake_case)]
@@ -107,41 +142,92 @@ pub struct FeedItem {
 pub struct Post {
     pub text: String,
     pub reply: Option<PostReply>,
+    pub entities: Option<Vec<PostEntity>>,
+    pub embed: Option<PostEmbed>,
     pub createdAt: Option<String>,
 }
 
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct PostReply {
+    // TODO: these should be StrongRef
     pub parent: Subject,
     pub root: Subject,
 }
 
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
-pub struct PostThread {
-    pub thread: ThreadItem,
+pub struct PostEntity {
+    pub index: TextSlice,
+    pub r#type: String,
+    pub value: String,
 }
 
-// TODO: 'parent' and 'replies' should allow "NotFoundPost" for references that point to an unknown
-// URI
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
-pub struct ThreadItem {
+pub struct TextSlice {
+    pub start: u64,
+    pub end: u64,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct PostEmbed {
+    pub external: Option<EmbedExternal>,
+    pub images: Option<Vec<EmbedImage>>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct PostEmbedView {
+    pub external: Option<EmbedExternalView>,
+    pub images: Option<Vec<EmbedImageView>>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct EmbedExternal {
     pub uri: String,
+    pub title: String,
+    pub description: String,
+    pub thumb: Option<Blob>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct EmbedExternalView {
+    pub uri: String,
+    pub title: String,
+    pub description: String,
+    pub thumb: Option<String>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct EmbedImage {
+    pub image: Blob,
+    pub alt: String,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct Blob {
     pub cid: String,
-    pub author: User,
-    pub record: Value,
-    //pub embed?: RecordEmbed | ExternalEmbed | UnknownEmbed,
-    pub embed: Option<Value>,
-    pub parent: Option<Box<ThreadItem>>,
-    pub replyCount: u64,
-    pub replies: Option<Vec<ThreadItem>>,
-    pub repostCount: u64,
-    pub upvoteCount: u64,
-    pub downvoteCount: u64,
-    pub indexedAt: String,
-    pub myState: Option<Value>,
+    pub mimeType: String,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct EmbedImageView {
+    pub thumb: String,
+    pub fullsize: String,
+    pub alt: String,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct PostThread {
+    pub thread: ThreadPostView,
 }
 
 #[allow(non_snake_case)]

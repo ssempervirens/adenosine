@@ -11,8 +11,8 @@
 
 <div style="float: right;">
   <a class="item_timestamp" href="/u/{{ item.author.handle }}/post/{{ item.uri|aturi_to_tid }}">
-    {% if item.record["createdAt"].as_str().is_some() %}
-      {{ item.record["createdAt"].as_str().unwrap() }}
+    {% if item.record.createdAt.is_some() %}
+      {{ item.record.createdAt.as_ref().unwrap() }}
     {% else %}
       {{ item.indexedAt }}
     {% endif %}
@@ -25,16 +25,16 @@
 {% endif %}
 <a href="/u/{{ item.author.handle }}"><span class="handle">@{{ item.author.handle }}</span></a>
 <br>
-{{ item.record["text"].as_str().unwrap() }}
+{{ item.record.text }}
 <br>
 <span class="counts">
   [<a href="#">{{ item.upvoteCount }} upvote</a> / <a href="#">{{ item.repostCount }} repost</a> / <a href="#">{{ item.replyCount }} reply</a>]
   <a href="{{ item.uri|aturi_to_path }}" class="pink">[inspect]</a>
 </span>
 
-{% if item.record.get("reply").is_some() %}
+{% if item.record.reply.is_some() %}
 <br>
-<b style="color: orange;">reply to:</b> <a href="{{ item.record["reply"]["uri"].as_str().unwrap()|aturi_to_thread_path }}">{{ item.record["reply"]["uri"] }}</a>
+<b style="color: orange;">reply to:</b> <a href="{{ item.record.reply.as_ref().unwrap().parent.uri|aturi_to_thread_path }}">{{ item.record.reply.as_ref().unwrap().parent.uri }}</a>
 {% endif %}
 
 <!-- TODO: "reposted by" -->
