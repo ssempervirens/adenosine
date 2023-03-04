@@ -278,6 +278,7 @@ impl RepoStore {
             new_mst_cid,
         )?;
         // TODO: is this how signatures are supposed to work?
+        // TODO: no, CID in bytes and sign that?
         let sig = signing_key.sign_bytes(new_root_cid.to_string().as_bytes());
         self.write_commit(did, new_root_cid, &sig)
     }
