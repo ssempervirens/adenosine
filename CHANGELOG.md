@@ -9,6 +9,7 @@ helpers, and probably client code and generated Lexicon code there.
 ## Added
 
 - mst: interop tests with upstream `atproto` (Typescript) repository
+- cli: create-invite command
 
 ## Fixed
 

@@ -57,6 +57,15 @@ struct Opt {
     )]
     auth_password: Option<String>,
 
+    /// Admin password in auth, if needed
+    #[structopt(
+        global = true,
+        long = "--admin-password",
+        env = "ATP_AUTH_ADMIN_PASSWORD",
+        hide_env_values = true
+    )]
+    admin_password: Option<String>,
+
     /// Log more messages. Pass multiple times for ever more verbosity
     ///
     /// By default, it'll only report errors. Passing `-v` one time also prints
@@ -115,12 +124,15 @@ enum AccountCommand {
     /// Fetches account metadata for the current session
     Info,
     // TODO: CreateRevocationKey or CreateDid
+    CreateInvite {
+        #[structopt(short = "-u", default_value = "1")]
+        uses: u64,
+    },
 }
 
 #[derive(StructOpt)]
 enum RepoCommand {
     /// Get the current 'root' commit for a DID
-    ///
     Root {
         /// Repository DID, or uses the current session account
         did: Option<DidOrHost>,
@@ -320,7 +332,11 @@ fn require_auth_did(opt: &Opt, xrpc_client: &mut XrpcClient) -> Result<Did> {
 }
 
 fn run(opt: Opt) -> Result<()> {
-    let mut xrpc_client = XrpcClient::new(opt.atp_host.clone(), opt.auth_token.clone())?;
+    let mut xrpc_client = XrpcClient::new(
+        opt.atp_host.clone(),
+        opt.auth_token.clone(),
+        opt.admin_password.clone(),
+    )?;
     let mut params: HashMap<String, String> = HashMap::new();
     let jwt_did: Option<String> = if let Some(ref token) = opt.auth_token {
         Some(parse_did_from_jwt(token)?)
@@ -534,6 +550,13 @@ fn run(opt: Opt) -> Result<()> {
         Command::Account {
             cmd: AccountCommand::Info,
         } => xrpc_client.get(&Nsid::from_str("com.atproto.account.get")?, None)?,
+        Command::Account {
+            cmd: AccountCommand::CreateInvite { uses },
+        } => xrpc_client.post(
+            &Nsid::from_str("com.atproto.account.createInviteCode")?,
+            None,
+            Some(json!({ "useCount": uses })),
+        )?,
         Command::Repo {
             cmd: RepoCommand::Root { did },
         } => {
