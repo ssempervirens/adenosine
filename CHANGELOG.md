@@ -17,6 +17,7 @@ helpers, and probably client code and generated Lexicon code there.
   behavior)
 - repo: MST keys should not have leading `/` before collection NSID (following
   upstream behavior)
+- ipld conversion: fix 'car' vs. 'cid' typo in special-case handling
 
 ## [0.2.0] - 2022-12-19
 

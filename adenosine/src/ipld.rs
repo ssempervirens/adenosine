@@ -24,7 +24,7 @@ pub fn ipld_into_json_value(val: Ipld) -> Value {
 /// Crude reverse generation
 ///
 /// Does not handle base64 to bytes, and the link generation is pretty simple (object elements with
-/// key "car"). Numbers always come through as f64 (float).
+/// key "cid"). Numbers always come through as f64 (float).
 pub fn json_value_into_ipld(val: Value) -> Ipld {
     match val {
         Value::Null => Ipld::Null,
@@ -35,7 +35,7 @@ pub fn json_value_into_ipld(val: Value) -> Ipld {
         Value::Array(l) => Ipld::List(l.into_iter().map(json_value_into_ipld).collect()),
         Value::Object(m) => {
             let map: BTreeMap<String, Ipld> = BTreeMap::from_iter(m.into_iter().map(|(k, v)| {
-                if k == "car" && v.is_string() {
+                if k == "cid" && v.is_string() {
                     (k, Ipld::Link(Cid::from_str(v.as_str().unwrap()).unwrap()))
                 } else {
                     (k, json_value_into_ipld(v))
