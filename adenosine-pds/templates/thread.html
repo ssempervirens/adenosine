@@ -4,16 +4,29 @@
 {% block main %}
 
 {% if post.parent.is_some() %}
-  {% call macro::feed_item(post.parent.as_ref().unwrap().post) %}
+  {% let parent = post.parent.as_ref().unwrap() %}
+  {% if parent.post.is_some() %}
+    {% call macro::feed_item(parent.post.as_ref().unwrap()) %}
+  {% else %}
+    <p>Post not found!
+  {% endif %}
   <center><i>---</i></center>
 {% endif %}
 
-{% call macro::feed_item(post.post) %}
+{% if post.post.is_some() %}
+  {% call macro::feed_item(post.post.as_ref().unwrap()) %}
+{% else %}
+  <p>Post not found!
+{% endif %}
 
 {% if post.replies.is_some() && post.replies.as_ref().unwrap().len() > 0 %}
   <center><i>--- replies ---</i></center>
   {% for item in post.replies.as_ref().unwrap() %}
-    {% call macro::feed_item(item.post) %}
+    {% if item.post.is_some() %}
+      {% call macro::feed_item(item.post.as_ref().unwrap()) %}
+    {% else %}
+      <p>Post not found!
+    {% endif %}
   {% endfor %}
 {% endif %}
 

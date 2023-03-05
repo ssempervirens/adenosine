@@ -218,7 +218,6 @@ fn feed_row_to_item(srv: &mut AtpService, row: FeedRow) -> Result<app_bsky::Feed
                 avatar: None,
                 viewer: None,
             },
-            repostedBy: None,
             record: post_record,
             embed: None,
             replyCount: reply_count,
@@ -337,45 +336,49 @@ pub fn bsky_get_thread(
     for row in rows {
         let item = feed_row_to_item(srv, row)?.post;
         children.push(app_bsky::ThreadPostView {
-            post: app_bsky::PostView {
+            post: Some(app_bsky::PostView {
                 uri: item.uri,
                 cid: item.cid,
                 author: item.author,
                 record: item.record,
                 embed: item.embed,
-                repostedBy: None,
                 replyCount: item.replyCount,
                 upvoteCount: item.upvoteCount,
                 downvoteCount: 0,
                 repostCount: item.repostCount,
                 indexedAt: item.indexedAt,
                 viewer: None,
-            },
+            }),
             // don't want a loop here
             parent: None,
             // only going to depth of one here
             replies: None,
+            // for "notfound"
+            uri: None,
+            notFound: None,
         });
     }
 
     let pip = post_item.post;
     let post = app_bsky::ThreadPostView {
-        post: app_bsky::PostView {
+        post: Some(app_bsky::PostView {
             uri: pip.uri,
             cid: pip.cid,
             author: pip.author,
             record: pip.record,
             embed: pip.embed,
-            repostedBy: None,
             replyCount: pip.replyCount,
             upvoteCount: pip.upvoteCount,
             downvoteCount: 0,
             repostCount: pip.repostCount,
             indexedAt: pip.indexedAt,
             viewer: None,
-        },
+        }),
         parent,
         replies: Some(children),
+        // for "notfound" variant
+        uri: None,
+        notFound: None,
     };
     Ok(app_bsky::PostThread { thread: post })
 }
@@ -614,7 +617,6 @@ fn test_bsky_feeds() {
     // TODO: CID
     assert_eq!(alice_feed.feed[2].post.author.did, alice_did.to_string());
     assert_eq!(alice_feed.feed[2].post.author.handle, "alice.test");
-    assert_eq!(alice_feed.feed[2].post.repostedBy, None);
     assert_eq!(alice_feed.feed[2].post.record.text, "alice first post");
     assert_eq!(alice_feed.feed[2].post.embed, None);
     assert_eq!(alice_feed.feed[2].post.replyCount, 0);
@@ -657,8 +659,6 @@ fn test_bsky_feeds() {
     // TODO: CID
     assert_eq!(bob_feed.feed[1].author.did, alice_did.to_string());
     assert_eq!(bob_feed.feed[1].author.handle, "alice.test");
-    assert_eq!(bob_feed.feed[1].repostedBy.as_ref().unwrap().did, bob_did.to_string());
-    assert_eq!(bob_feed.feed[1].repostedBy.as_ref().unwrap().handle, "bob.test");
     // TODO: "is a repost" (check record?)
     */
 
