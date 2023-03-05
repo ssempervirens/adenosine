@@ -22,6 +22,9 @@ _adenosine() {
             create)
                 cmd+="__create"
                 ;;
+            create-invite)
+                cmd+="__create__invite"
+                ;;
             delete)
                 cmd+="__delete"
                 ;;
@@ -70,6 +73,9 @@ _adenosine() {
             profile)
                 cmd+="__profile"
                 ;;
+            refresh)
+                cmd+="__refresh"
+                ;;
             register)
                 cmd+="__register"
                 ;;
@@ -107,18 +113,30 @@ _adenosine() {
 
     case "${cmd}" in
         adenosine)
-            opts=" -v -h -V  --verbose --help --version --host --auth-token --shell-completions   status ls get create update delete describe resolve xrpc account repo bsky help"
+            opts=" -v -h -V  --verbose --help --version --pds-host --auth-token --auth-handle --auth-password --admin-password --shell-completions   status ls get create update delete describe resolve xrpc account repo bsky help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -135,18 +153,69 @@ _adenosine() {
             ;;
         
         adenosine__account)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token   register delete login logout info help"
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password   register delete login refresh logout info create-invite help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        adenosine__account__create__invite)
+            opts=" -h -V -v -u  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                
+                    -u)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pds-host)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -158,18 +227,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__account__delete)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -181,18 +262,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__account__help)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -204,18 +297,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__account__info)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -227,7 +332,7 @@ _adenosine() {
             return 0
             ;;
         adenosine__account__login)
-            opts=" -h -V -v -u -p  --help --version --verbose --username --password --host --auth-token  "
+            opts=" -h -V -v -u -p  --help --version --verbose --username --password --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -250,11 +355,23 @@ _adenosine() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -266,18 +383,65 @@ _adenosine() {
             return 0
             ;;
         adenosine__account__logout)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        adenosine__account__refresh)
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                
+                --pds-host)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -289,7 +453,7 @@ _adenosine() {
             return 0
             ;;
         adenosine__account__register)
-            opts=" -h -V -v -e -u -p -r -i  --help --version --verbose --email --username --password --recovery-key --invite-code --host --auth-token  "
+            opts=" -h -V -v -e -u -p -r -i  --help --version --verbose --email --username --password --recovery-key --invite-code --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -336,11 +500,23 @@ _adenosine() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -352,18 +528,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token   feed timeline notifications post repost like follow profile search-users help"
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password   feed timeline notifications post repost like follow profile search-users help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -375,18 +563,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky__feed)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <name> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <name> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -398,18 +598,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky__follow)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <uri> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <uri> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -421,18 +633,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky__help)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -444,18 +668,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky__like)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <uri> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <uri> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -467,18 +703,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky__notifications)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -490,18 +738,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky__post)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <text> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <text> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -513,18 +773,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky__profile)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <name> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <name> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -536,18 +808,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky__repost)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <uri> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <uri> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -559,18 +843,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky__search__users)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <query> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <query> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -582,18 +878,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__bsky__timeline)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -605,18 +913,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__create)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <collection> <fields>... "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <collection> <fields>... "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -628,18 +948,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__delete)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <uri> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <uri> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -651,18 +983,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__describe)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <name> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <name> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -674,7 +1018,7 @@ _adenosine() {
             return 0
             ;;
         adenosine__get)
-            opts=" -h -V -v  --help --version --verbose --cid --host --auth-token  <uri> "
+            opts=" -h -V -v  --help --version --verbose --cid --pds-host --auth-token --auth-handle --auth-password --admin-password  <uri> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -685,11 +1029,23 @@ _adenosine() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -701,18 +1057,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__help)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -724,18 +1092,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__ls)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <uri> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <uri> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -747,18 +1127,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__repo)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token   root export import help"
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password   root export import help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -770,7 +1162,7 @@ _adenosine() {
             return 0
             ;;
         adenosine__repo__export)
-            opts=" -h -V -v  --help --version --verbose --from --host --auth-token  <did> "
+            opts=" -h -V -v  --help --version --verbose --from --pds-host --auth-token --auth-handle --auth-password --admin-password  <did> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -781,11 +1173,23 @@ _adenosine() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -797,18 +1201,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__repo__help)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -820,7 +1236,7 @@ _adenosine() {
             return 0
             ;;
         adenosine__repo__import)
-            opts=" -h -V -v  --help --version --verbose --did --host --auth-token  "
+            opts=" -h -V -v  --help --version --verbose --did --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -831,11 +1247,23 @@ _adenosine() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -847,18 +1275,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__repo__root)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <did> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <did> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -870,18 +1310,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__resolve)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <name> "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <name> "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -893,18 +1345,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__status)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -916,18 +1380,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__update)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <uri> <fields>... "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <uri> <fields>... "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -939,18 +1415,30 @@ _adenosine() {
             return 0
             ;;
         adenosine__xrpc)
-            opts=" -h -V -v  --help --version --verbose --host --auth-token  <method> <nsid> <fields>... "
+            opts=" -h -V -v  --help --version --verbose --pds-host --auth-token --auth-handle --auth-password --admin-password  <method> <nsid> <fields>... "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 
-                --host)
+                --pds-host)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --auth-token)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-handle)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --auth-password)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --admin-password)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
