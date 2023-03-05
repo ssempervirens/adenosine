@@ -160,6 +160,14 @@ enum BskyCommand {
     Feed { name: Option<DidOrHost> },
     /// Fetch timeline for currently logged-in account
     Timeline,
+    /// View post thread (parent and child replies)
+    Thread {
+        uri: AtUri,
+
+        /// How far to recurse along the parent and child reply chains
+        #[structopt(long)]
+        depth: Option<u64>,
+    },
     /// Fetch notification feed
     Notifications,
     /// Create a new 'post' record
@@ -623,7 +631,7 @@ fn run(opt: Opt) -> Result<()> {
                 {
                     let val: serde_json::Value = val.clone();
                     let fi: app_bsky::FeedPostView = serde_json::from_value(val)?;
-                    pretty::pp_post_view(&fi.post)?;
+                    pretty::pp_feed_post_view(&fi)?;
                 }
                 None
             } else {
@@ -645,8 +653,32 @@ fn run(opt: Opt) -> Result<()> {
                     let val: serde_json::Value = val.clone();
                     //print_result_json(Some(val.clone()))?;
                     let fi: app_bsky::FeedPostView = serde_json::from_value(val)?;
-                    pretty::pp_post_view(&fi.post)?;
+                    pretty::pp_feed_post_view(&fi)?;
                 }
+                None
+            } else {
+                Some(resp)
+            }
+        }
+        Command::Bsky {
+            cmd: BskyCommand::Thread { ref uri, depth },
+        } => {
+            require_auth_did(&opt, &mut xrpc_client)?;
+            params.insert("uri".to_string(), uri.to_string());
+            if let Some(d) = depth {
+                params.insert("depth".to_string(), d.to_string());
+            }
+            let resp = xrpc_client.get(
+                &Nsid::from_str("app.bsky.feed.getPostThread")?,
+                Some(params),
+            )?;
+            let resp = resp.ok_or(anyhow!("expected resp from getPostThread"))?;
+            if atty::is(atty::Stream::Stdout) {
+                resp["thread"]
+                    .as_object()
+                    .ok_or(anyhow!("expected thread from getPostThread"))?;
+                let tpv: app_bsky::ThreadPostView = serde_json::from_value(resp["thread"].clone())?;
+                pretty::pp_thread_post_view(&tpv)?;
                 None
             } else {
                 Some(resp)
@@ -678,15 +710,35 @@ fn run(opt: Opt) -> Result<()> {
         Command::Bsky {
             cmd: BskyCommand::Repost { ref uri },
         } => {
-            require_auth_did(&opt, &mut xrpc_client)?;
+            let did = require_auth_did(&opt, &mut xrpc_client)?;
+            params.insert("user".to_string(), uri.repository.to_string());
+            params.insert(
+                "collection".to_string(),
+                uri.collection
+                    .clone()
+                    .ok_or(anyhow!("collection required"))?,
+            );
+            params.insert(
+                "rkey".to_string(),
+                uri.record.clone().ok_or(anyhow!("record key required"))?,
+            );
+            let existing =
+                xrpc_client.get(&Nsid::from_str("com.atproto.repo.getRecord")?, Some(params))?;
+            let existing = existing.ok_or(anyhow!("expected record in reponse"))?;
+            let cid = existing["cid"]
+                .as_str()
+                .ok_or(anyhow!("expected 'cid' in record response"))?;
             xrpc_client.post(
                 &Nsid::from_str("com.atproto.repo.createRecord")?,
                 None,
                 Some(json!({
-                    "did": jwt_did.ok_or(anyhow!("need auth token"))?,
+                    "did": did,
                     "collection": "app.bsky.feed.repost",
                     "record": {
-                        "subject": uri.to_string(),
+                        "subject": {
+                            "uri": uri.to_string(),
+                            "cid": cid,
+                        },
                         "createdAt": created_at_now(),
                     }
                 })),
