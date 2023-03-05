@@ -1,7 +1,7 @@
 
 # CHANGELOG
 
-## [0.3.0] - UNRELEASED
+## [0.3.0] - 2023-03-04
 
 Refactored common library code into `adenosine` crate. Will put common types,
 helpers, and probably client code and generated Lexicon code there.
@@ -10,6 +10,7 @@ helpers, and probably client code and generated Lexicon code there.
 
 - mst: interop tests with upstream `atproto` (Typescript) repository
 - cli: create-invite command
+- cli: if output is terminal (tty), pretty print thread views
 
 ## Fixed
 
