@@ -6,10 +6,10 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 pub fn pp_thread_post_view(tpv: &ThreadPostView) -> Result<()> {
     // TODO: this could do better
     if let Some(parent) = &tpv.parent {
-        pp_thread_post_view(&parent)?;
+        pp_thread_post_view(parent)?;
     };
     if let Some(not_found) = &tpv.notFound {
-        if *not_found == true {
+        if *not_found {
             let mut stdout = StandardStream::stdout(ColorChoice::Always);
             stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)))?;
             writeln!(
@@ -21,11 +21,11 @@ pub fn pp_thread_post_view(tpv: &ThreadPostView) -> Result<()> {
         }
     }
     if let Some(post) = &tpv.post {
-        pp_post_view(&post)?;
+        pp_post_view(post)?;
     }
     if let Some(replies) = &tpv.replies {
         for child in replies {
-            pp_thread_post_view(&child)?;
+            pp_thread_post_view(child)?;
         }
     };
     Ok(())
