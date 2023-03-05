@@ -19,6 +19,10 @@ helpers, and probably client code and generated Lexicon code there.
   upstream behavior)
 - ipld conversion: fix 'car' vs. 'cid' typo in special-case handling
 
+## Changed
+
+- cli: `ATP_PDS_HOST` instead of `ATP_HOST`
+
 ## [0.2.0] - 2022-12-19
 
 Tracking upstream Lexicon changes. Not backwards-compatible at the CLI/PDS XRPC

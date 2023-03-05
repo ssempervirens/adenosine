@@ -24,11 +24,11 @@ struct Opt {
     /// HTTP(S) URL of Personal Data Server to connect to
     #[structopt(
         global = true,
-        long = "--host",
-        env = "ATP_HOST",
+        long = "--pds-host",
+        env = "ATP_PDS_HOST",
         default_value = "http://localhost:2583"
     )]
-    atp_host: String,
+    pds_host: String,
 
     /// Authentication session token (JWT), for operations that need it
     #[structopt(
@@ -333,7 +333,7 @@ fn require_auth_did(opt: &Opt, xrpc_client: &mut XrpcClient) -> Result<Did> {
 
 fn run(opt: Opt) -> Result<()> {
     let mut xrpc_client = XrpcClient::new(
-        opt.atp_host.clone(),
+        opt.pds_host.clone(),
         opt.auth_token.clone(),
         opt.admin_password.clone(),
     )?;
@@ -347,7 +347,7 @@ fn run(opt: Opt) -> Result<()> {
     let result = match opt.cmd {
         Command::Status => {
             println!("Configuration");
-            println!("  ATP_HOST: {}", opt.atp_host);
+            println!("  ATP_PDS_HOST: {}", opt.pds_host);
             if opt.auth_token.is_some() {
                 println!("  ATP_AUTH_TOKEN: <configured>");
             } else {

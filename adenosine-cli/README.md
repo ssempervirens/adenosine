@@ -63,15 +63,15 @@ official official [`bluesky-social/atproto`](https://github.com/bluesky-social/a
 prototype (see [local atproto dev quickstart](./../notes/atproto_quickstart.md)).
 
 
-Set the `ATP_HOST` environment variable. Then either register a test account,
+Set the `ATP_PDS_HOST` environment variable. Then either register a test account,
 or create a new session for an existing account, and save the JWT token to the
 `ATP_AUTH_TOKEN`:
 
 	# default port for bluesky-social/atproto implementation
-	export ATP_HOST=http://localhost:2583
+	export ATP_PDS_HOST=http://localhost:2583
 
 	# default port for adenosine-pds implementation
-	export ATP_HOST=http://localhost:3030
+	export ATP_PDS_HOST=http://localhost:3030
 
 	# register a new account
 	adenosine account register -u voltaire.test -p bogus -e voltaire@example.com
@@ -96,7 +96,7 @@ or create a new session for an existing account, and save the JWT token to the
 
 	export ATP_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjQxNX0.j2wcF1g9NxT_1AvYRiplNf_jtK6S81y3L38AkcBwOqY
 
-You could save the `ATP_HOST` and `ATP_AUTH_TOKEN` values in `~/.bashrc` so you
+You could save the `ATP_PDS_HOST` and `ATP_AUTH_TOKEN` values in `~/.bashrc` so you
 don't need to enter them every time.
 
 Now you can start posting and poking around:

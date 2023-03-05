@@ -6,7 +6,7 @@ just talks to the remote.
 
 config variables:
 
-    ATP_HOST: prefix, eg http://localhost:1234
+    ATP_PDS_HOST: prefix, eg http://localhost:1234
     ATP_AUTH_TOKEN: JWT string
 
 at-uri can be either a global `at://` URI string, or a user-local referene of

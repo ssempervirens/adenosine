@@ -1,15 +1,12 @@
-NAME
-====
+# NAME
 
 adenosine - command-line client for AT protocol (atproto.com)
 
-SYNOPSIS
-========
+# SYNOPSIS
 
 adenosine \[OPTIONS\] \<COMMAND\> \<ARGS\>
 
-DESCRIPTION
-===========
+# DESCRIPTION
 
 This is a simple, enthusiast-grade CLI client for the work-in-progress
 AT Protocol (atproto.com). It is an entirely \"delegated\" client, which
@@ -25,8 +22,7 @@ either at compile time or runtime (eg, dynamically fetching Lexicons).
 The Bluesky Lexicon (bsky.app) is partially supported with helper
 commands.
 
-FIELD SYNTAX
-============
+# FIELD SYNTAX
 
 Several commands accept generic key/value fields which are passed
 through as either query parameters or combined together in to a request
@@ -47,8 +43,7 @@ interpreted as a single query parameter \"limit\" with value \"25\", and
 a JSON object with keys \"title\" (string value), \"year\" (number
 value), \"tags\" (array of strings).
 
-COMMANDS
-========
+# COMMANDS
 
 **status**
 
@@ -63,8 +58,7 @@ COMMANDS
 
 > Has PDS resolve handle to a DID
 
-Generic XRPC Requests
----------------------
+## Generic XRPC Requests
 
 It is possible to construct and submit a generic XRPC request to the
 PDS, and prints any response.See field syntax section above about query
@@ -72,8 +66,7 @@ parameters and body fields. Body fields only used for \"post\" requests.
 
 **xrpc** \<\"get\"\|\"post\"\> \<nsid\> \[fields\]+
 
-Generic Record Interaction
---------------------------
+## Generic Record Interaction
 
 **ls** \<at-uri\>
 
@@ -97,8 +90,7 @@ Generic Record Interaction
 
 > Delete a single record from repository
 
-Bluesky (bsky.app)
-------------------
+## Bluesky (bsky.app)
 
 **bsky feed**
 
@@ -132,8 +124,7 @@ Bluesky (bsky.app)
 
 > Query by partial handle
 
-Account Management
-------------------
+## Account Management
 
 **account register \--email \<email\> \--password \<password\> \--handle
 \<handle\>**
@@ -150,8 +141,7 @@ Account Management
 
 > Deletes the current login session
 
-Raw Repository Management
--------------------------
+## Raw Repository Management
 
 **repo export \[did\]**
 
@@ -165,8 +155,7 @@ Raw Repository Management
 
 > Get the current \'root\' commit for a DID
 
-OPTIONS
-=======
+# OPTIONS
 
 **-h, \--help**
 
@@ -182,20 +171,19 @@ OPTIONS
 > errors. Passing \`-v\` one time also prints warnings, \`-vv\` enables
 > info logging, \`-vvv\` debug, and \`-vvvv\` trace.
 
-**\--host \<atp-host\>** \[env: ATP\_HOST\]
+**\--pds-host \<atp-host\>** \[env: ATP_PDS_HOST\]
 
-**\--auth-token \<auth-token\>** \[env: ATP\_AUTH\_TOKEN\]
+**\--auth-token \<auth-token\>** \[env: ATP_AUTH_TOKEN\]
 
-GETTING STARTED
-===============
+# GETTING STARTED
 
-To start interacting with a PDS, set the \`ATP\_HOST\` environment
+To start interacting with a PDS, set the \`ATP_PDS_HOST\` environment
 variable. Then either register a test account, or create a new session
 for an existing account, and save the JWT token to the
-\`ATP\_AUTH\_TOKEN\`:
+\`ATP_AUTH_TOKEN\`:
 
     # default port for bluesky-social/atproto implementation
-    export ATP_HOST=http://localhost:2583
+    export ATP_PDS_HOST=http://localhost:2583
 
     # register a new account
     adenosine account register -u voltaire.test -p bogus -e voltaire@example.com
@@ -220,7 +208,7 @@ for an existing account, and save the JWT token to the
 
     export ATP_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjQxNX0.j2wcF1g9NxT_1AvYRiplNf_jtK6S81y3L38AkcBwOqY
 
-You could save the \`ATP\_HOST\` and \`ATP\_AUTH\_TOKEN\` values in
+You could save the \`ATP_PDS_HOST\` and \`ATP_AUTH_TOKEN\` values in
 \`\~/.bashrc\` so you don\'t need to enter them every time.
 
 Now you can start posting and poking around:

@@ -139,19 +139,19 @@ body fields. Body fields only used for "post" requests.
 	Pass many times for more log output
 	By default, it'll only report errors. Passing `-v` one time also prints warnings, `-vv` enables info logging, `-vvv` debug, and `-vvvv` trace.
 
-*--host <atp-host>* [env: ATP_HOST]
+*--pds-host <atp-host>* [env: ATP_PDS_HOST]
 
 *--auth-token <auth-token>* [env: ATP_AUTH_TOKEN]
 
 # GETTING STARTED
 
-To start interacting with a PDS, set the `ATP_HOST` environment variable. Then
+To start interacting with a PDS, set the `ATP_PDS_HOST` environment variable. Then
 either register a test account, or create a new session for an existing
 account, and save the JWT token to the `ATP_AUTH_TOKEN`:
 
 ```
 # default port for bluesky-social/atproto implementation
-export ATP_HOST=http://localhost:2583
+export ATP_PDS_HOST=http://localhost:2583
 
 # register a new account
 adenosine account register -u voltaire.test -p bogus -e voltaire@example.com
@@ -177,7 +177,7 @@ adenosine account login -u voltaire.test -p bogus
 export ATP_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6cGxjOnlxdHVrc3ZhdG1tZ25nZDVua2t3NzVobiIsImlhdCI6MTY2Njk5NjQxNX0.j2wcF1g9NxT_1AvYRiplNf_jtK6S81y3L38AkcBwOqY
 ```
 
-You could save the `ATP_HOST` and `ATP_AUTH_TOKEN` values in `~/.bashrc` so you
+You could save the `ATP_PDS_HOST` and `ATP_AUTH_TOKEN` values in `~/.bashrc` so you
 don't need to enter them every time.
 
 Now you can start posting and poking around:
