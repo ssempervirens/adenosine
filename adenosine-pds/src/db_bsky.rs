@@ -752,15 +752,19 @@ fn test_bsky_thread() {
     let post = bsky_get_thread(&mut srv, &AtUri::from_str(&bob_post1_uri).unwrap(), None)
         .unwrap()
         .thread;
-    assert_eq!(post.post.author.did, bob_did.to_string());
-    assert_eq!(post.post.author.handle, "bob.test".to_string());
-    assert_eq!(post.post.embed, None);
-    assert_eq!(post.post.replyCount, 1);
-    assert_eq!(post.post.repostCount, 0);
-    assert_eq!(post.post.upvoteCount, 0);
+    let ppost = post.post.unwrap();
+    assert_eq!(ppost.author.did, bob_did.to_string());
+    assert_eq!(ppost.author.handle, "bob.test".to_string());
+    assert_eq!(ppost.embed, None);
+    assert_eq!(ppost.replyCount, 1);
+    assert_eq!(ppost.repostCount, 0);
+    assert_eq!(ppost.upvoteCount, 0);
     assert_eq!(post.replies.as_ref().unwrap().len(), 1);
 
     let post_replies = post.replies.unwrap();
-    assert_eq!(post_replies[0].post.author.did, alice_did.to_string());
+    assert_eq!(
+        post_replies[0].post.as_ref().unwrap().author.did,
+        alice_did.to_string()
+    );
     // TODO: root URI, etc
 }
