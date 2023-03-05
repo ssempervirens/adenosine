@@ -8,11 +8,11 @@ final prep:
 - update CHANGELOG and increment version in `adenosine-*/Cargo.toml`. `make build` to
   update `Cargo.lock`, then commit
 - `make test`, `make deb` and ensure build works and is clean
-- ensure working directory is *entirely* clean (no "Untracked files" or edits,
-  even if unrelated to code changes)
+- ensure working directory is clean (no edits, even if unrelated to code changes)
 
 push/tag/etc:
-- when project is ready to share on crates.io, do: push to crates.io: `cargo publish -p adenosine-cli`, `cargo publish -p adenosine-pds`
+- when project is ready to share on crates.io, do: push to crates.io: `cargo publish -p adenosine-cli`, `cargo publish -p adenosine-pds`, `cargo publish -p adenosine`
+    => add `--allow-dirty` if you have local "untracked" git files (and are confident!)
     => usually want to do this before git tag in case validation details come up
 - create a git tag: `git tag vX.Y.Z -a -s -u bnewbold@archive.org -m "release X.Y.Z"`
 - push git and tag: `git push`, `git push --tags`
