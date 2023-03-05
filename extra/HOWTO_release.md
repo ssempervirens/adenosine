@@ -12,9 +12,9 @@ final prep:
 
 push/tag/etc:
 - when project is ready to share on crates.io, do: push to crates.io: `cargo publish -p adenosine-cli`, `cargo publish -p adenosine-pds`, `cargo publish -p adenosine`
-    => add `--allow-dirty` if you have local "untracked" git files (and are confident!)
+    => add `--allow-dirty` if you have local "untracked" git files (and are confident!), and even `--no-verify` (if very confident!)
     => usually want to do this before git tag in case validation details come up
-- create a git tag: `git tag vX.Y.Z -a -s -u bnewbold@archive.org -m "release X.Y.Z"`
+- create a git tag: `git tag vX.Y.Z -a -s -u bnewbold@robocracy.org -m "release X.Y.Z"`
 - push git and tag: `git push`, `git push --tags`
 - `cp ./target/release/adenosine adenosine_X.Y.Z_amd64_linux`
 - `cp ./target/release/adenosine-pds adenosine-pds_X.Y.Z_amd64_linux`
