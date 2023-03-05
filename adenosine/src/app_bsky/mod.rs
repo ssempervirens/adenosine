@@ -108,7 +108,6 @@ pub struct PostView {
     pub uri: String,
     pub cid: String,
     pub author: UserView,
-    pub repostedBy: Option<UserView>,
     pub record: Post,
     pub embed: Option<PostEmbedView>,
     pub replyCount: u64,
@@ -122,9 +121,13 @@ pub struct PostView {
 #[allow(non_snake_case)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
 pub struct ThreadPostView {
-    pub post: PostView,
-    // TODO: 'parent' and 'replies' should allow "NotFoundPost" for references that point to an
-    // unknown URI
+    // TODO: doing this as the intersetion of #threadViewPost and #notFoundPost. actually it is
+    // supposed to be a union type
+    // #notFoundPost fields (uri and notFound actually required)
+    pub uri: Option<String>,
+    pub notFound: Option<bool>,
+    // #threadViewPost fields (post actually required)
+    pub post: Option<PostView>,
     pub parent: Option<Box<ThreadPostView>>,
     pub replies: Option<Vec<ThreadPostView>>,
 }
@@ -134,7 +137,15 @@ pub struct ThreadPostView {
 pub struct FeedPostView {
     pub post: PostView,
     pub reply: Option<PostReply>,
-    pub reason: Option<Value>,
+    // TODO: this could extend to other "reasons" in the future
+    pub reason: Option<RepostReason>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+pub struct RepostReason {
+    pub by: UserView,
+    pub indexedAt: String,
 }
 
 #[allow(non_snake_case)]
