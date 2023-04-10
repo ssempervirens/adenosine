@@ -30,6 +30,7 @@ impl FromStr for XrpcMethod {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct XrpcClient {
     http_client: reqwest::blocking::Client,
     host: String,
