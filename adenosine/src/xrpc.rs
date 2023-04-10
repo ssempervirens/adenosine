@@ -89,7 +89,7 @@ impl XrpcClient {
     /// Creates a new session, and updates current client auth tokens with the result
     pub fn auth_login(&mut self, identifier: &str, password: &str) -> Result<()> {
         let resp = self.post(
-            &Nsid::from_str("com.atproto.session.createSession")?,
+            &Nsid::from_str("com.atproto.server.createSession")?,
             None,
             Some(json!({
                 "identifier": identifier,
